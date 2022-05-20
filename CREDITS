@@ -1,0 +1,10 @@
+Credits
+=======
+
+This library uses a set of third party open source libraries,
+all of which are credited below. All licenses can be found in the "licenses"
+subdirectory.
+
+- CLBlast, Apache License 2.0, https://github.com/CNugteren/CLBlast
+- stb_image, Public Domain, https://github.com/nothings/stb
+- stb_image_write, Public Domain, https://github.com/nothings/stb

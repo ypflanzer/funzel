@@ -1,0 +1,82 @@
+/* 
+ * This file is part of Funzel.
+ * Copyright (c) 2022 Yannick Pflanzer.
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, version 3.
+ *
+ * This program is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+#pragma once
+
+#define CL_HPP_ENABLE_EXCEPTIONS
+#define CL_HPP_TARGET_OPENCL_VERSION 200
+#include <CL/opencl.hpp>
+#include <string>
+#include <filesystem>
+
+#include <funzel/Tensor.hpp>
+
+namespace funzel
+{
+namespace cl
+{
+
+struct CLDevice
+{
+	CLDevice() = default;
+	CLDevice(const ::cl::Context& ctx, const ::cl::Device& dev):
+		device(dev),
+		context(ctx) {}
+	
+	::cl::Device device;
+	::cl::Context context;
+};
+
+class OpenCLBackend
+{
+public:
+	static OpenCLBackend& the();
+	static void initialize();
+
+	OpenCLBackend() { initCL(); }
+
+	void initCL();
+
+	//::cl::Context& getContext() { return m_context; }
+	::cl::CommandQueue getCommandQueue(size_t idx) const;
+	CLDevice getDevice(size_t idx) const;
+
+	size_t parseArgs(const std::string& str) const;
+
+	::cl::Program buildProgram(CLDevice& device, const std::string& src, DTYPE type);
+	::cl::Kernel buildKernel(CLDevice& device, const std::string& src, DTYPE type);
+
+	//size_t getLocalWorkgroup() const { return m_maxLocalWorkgroup; }
+
+	::cl::Kernel queryCache(const std::string& name, CLDevice device);
+	void updateCache(const std::string& name, const ::cl::Device& device, ::cl::Program prog, ::cl::Kernel k);
+	void clearCache();
+	void preloadCache();
+
+	std::filesystem::path getCacheDirectory() const;
+
+	static std::filesystem::path findCacheDirectory();
+
+private:
+	std::filesystem::path m_cacheDirectory;
+	std::unordered_map<std::string, ::cl::Kernel> m_deviceKernels;
+	
+	std::vector<CLDevice> m_devices;
+	//::cl::Context m_context;
+};
+
+}
+}

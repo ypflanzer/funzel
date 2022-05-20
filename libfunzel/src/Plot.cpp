@@ -1,0 +1,112 @@
+#include "funzel/Image.hpp"
+#include <funzel/Plot.hpp>
+
+using namespace funzel;
+
+class Plot1D : public Subplot
+{
+public:
+	void serialize(std::ostream& out, unsigned int index) const override
+	{
+		const auto& t = data();
+		AssertExcept(t.shape.size() == 1 || t.shape.size() == 2, "Expected linear data.");
+
+		out << "$data" << index << " <<EOD\n";
+		if(t.shape.size() == 1)
+		{
+			for(size_t i = 0; i < t.shape[0]; i++)
+			{
+				out << i << " " << t[i].item<double>() << "\n";
+			}
+		}
+		else
+		{
+			for(size_t i = 0; i < t.shape[0]; i++)
+			{
+				out << t[i][0].item<double>() << " " << t[i][1].item<double>() << "\n";
+			}
+		}
+		out << "EOD\n";
+		out << (index > 0 ? "re" : "") << "plot $data" << index << " w " << shape() << " lc '" << color() << "' title '" << title() << "'\n";
+	}
+};
+
+namespace funzel
+{
+std::ostream& operator<<(std::ostream& out, const Subplot& s)
+{
+	s.serialize(out);
+	return out;
+}
+}
+
+static std::string findGnuplot()
+{
+	char* envvar = getenv("FUNZEL_GNUPLOT");
+	if(envvar)
+		return envvar;
+
+	return "gnuplot"; // TODO Real search!!!
+}
+
+#include <iostream>
+void Plot::show(bool wait)
+{
+	const char* args = " -p";
+	const auto gnuplot = findGnuplot();
+	auto* pipe = popen((gnuplot + args).c_str(), "w");
+	AssertExcept(pipe, "Could not launch gnuplot!");
+
+	std::stringstream ss;
+	ss << "set title '" << m_title << "'\n";
+
+	unsigned int idx = 0;
+	for(auto& plot : m_subplots)
+	{
+		plot->serialize(ss, idx++);
+		ss << '\n';
+	}
+
+	auto sstr = ss.str();
+
+	fwrite(sstr.c_str(), sstr.size(), 1, pipe);
+	pclose(pipe);
+}
+
+std::shared_ptr<Subplot> Plot::plot(const Tensor& t, const std::string& title)
+{
+	auto subplot = std::make_shared<Plot1D>();
+	subplot->title(title).data(t);
+	m_subplots.push_back(subplot);
+
+	return subplot;
+}
+
+class PlotImage : public Subplot
+{
+public:
+	void serialize(std::ostream& out, unsigned int index) const override
+	{
+		const auto& t = data();
+		AssertExcept(t.shape.size() == 2 || t.shape.size() == 3, "Expected image data with WHC.");
+
+		// TODO Proper temporary directory!
+		std::string imageName = "data" + std::to_string(index) + ".png";
+		funzel::image::save(data(), imageName);
+		
+		out << "set size ratio -1\n"
+			<< "set xrange [0 : " << t.shape[0] << "]\n"
+			<< "set yrange [0 : " << t.shape[1] << "]\n"
+			<< (index > 0 ? "re" : "") << "plot '" << imageName << "' binary filetype=png w rgbimage title '" << title() << "'\n";
+	}
+};
+
+std::shared_ptr<Subplot> Plot::image(const Tensor& t, const std::string& title)
+{
+	auto subplot = std::make_shared<PlotImage>();
+	subplot->title(title).data(t);
+	m_subplots.push_back(subplot);
+
+	return subplot;
+}
+
