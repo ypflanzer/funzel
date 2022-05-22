@@ -23,12 +23,24 @@ namespace funzel
 namespace nn
 {
 
+typedef std::vector<Tensor> Parameters;
+
 class Module
 {
 public:
 	virtual Tensor forward(const Tensor& input) = 0;
 	virtual Tensor backward(const Tensor& input) = 0;
-	virtual void to(const std::string& device) = 0;
+
+	virtual void defaultInitialize();
+	virtual void to(const std::string& device);
+	
+	Parameters& parameters() { return m_parameters; }
+	const Parameters& parameters() const { return m_parameters; }
+
+	Tensor operator()(const Tensor& input) { return forward(input); }
+
+protected:
+	Parameters m_parameters;
 };
 
 }

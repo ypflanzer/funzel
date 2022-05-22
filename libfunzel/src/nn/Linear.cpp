@@ -3,22 +3,25 @@
 using namespace funzel;
 using namespace nn;
 
-Linear::Linear(size_t in, size_t out)
+Linear::Linear(size_t in, size_t out, bool bias)
 {
-	m_parameters = Tensor::empty({in, out});
+	m_parameters.reserve(2);
+	m_parameters.push_back(Tensor::empty({in, out}));
+	
+	if(bias)
+		m_parameters.push_back(Tensor::empty({out}));
 }
 
 Tensor Linear::forward(const Tensor& input)
 {
-	return input.matmul(m_parameters);
+	auto result = input.matmul(weights());
+	if(m_parameters.size() > 1)
+		result.add_(bias());
+
+	return result;
 }
 
 Tensor Linear::backward(const Tensor& input)
 {
 	return Tensor();
-}
-
-void Linear::to(const std::string& device)
-{
-	m_parameters = m_parameters.to(device);
 }

@@ -345,6 +345,19 @@ TEST(CommonTest, BroadcastVectorVectorAdd)
 	});
 
 	auto c = a.add(b).cpu();
-	std::cout << c << std::endl;
 	EXPECT_TENSOR_EQ(c, expected);
+}
+
+#include <funzel/nn/Linear.hpp>
+TEST(CommonTest, LinearLayer)
+{
+	nn::Linear lin(3, 9);
+
+	lin.defaultInitialize();
+	lin.to(TestDevice);
+
+	auto v = Tensor::ones({5, 3}).to(TestDevice);
+
+	auto r = lin(v).cpu();
+	EXPECT_EQ(r.shape, (Shape{5, 9}));
 }

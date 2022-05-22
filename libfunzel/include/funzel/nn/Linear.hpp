@@ -26,14 +26,13 @@ namespace nn
 class Linear : public Module
 {
 public:
-	Linear(size_t in, size_t out);
+	Linear(size_t in, size_t out, bool bias = true);
 	
 	Tensor forward(const Tensor& input) override;
 	Tensor backward(const Tensor& input) override;
-	void to(const std::string& device) override;
 
-private:
-	Tensor m_parameters;
+	Tensor& bias() { return m_parameters.at(1); }
+	Tensor& weights() { return m_parameters.at(0); }
 };
 
 }
