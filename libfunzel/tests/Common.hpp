@@ -323,7 +323,7 @@ TEST(CommonTest, BroadcastVectorVectorMul)
 
 TEST(CommonTest, BroadcastVectorVectorAdd)
 {
-	Tensor a({4, 3, 1},
+	Tensor a({4, 3},
 	{
 		1.0f, 2.0f, 3.0f,
 		4.0f, 5.0f, 6.0f,
@@ -331,12 +331,12 @@ TEST(CommonTest, BroadcastVectorVectorAdd)
 		10.0f, 11.0f, 12.0f,
 	}, TestDevice);
 
-	Tensor b({3, 1},
+	Tensor b({3},
 	{
 		1.0f, 1.0f, 1.0f
 	}, TestDevice);
 
-	Tensor expected({4, 3, 1},
+	Tensor expected({4, 3},
 	{
 		2.0f, 3.0f, 4.0f,
 		5.0f, 6.0f, 7.0f,
@@ -353,11 +353,25 @@ TEST(CommonTest, LinearLayer)
 {
 	nn::Linear lin(3, 9);
 
-	lin.defaultInitialize();
+	lin.bias().fill(1);
+	lin.weights().fill(1);
+
 	lin.to(TestDevice);
 
 	auto v = Tensor::ones({5, 3}).to(TestDevice);
-
 	auto r = lin(v).cpu();
+
+	Tensor expected({5, 9},
+	{
+		4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f,
+		4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f,
+		4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f,
+		4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f,
+		4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f, 4.0f
+	});
+
 	EXPECT_EQ(r.shape, (Shape{5, 9}));
+	EXPECT_TENSOR_EQ(r, expected);
+
+	std::cout << r << std::endl;
 }

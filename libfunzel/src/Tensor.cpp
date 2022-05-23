@@ -489,7 +489,6 @@ inline void Broadcast(const Tensor& a, const Tensor& b, Tensor& tgt,
 	}
 
 	AssertExcept(IsBroadcastable(a.shape, b.shape), "Cannot broadcast " << b.shape << " to " << a.shape);
-
 	if(tgt.empty())
 	{
 		Shape ashape = a.shape;
@@ -512,7 +511,7 @@ inline void Broadcast(const Tensor& a, const Tensor& b, Tensor& tgt,
 
 Tensor& Tensor::add_(const Tensor& b, double alpha)
 {
-	Broadcast(*this, b, *this,
+	Broadcast<0>(*this, b, *this,
 		[](const auto& a, const auto& b) { return b; },
 		[](const Tensor& a, Tensor b, Tensor c, double alpha) {
 			b->mulAdd(b, c, alpha);
@@ -669,4 +668,42 @@ Tensor funzel::arange(double start, double stop, double step, DTYPE dtype)
 	}
 
 	return t;
+}
+
+template<typename T>
+void FillRandom(void* data, IRandomGenerator& gen, size_t count)
+{
+	#pragma omp parallel for
+	for(int64_t i = 0; i < count; i++)
+	{
+		reinterpret_cast<T*>(data)[i] = gen.get();
+	}
+}
+
+Tensor& funzel::randn(Tensor& out, IRandomGenerator& generator)
+{
+	// FIXME This should respect the shape and given ranges!
+	AssertExcept(out.isContiguous(), "Random fill is only implemented for contiguous tensors!");
+
+	const auto sz = out.size();
+	switch(out.dtype)
+	{
+		case INT32: FillRandom<int32_t>(out.data(out.offset), generator, sz); break;
+		case INT64: FillRandom<int64_t>(out.data(out.offset), generator, sz); break;
+		case FLOAT32: FillRandom<float>(out.data(out.offset), generator, sz); break;
+		case FLOAT64: FillRandom<double>(out.data(out.offset), generator, sz); break;
+		case UINT32: FillRandom<uint32_t>(out.data(out.offset), generator, sz); break;
+		case UINT64: FillRandom<uint64_t>(out.data(out.offset), generator, sz); break;
+		case BYTE: FillRandom<char>(out.data(out.offset), generator, sz); break;
+		case UBYTE: FillRandom<unsigned char>(out.data(out.offset), generator, sz); break;
+		default: ThrowError("Uknown dtype!");
+	}
+
+	return out;
+}
+
+Tensor& funzel::randn(Tensor& out)
+{
+	RandomGenerator<std::uniform_real_distribution<double>> gen{std::uniform_real_distribution<double>(-1.0, 1.0)};
+	return randn(out, gen);
 }

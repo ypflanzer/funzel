@@ -6,7 +6,9 @@ using namespace nn;
 void Module::defaultInitialize()
 {
 	for(auto& p : m_parameters)
-		p.fill(0);
+	{
+		randn(p);
+	}
 }
 
 void Module::to(const std::string& device)

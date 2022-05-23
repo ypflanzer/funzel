@@ -21,6 +21,7 @@
 
 #include <memory>
 #include <vector>
+#include <random>
 
 namespace funzel
 {
@@ -388,6 +389,32 @@ inline size_t size(const Shape& shape)
 Tensor linspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, DTYPE dtype = FLOAT32);
 Tensor logspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, double base = 10.0, DTYPE dtype = FLOAT32);
 Tensor arange(double start, double stop, double step, DTYPE dtype = FLOAT32);
+
+struct IRandomGenerator
+{
+	virtual ~IRandomGenerator() {}
+	virtual double get() = 0;
+};
+
+template<typename Dist>
+struct RandomGenerator : public IRandomGenerator
+{
+	RandomGenerator() = default;
+	RandomGenerator(const Dist& d, uint64_t seed = std::mt19937::default_seed):
+		distribution(d),
+		gen(seed) {}
+	
+	double get() override
+	{
+		return distribution(gen);
+	}
+	
+	Dist distribution;
+	std::mt19937 gen;
+};
+
+Tensor& randn(Tensor& out, IRandomGenerator& generator);
+Tensor& randn(Tensor& out);
 
 #ifndef SWIG
 std::ostream& operator<<(std::ostream& out, const Tensor& s);
