@@ -64,6 +64,9 @@ class Plot
 {
 public:
 	void show(bool wait = true);
+	void save(const std::string& file);
+	void serialize(std::ostream& out) const;
+
 	std::shared_ptr<Subplot> plot(const Tensor& t, const std::string& title = EmptyStr);
 	std::shared_ptr<Subplot> image(const Tensor& t, const std::string& title = EmptyStr);
 
@@ -72,6 +75,8 @@ public:
 		m_title = str;
 		return *this;
 	}
+
+	static void sendToGnuplot(const std::string& code);
 
 private:
 	std::vector<std::shared_ptr<Subplot>> m_subplots;

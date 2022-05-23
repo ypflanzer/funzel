@@ -50,27 +50,50 @@ static std::string findGnuplot()
 }
 
 #include <iostream>
-void Plot::show(bool wait)
+#include <filesystem>
+
+void Plot::sendToGnuplot(const std::string& code)
 {
 	const char* args = " -p";
 	const auto gnuplot = findGnuplot();
 	auto* pipe = popen((gnuplot + args).c_str(), "w");
 	AssertExcept(pipe, "Could not launch gnuplot!");
+	
+	fwrite(code.c_str(), code.size(), 1, pipe);
+	pclose(pipe);
+}
 
-	std::stringstream ss;
-	ss << "set title '" << m_title << "'\n";
+void Plot::serialize(std::ostream& out) const
+{
+	out << "set title '" << m_title << "'\n";
 
 	unsigned int idx = 0;
 	for(auto& plot : m_subplots)
 	{
-		plot->serialize(ss, idx++);
-		ss << '\n';
+		plot->serialize(out, idx++);
+		out << '\n';
 	}
+}
 
-	auto sstr = ss.str();
+void Plot::show(bool wait)
+{
+	std::stringstream ss;
+	serialize(ss);
+	sendToGnuplot(ss.str());
+}
 
-	fwrite(sstr.c_str(), sstr.size(), 1, pipe);
-	pclose(pipe);
+void Plot::save(const std::string& file)
+{
+	std::stringstream ss;
+
+	const size_t extIdx = file.find_last_of('.');
+	AssertExcept(extIdx != std::string::npos, "Cannot infer image type from path: " << file);
+
+	ss << "set terminal " << file.substr(extIdx + 1) << '\n'
+	   << "set output '" << file << "'\n";
+	
+	serialize(ss);
+	sendToGnuplot(ss.str());
 }
 
 std::shared_ptr<Subplot> Plot::plot(const Tensor& t, const std::string& title)

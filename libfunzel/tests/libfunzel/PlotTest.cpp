@@ -25,7 +25,7 @@ TEST(Plot, Const)
 	}
 
 	p.plot(t1, "T1")->shape("lines").color("red");
-	p.show();
+	p.save("PlotConst.png");
 }
 
 TEST(Plot, Linear)
@@ -41,7 +41,7 @@ TEST(Plot, Linear)
 	);
 
 	p.plot(t, "Linear")->shape("lines").color("red");
-	p.show();
+	p.save("PlotLinear.png");
 }
 
 TEST(Plot, LinearArange)
@@ -55,5 +55,5 @@ TEST(Plot, LinearArange)
 	p.plot(t, "Linear Arange")->shape("lines").color("red");
 	p.plot(t, "")->shape("points").color("blue");
 
-	p.show();
+	p.save("PlotArange.png");
 }

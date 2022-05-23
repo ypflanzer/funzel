@@ -32,5 +32,5 @@ TEST(Image, PlotImage)
 	
 	Plot plt;
 	plt.image(img);
-	plt.show();
+	plt.save("Image_PlotImage.png");
 }
