@@ -218,6 +218,13 @@ inline OpenCLTensor* getCLTensor(Tensor& t)
 	return tgtBackend;
 }
 
+inline const OpenCLTensor* getCLTensor(const Tensor& t)
+{
+	auto* tgtBackend = t.getBackendAs<OpenCLTensor>();
+	AssertExcept(tgtBackend, "Invalid backend for operation!");
+	return tgtBackend;
+}
+
 size_t OpenCLTensor::workgroupSize() const
 {
 	return m_device.device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
@@ -336,6 +343,53 @@ void OpenCLTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 void OpenCLTensor::sub(const Tensor& self, const Tensor& b, double alpha)
 {
 
+}
+
+static const std::string s_divKernel = R"krnl(
+__kernel void Kernel(
+	ulong count,
+	__global const T* a, ulong aOffset, ulong aStride,
+	__global const T* b, ulong bOffset, ulong bStride,
+	__global T* c, ulong cOffset, ulong cStride)
+{
+	const ulong idx = get_global_id(0);
+	if(idx < count)
+	{
+		const ulong aidx = aOffset + idx*aStride;
+		const ulong bidx = bOffset + idx*bStride;
+		const ulong cidx = cOffset + idx*cStride;
+
+		c[cidx] = a[aidx] / b[bidx];
+	}
+}
+)krnl";
+
+void OpenCLTensor::div(const Tensor& self, const Tensor& b, Tensor tgt)
+{
+	// Build kernels!
+	static CLTemplateKernel kernel{s_divKernel};
+	auto* bBackend = getCLTensor(b);
+	auto* cBackend = getCLTensor(tgt);
+
+	const size_t cOffset = tgt.offset/dtypeSizeof(dtype);
+	const size_t bOffset = b.offset/dtypeSizeof(dtype);
+
+	const size_t cStride = tgt.strides.back()/dtypeSizeof(dtype);
+	const size_t bStride = b.strides.back()/dtypeSizeof(dtype);
+
+	cBackend->wait();
+	wait();
+
+	const auto Div = [bBackend, cBackend, cOffset, bOffset, cStride, bStride]
+		(OpenCLTensor* aBackend, const Tensor& self, size_t stride, size_t offset, size_t count) {
+			return kernel.call(cBackend, {0}, {count}, {0}, self.dtype,
+					count,
+					aBackend->m_buffer, offset, stride,
+					bBackend->m_buffer, bOffset, bStride,
+					cBackend->m_buffer, cOffset, cStride);
+	};
+
+	m_currentEvent = DoStrided(self, kernel, Div);
 }
 
 void OpenCLTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)

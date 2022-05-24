@@ -540,6 +540,24 @@ Tensor Tensor::sub(const Tensor& b, double alpha) const
 	return t;
 }
 
+Tensor& Tensor::add_(double alpha)
+{
+	// TODO Optimized version that does not require a full tensor copy!
+	Tensor t = Tensor::empty_like(*this);
+	t.fill(alpha);
+	m_backend->mulAdd(*this, t, 1.0);
+
+	*this = t;
+	return *this;
+}
+
+Tensor Tensor::add(double alpha) const
+{
+	Tensor t(*this);
+	t.add_(alpha);
+	return t;
+}
+
 Tensor& Tensor::mul_(double alpha)
 {
 	Tensor t = Tensor::zeros_like(*this);
@@ -554,6 +572,24 @@ Tensor Tensor::mul(double alpha) const
 	Tensor t = *this;
 	t.mul_(alpha);
 	return t;
+}
+
+Tensor Tensor::div(const Tensor& b) const
+{
+	Tensor t(*this);
+	t.div_(b);
+	return t;
+}
+
+Tensor& Tensor::div_(const Tensor& b)
+{
+	Broadcast<0>(*this, b, *this,
+		[](const auto& a, const auto& b) { return b; },
+		[](Tensor a, Tensor b, Tensor c) {
+			a->div(a, b, c);
+		});
+
+	return *this;
 }
 
 #include <iostream>
@@ -706,4 +742,10 @@ Tensor& funzel::randn(Tensor& out)
 {
 	RandomGenerator<std::uniform_real_distribution<double>> gen{std::uniform_real_distribution<double>(-1.0, 1.0)};
 	return randn(out, gen);
+}
+
+// Backend Tensor default implementations
+void BackendTensor::sigmoid(const Tensor& self, Tensor tgt)
+{
+	tgt.set(1.0 / (1.0 + (-self).exp_()));
 }

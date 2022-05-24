@@ -44,7 +44,8 @@ public:
 	void matmul(const Tensor& self, Tensor b, Tensor tgt) override;
 	void mulAdd(const Tensor& self, Tensor tgt, double alpha) override;
 	void sub(const Tensor& self, const Tensor& b, double alpha = 1.0) override;
-	
+	void div(const Tensor& self, const Tensor& b, Tensor tgt) override;
+
 	void abs(const Tensor& self, Tensor tgt) override;
 	void exp(const Tensor& self, Tensor tgt) override;
 	void sqrt(const Tensor& self, Tensor tgt) override;

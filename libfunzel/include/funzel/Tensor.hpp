@@ -275,18 +275,29 @@ public:
 	Tensor operator+(const Tensor& t) const { return add(t); }
 	Tensor operator-(const Tensor& t) const { return sub(t); }
 	Tensor operator*(const Tensor& t) const { return matmul(t); }
+	
+	Tensor operator+(double t) const { return add(t); }
 	Tensor operator*(double t) const { return mul(t); }
 	Tensor operator/(double t) const { return mul(1.0/t); }
+	Tensor operator/(const Tensor& t) const { return div(t); }
+
+	Tensor operator-() const { return mul(-1.0); }
 
 	Tensor& fill(double value);
 
 	Tensor mul(double alpha) const;
 	Tensor& mul_(double alpha);
 
+	Tensor div(const Tensor& b) const;
+	Tensor& div_(const Tensor& b);
+
 	Tensor matmul(const Tensor& b) const;
 
 	Tensor& add_(const Tensor& b, double alpha = 1.0);
 	Tensor add(const Tensor& b, double alpha = 1.0) const;
+
+	Tensor add(double alpha) const;
+	Tensor& add_(double alpha);
 
 	Tensor& sub_(const Tensor& b, double alpha = 1.0);
 	Tensor sub(const Tensor& b, double alpha = 1.0) const;
@@ -336,6 +347,10 @@ private:
 	std::shared_ptr<BackendTensor> m_backend = nullptr;
 };
 
+inline Tensor operator+(double v, const Tensor& t) { return t.add(v); }
+inline Tensor operator*(double v, const Tensor& t) { return t.mul(v); }
+inline Tensor operator/(double v, const Tensor& t) { return Tensor::empty_like(t).fill(v) / t; }
+
 class BackendTensor
 {
 public:
@@ -355,6 +370,7 @@ public:
 	virtual void fill(const Tensor& self, double scalar) = 0;
 	virtual void mulAdd(const Tensor& self, Tensor tgt, double alpha) { ThrowError("Operation is not supported!"); }
 	virtual void matmul(const Tensor& self, Tensor b, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void div(const Tensor& self, const Tensor& b, Tensor tgt) { ThrowError("Operation is not supported!"); }
 
 	virtual void sub(const Tensor& self, const Tensor& b, double alpha = 1.0) { ThrowError("Operation is not supported!"); }
 	virtual void abs(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
@@ -368,6 +384,9 @@ public:
 
 	virtual void set(Tensor& self, const Tensor& src) { ThrowError("Operation is not supported!"); }
 
+	// With default implementation
+	virtual void sigmoid(const Tensor& self, Tensor tgt);
+	
 	DTYPE dtype;
 	size_t size;
 

@@ -1,6 +1,7 @@
 #include <funzel/Tensor.hpp>
 #include "BlasTensor.hpp"
 
+#include <iostream>
 #include <cblas.h>
 #include <cstring>
 #include <cmath>
@@ -204,19 +205,6 @@ inline void TensorOpOuter(const Tensor& self, Tensor tgt, Fn op)
 	}
 
 	TensorOpInner<T>(self, tgt, op);
-
-#if 0
-	switch(dtype)
-	{
-		case FLOAT32: {
-			TensorOpInner<float>(self, tgt, op);
-		} break;
-		case FLOAT64: {
-			TensorOpInner<double>(self, tgt, op);
-		} break;
-		default: ThrowError("Unsupported dtype!");
-	}
-#endif
 }
 
 template<typename Fn>
@@ -339,7 +327,58 @@ void BlasTensor::sub(const Tensor& self, const Tensor& b, double alpha)
 
 }
 
-#include <iostream>
+template<typename T>
+static void TensorDiv(
+	size_t count,
+	const T* a, size_t strideA,
+	const T* b, size_t strideB,
+	T* c, size_t strideC)
+{
+	for(size_t i = 0; i < count; i++)
+	{
+		c[i * strideC] = a[i * strideA] / b[i * strideB];
+	}
+}
+
+void BlasTensor::div(const Tensor& self, const Tensor& b, Tensor tgt)
+{
+	if(self.shape.empty())
+		return;
+	
+	if(self.shape.size() > 1 && self.shape[1] > 1)
+	{
+		#pragma omp parallel for
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			div(self[i], b[i], tgt[i]);
+		}
+
+		return;
+	}
+
+	const void* src = self.data(self.offset);
+	const void* bdata = b.data(b.offset);
+	void* dest = tgt.data(tgt.offset);
+
+	switch(dtype)
+	{
+		case FLOAT32: {
+			return TensorDiv<float>(
+						self.size(),
+						reinterpret_cast<const float*>(src), self.strides.back()/sizeof(float),
+						reinterpret_cast<const float*>(bdata), b.strides.back()/sizeof(float),
+						reinterpret_cast<float*>(dest), tgt.strides.back()/sizeof(float));
+		}
+		case FLOAT64: {
+			return TensorDiv<double>(
+						self.size(),
+						reinterpret_cast<const double*>(src), self.strides.back()/sizeof(double),
+						reinterpret_cast<const double*>(bdata), b.strides.back()/sizeof(double),
+						reinterpret_cast<double*>(dest), tgt.strides.back()/sizeof(double));
+		}
+		default: ThrowError("Unsupported dtype!");
+	}
+}
 
 void BlasTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 {
