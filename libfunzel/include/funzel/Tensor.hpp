@@ -307,7 +307,7 @@ public:
 	 * \f$ |x| \f$
 	 * @return Tensor 
 	 */
-	Tensor abs();
+	Tensor abs() const;
 	Tensor& abs_();
 
 	/**
@@ -315,23 +315,26 @@ public:
 	 * \f$ e^x \f$
 	 * @return Tensor 
 	 */
-	Tensor exp();
+	Tensor exp() const;
 	Tensor& exp_();
 
-	Tensor sqrt();
+	Tensor sqrt() const;
 	Tensor& sqrt_();
 
-	Tensor sin();
+	Tensor sin() const;
 	Tensor& sin_();
 
-	Tensor cos();
+	Tensor cos() const;
 	Tensor& cos_();
 
-	Tensor tan();
+	Tensor tan() const;
 	Tensor& tan_();
 
-	Tensor tanh();
+	Tensor tanh() const;
 	Tensor& tanh_();
+
+	Tensor sigmoid() const;
+	Tensor& sigmoid_();
 
 	double sum();
 
@@ -385,7 +388,7 @@ public:
 	virtual void set(Tensor& self, const Tensor& src) { ThrowError("Operation is not supported!"); }
 
 	// With default implementation
-	virtual void sigmoid(const Tensor& self, Tensor tgt);
+	virtual void sigmoid(const Tensor& self, Tensor& tgt);
 	
 	DTYPE dtype;
 	size_t size;

@@ -638,7 +638,7 @@ Tensor& Tensor::f##_() \
 	m_backend->f(*this, *this); \
 	return *this; \
 } \
-Tensor Tensor::f() \
+Tensor Tensor::f() const \
 { \
 	Tensor t = clone(); \
 	t.f##_(); \
@@ -652,6 +652,7 @@ UNARY_OP_PAIR(sin)
 UNARY_OP_PAIR(cos)
 UNARY_OP_PAIR(tan)
 UNARY_OP_PAIR(tanh)
+UNARY_OP_PAIR(sigmoid)
 
 Tensor funzel::linspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint, DTYPE dtype)
 {
@@ -745,7 +746,7 @@ Tensor& funzel::randn(Tensor& out)
 }
 
 // Backend Tensor default implementations
-void BackendTensor::sigmoid(const Tensor& self, Tensor tgt)
+void BackendTensor::sigmoid(const Tensor& self, Tensor& tgt)
 {
-	tgt.set(1.0 / (1.0 + (-self).exp_()));
+	tgt = (1.0 / (1.0 + (-self).exp_()));
 }

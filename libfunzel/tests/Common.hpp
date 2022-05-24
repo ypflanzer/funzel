@@ -135,6 +135,21 @@ TEST(CommonTest, Cos)
 			}
 }
 
+TEST(CommonTest, Sigmoid)
+{
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
+	v.mul_(2);
+	v.sigmoid_();
+	v = v.cpu();
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), 0.88079707797788);
+			}
+}
+
 TEST(CommonTest, Tan)
 {
 	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
