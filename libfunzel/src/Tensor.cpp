@@ -4,8 +4,6 @@
 
 #include <sstream>
 #include <algorithm>
-#include <span>
-#include <ranges>
 
 using namespace funzel;
 
