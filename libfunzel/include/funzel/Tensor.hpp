@@ -165,13 +165,13 @@ public:
 
 #ifndef SWIG
 	BackendTensor* operator->() { return m_backend.get(); }
-	const BackendTensor* operator->() const { return m_backend.get(); }
+	BackendTensor* operator->() const { return m_backend.get(); }
 
 	template<typename T>
 	T* getBackendAs() { return dynamic_cast<T*>(m_backend.get()); }
 
 	template<typename T>
-	const T* getBackendAs() const { return dynamic_cast<T*>(m_backend.get()); }
+	T* getBackendAs() const { return dynamic_cast<T*>(m_backend.get()); }
 #endif
 
 	std::string toString() const;
@@ -352,7 +352,7 @@ private:
 
 inline Tensor operator+(double v, const Tensor& t) { return t.add(v); }
 inline Tensor operator*(double v, const Tensor& t) { return t.mul(v); }
-inline Tensor operator/(double v, const Tensor& t) { return Tensor::empty_like(t).fill(v) / t; }
+inline Tensor operator/(double v, const Tensor& t) { return Tensor::empty_like(t).fill(v).div_(t); }
 
 class BackendTensor
 {
