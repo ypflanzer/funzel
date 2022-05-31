@@ -26,6 +26,11 @@ struct funzel::cl::CLTemplateKernel
 	void setArgs(DTYPE dtype)
 	{}
 
+	static inline size_t padGlobalSize(size_t global, size_t local)
+	{
+		return ((global + local - 1) / local) * local;
+	}
+
 	template<typename... Args>
 	::cl::Event call(
 		OpenCLTensor* tensor,
@@ -50,10 +55,14 @@ struct funzel::cl::CLTemplateKernel
 			const auto maxWorkgroup = tensor->m_device.device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
 			
 			::cl::NDRange realLocalSz = globalSz;
+			::cl::NDRange realGlobalSz = globalSz;
 			for(size_t i = 0; i < globalSz.dimensions(); i++)
+			{
 				realLocalSz.get()[i] = maxWorkgroup;
-			
-			tensor->m_cmdQueue.enqueueNDRangeKernel(kernels[dtype], dims, globalSz, realLocalSz, nullptr, &event);
+				realGlobalSz.get()[i] = padGlobalSize(globalSz[i], maxWorkgroup);
+			}
+
+			tensor->m_cmdQueue.enqueueNDRangeKernel(kernels[dtype], dims, realGlobalSz, realLocalSz, nullptr, &event);
 		}
 		else
 			tensor->m_cmdQueue.enqueueNDRangeKernel(kernels[dtype], dims, globalSz, localSz, nullptr, &event);
@@ -218,7 +227,7 @@ inline OpenCLTensor* getCLTensor(Tensor& t)
 	return tgtBackend;
 }
 
-inline const OpenCLTensor* getCLTensor(const Tensor& t)
+inline OpenCLTensor* getCLTensor(const Tensor& t)
 {
 	auto* tgtBackend = t.getBackendAs<OpenCLTensor>();
 	AssertExcept(tgtBackend, "Invalid backend for operation!");
@@ -377,6 +386,7 @@ void OpenCLTensor::div(const Tensor& self, const Tensor& b, Tensor tgt)
 	const size_t cStride = tgt.strides.back()/dtypeSizeof(dtype);
 	const size_t bStride = b.strides.back()/dtypeSizeof(dtype);
 
+	bBackend->wait();
 	cBackend->wait();
 	wait();
 
