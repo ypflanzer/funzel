@@ -17,10 +17,19 @@
 #pragma once
 
 #define CL_HPP_ENABLE_EXCEPTIONS
+
+#ifdef __APPLE__
+#define CL_HPP_MINIMUM_OPENCL_VERSION 110
+#define CL_HPP_TARGET_OPENCL_VERSION 120
+#include "opencl.hpp"
+#else
 #define CL_HPP_TARGET_OPENCL_VERSION 200
 #include <CL/opencl.hpp>
+#endif
+
 #include <string>
 #include <filesystem>
+#include <unordered_map>
 
 #include <funzel/Tensor.hpp>
 
