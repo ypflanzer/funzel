@@ -12,7 +12,7 @@ endif()
 include(CheckIPOSupported)
 check_ipo_supported(RESULT LTO_ENABLED OUTPUT error)
 
-if(LTO_ENABLED)
+if(LTO_ENABLED AND NOT CMAKE_BUILD_TYPE STREQUAL "Debug")
 	message(STATUS "IPO / LTO enabled")
 	set(CMAKE_INTERPROCEDURAL_OPTIMIZATION TRUE)
 else()
