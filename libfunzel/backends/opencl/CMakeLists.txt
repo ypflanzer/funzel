@@ -11,7 +11,7 @@ add_subdirectory(CLBlast)
 
 add_library(funzelOpenCL SHARED ${SRC})
 target_link_libraries(funzelOpenCL PUBLIC funzel OpenCL::OpenCL PRIVATE clblast)
-target_include_directories(funzelOpenCL PUBLIC src)
+target_include_directories(funzelOpenCL PUBLIC src ${OpenCL_INCLUDE_DIRS})
 
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
