@@ -404,6 +404,7 @@ Tensor Tensor::clone() const
 	t.dtype = dtype;
 	t.shape = shape;
 	t.flags = flags;
+	t.device = device;
 
 	// Reshape to set the strides
 	t.reshape_(shape);
