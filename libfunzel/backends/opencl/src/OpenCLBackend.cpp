@@ -43,8 +43,12 @@ void OpenCLBackend::initCL()
 			platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
 			std::cout << "Found " << devices.size() << " GPU device(s):" << std::endl;
 
-			::cl::Context context(devices);
+			// Prefer GPU devices for each platform
+			std::sort(devices.begin(), devices.end(), [](const ::cl::Device& a, const ::cl::Device& b) {
+				return a.getInfo<CL_DEVICE_TYPE>() == CL_DEVICE_TYPE_GPU;
+			});
 
+			::cl::Context context(devices);
 			for(auto& d : devices)
 			{
 				std::cout << '\t' << d.getInfo<CL_DEVICE_VENDOR>() << '\t' << d.getInfo<CL_DEVICE_NAME>() << std::endl;
@@ -67,7 +71,7 @@ void OpenCLBackend::initCL()
 
 		m_platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &m_devices);
 		std::cout << "Found " << m_devices.size() << " GPU device(s):" << std::endl;
-
+		
 		int ctr = 0;
 		for(auto& d : m_devices)
 		{
@@ -78,7 +82,7 @@ void OpenCLBackend::initCL()
 			props.deviceName = d.getInfo<CL_DEVICE_NAME>();
 			props.vendorName = d.getInfo<CL_DEVICE_VENDOR>();
 			props.memorySize = d.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();
-			props.isGPU = true;
+			props.isGPU = d.getInfo<CL_DEVICE_TYPE> == CL_DEVICE_TYPE_GPU;
 			backend::RegisterDevice(props);
 		}
 
@@ -136,7 +140,7 @@ static std::string formatCachedName(const std::string& name, const ::cl::Device&
 	if(kernel.get() != nullptr)
 		return kernel;
 
-	std::cout << "Could not find kernel in cache, building." << std::endl;
+	//std::cout << "Could not find kernel in cache, building." << std::endl;
 
 	try
 	{
@@ -197,28 +201,27 @@ std::filesystem::path OpenCLBackend::findCacheDirectory()
 	auto iter = m_deviceKernels.find(name);
 	if(iter != m_deviceKernels.end())
 		return iter->second;
-
-	const auto inpath = m_cacheDirectory / name;
 	
+	const auto inpath = m_cacheDirectory / name;
 	if(!std::filesystem::exists(inpath))
 		return ::cl::Kernel();
 
 	//std::cout << "Loading binary from: " << inpath << std::endl;
 	std::ifstream in(inpath, std::ios::in | std::ios::binary);
+	
 	AssertExcept(!!in, "Could not open file for reading: " << inpath);
-
 	std::vector<unsigned char> binary((std::istreambuf_iterator<char>(in)), {});
 
-	cl_int err;
-	size_t sz = binary.size();
 	const unsigned char* binaries[1] = {binary.data()};
+	const size_t sz = binary.size();
+	int err = 0;
 	auto clprog = clCreateProgramWithBinary(device.context(), 1, &device.device(), &sz, binaries, nullptr, &err);
-
 	AssertExcept(err == CL_SUCCESS, "Could not load binary OpenCL program: " << err);
 
+	err = clBuildProgram(clprog, 1, &device.device(), nullptr, nullptr, nullptr);
+	AssertExcept(err == CL_SUCCESS, "Could not build binary OpenCL program: " << err);
+	
 	auto prog = ::cl::Program(clprog, true);
-	prog.build();
-
 	std::vector<::cl::Kernel> kernels;
 	prog.createKernels(&kernels);
 	
@@ -236,12 +239,21 @@ void OpenCLBackend::updateCache(const std::string& name, const ::cl::Device& dev
 	AssertExcept(!binaries.empty(), "Could not update OpenCL kernel cache, no binaries could be generated: " << err);
 
 	const auto outpath = m_cacheDirectory / name;
-	std::cout << "Saving binary to: " << outpath << std::endl;
-	
-	std::ofstream out(outpath, std::ios::out | std::ios::binary);
-	AssertExcept(!!out, "Could not open file for writing: " << outpath);
+	//std::cout << "Saving binary to: " << outpath << std::endl;
 
-	out.write((const char*) binaries[0].data(), binaries[0].size());
+	// Write the first valid binary to file.
+	// Each program is only built for one specific device, so only one binary will ever be valid.
+	for(auto& binary : binaries)
+	{
+		if(binary.empty())
+			continue;
+
+		std::ofstream out(outpath, std::ios::out | std::ios::binary);
+		AssertExcept(!!out, "Could not open file for writing: " << outpath);
+		out.write((const char*) binary.data(), binary.size());
+		break;
+	}
+
 	m_deviceKernels[name] = k;
 }
 
