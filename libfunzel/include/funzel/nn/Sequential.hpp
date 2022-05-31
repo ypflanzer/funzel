@@ -16,34 +16,27 @@
  */
 #pragma once
 
-#include "../Tensor.hpp"
+#include "Module.hpp"
 
 namespace funzel
 {
 namespace nn
 {
 
-typedef std::vector<Tensor> Parameters;
-
-class Module
+class Sequential : public Module
 {
 public:
-	virtual Tensor forward(const Tensor& input) = 0;
-	virtual Tensor backward(const Tensor& input) = 0;
+	Sequential() = default;
+	Sequential(std::initializer_list<ModuleRef> modules);
 
-	virtual void defaultInitialize();
-	virtual void to(const std::string& device);
-	
-	Parameters& parameters() { return m_parameters; }
-	const Parameters& parameters() const { return m_parameters; }
+	Tensor forward(const Tensor& input) final override;
+	Tensor backward(const Tensor& input) final override;
+	void to(const std::string& device = EmptyStr) final override;
+	void defaultInitialize() final override;
 
-	Tensor operator()(const Tensor& input) { return forward(input); }
-
-protected:
-	Parameters m_parameters;
+private:
+	std::vector<ModuleRef> m_modules;
 };
-
-typedef std::shared_ptr<Module> ModuleRef;
 
 }
 }

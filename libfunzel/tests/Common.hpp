@@ -417,3 +417,33 @@ TEST(CommonTest, LinearLayer)
 
 	std::cout << r << std::endl;
 }
+
+#include <funzel/nn/Sequential.hpp>
+#include <funzel/nn/Sigmoid.hpp>
+
+TEST(CommonTest, SequentialLayer)
+{
+	using namespace nn;
+	Sequential seq{
+		std::make_shared<Linear>(2, 8),
+		std::make_shared<Sigmoid>(),
+
+		std::make_shared<Linear>(8, 16),
+		std::make_shared<Sigmoid>(),
+
+		std::make_shared<Linear>(16, 32),
+		std::make_shared<Sigmoid>(),
+
+		std::make_shared<Linear>(32, 1024),
+		std::make_shared<Sigmoid>()
+	};
+
+	seq.defaultInitialize();
+	seq.to(TestDevice);
+
+	auto in = Tensor::ones({10, 2}, FLOAT32, TestDevice);
+	auto r = seq(in).cpu();
+
+	EXPECT_EQ(r.shape, (Shape{10, 1024}));
+	// TODO Check values!
+}
