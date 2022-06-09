@@ -178,9 +178,17 @@ std::filesystem::path OpenCLBackend::findCacheDirectory()
 	}
 
 #if WIN32
-	#error "Implement!"
-	//CSIDL_LOCAL_APPDATA
-	return "";
+	char* homePtr = getenv("TEMP");
+	if (!homePtr) // If no TEMP is set, default to CWD
+		return std::filesystem::current_path();
+
+	std::filesystem::path cachedir(homePtr);
+	cachedir = cachedir / "funzel";
+
+	if (!std::filesystem::exists(cachedir)) // FIXME What to do if it exists but is not a directory?
+		std::filesystem::create_directory(cachedir);
+
+	return cachedir;
 #else
 	char* homePtr = getenv("HOME");
 	if(!homePtr) // If no HOME is set, default to CWD

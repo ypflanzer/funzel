@@ -25,7 +25,7 @@ namespace nn
 
 typedef std::vector<Tensor> Parameters;
 
-class Module
+class FUNZEL_API Module
 {
 public:
 	virtual Tensor forward(const Tensor& input) = 0;

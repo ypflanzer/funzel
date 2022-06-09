@@ -98,7 +98,7 @@ static void CopyTensor(Tensor src, Tensor dest)
 	if(src.shape.size() == 1)
 	{
 		#pragma omp parallel for
-		for(size_t i = 0; i < src.shape[0]; i++)
+		for(int64_t i = 0; i < src.shape[0]; i++)
 		{
 			dest[i] = src[i].item<double>();
 		}

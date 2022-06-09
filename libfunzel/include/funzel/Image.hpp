@@ -22,7 +22,7 @@ namespace funzel
 {
 namespace image
 {
-	Tensor load(const std::string& file, DTYPE dtype = NONE, const std::string& device = std::string());
-	void save(const Tensor& tensor, const std::string& file);
+	FUNZEL_API Tensor load(const std::string& file, DTYPE dtype = NONE, const std::string& device = std::string());
+	FUNZEL_API void save(const Tensor& tensor, const std::string& file);
 }
 }

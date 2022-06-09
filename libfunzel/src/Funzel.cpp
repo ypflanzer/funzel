@@ -98,3 +98,18 @@ void funzel::PrintDevices()
 					<< (d.isGPU ? "GPU" : "CPU") << "\t| " << d.deviceName << std::endl;
 	}
 }
+
+
+#ifdef WIN32
+#include <Windows.h>
+#endif
+
+void funzel::backend::LoadBackend(const std::string& name)
+{
+#ifdef WIN32
+	auto backend = LoadLibrary(("funzel" + name + ".dll").c_str());
+	AssertExcept(backend != NULL, "Could not load backend: " << name);
+#else
+	AssertExcept(false, "Could not load backend: " << name);
+#endif
+}

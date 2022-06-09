@@ -20,7 +20,7 @@ void outputTensor(std::ostream& out, const Tensor& s, const std::string& prefix 
 		if(s.shape[0] > 1)
 			out << "[";
 
-		size_t count = std::min(s.shape[0], 10UL);
+		size_t count = std::min(s.shape[0], 10ULL);
 		for(size_t i = 0; i < count; i++)
 		{
 			out << s[i].item<double>() << (i < count - 1 ? ", " : "");
@@ -36,7 +36,7 @@ void outputTensor(std::ostream& out, const Tensor& s, const std::string& prefix 
 	}
 
 	out << "[";
-	for(size_t i = 0; i < std::min(s.shape[0], 10UL); i++)
+	for(size_t i = 0; i < std::min(s.shape[0], 10ULL); i++)
 	{
 		if(i > 0)
 		{
@@ -252,7 +252,7 @@ template<typename From, typename To>
 static void convertType(const Tensor& in, Tensor& tgt)
 {
 	#pragma omp parallel for
-	for(size_t i = 0; i < tgt.size(); i++)
+	for(int64_t i = 0; i < tgt.size(); i++)
 	{
 		tgt.dataAs<To>(i) = in.dataAs<From>(i);
 	}

@@ -23,7 +23,7 @@ namespace funzel
 namespace nn
 {
 
-class Sequential : public Module
+class FUNZEL_API Sequential : public Module
 {
 public:
 	Sequential() = default;

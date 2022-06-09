@@ -22,25 +22,31 @@
 #include <vector>
 #include <sstream>
 
+// Definitions for symbol export
+#ifdef FUNZEL_EXPORT
+#define FUNZEL_API __declspec(dllexport)
+#else
+#define FUNZEL_API __declspec(dllimport)
+#endif
+
+#define FUNZEL_REGISTER_BACKEND(name, type)\
+struct __declspec(dllexport) StaticInitializer##type \
+{\
+	using T = type; \
+	StaticInitializer##type() { backend::RegisterTensorBackend(name, new TensorFactory<T>); T::initializeBackend(); } \
+};\
+volatile static StaticInitializer##type s_initializer;
+
 namespace funzel
 {
 
 const std::string EmptyStr;
-
 [[noreturn]] inline void ThrowError(const std::string& msg)
 {
 	throw std::runtime_error(msg);
 }
 
 #define AssertExcept(v, msg) if(!(v)) { std::stringstream msgss; msgss << msg; funzel::ThrowError(msgss.str()); }
-
-#define FUNZEL_REGISTER_BACKEND(name, type)\
-struct StaticInitializer##type \
-{\
-	using T = type; \
-	StaticInitializer##type() { backend::RegisterTensorBackend(name, new TensorFactory<T>); T::initializeBackend(); } \
-};\
-volatile static StaticInitializer##type s_initializer;
 
 class BackendTensor;
 struct ITensorFactory
@@ -64,15 +70,17 @@ struct DeviceProperties
 	bool isGPU;
 };
 
-std::vector<DeviceProperties> GetDevices();
-void PrintDevices();
-std::string GetDefaultBackend();
+FUNZEL_API std::vector<DeviceProperties> GetDevices();
+FUNZEL_API void PrintDevices();
+FUNZEL_API std::string GetDefaultBackend();
 
 namespace backend
 {
-void RegisterTensorBackend(const std::string& name, ITensorFactory* factory);
-std::shared_ptr<BackendTensor> CreateBackendTensor(const std::string& name);
-void RegisterDevice(const DeviceProperties& props);
+FUNZEL_API void RegisterTensorBackend(const std::string& name, ITensorFactory* factory);
+FUNZEL_API std::shared_ptr<BackendTensor> CreateBackendTensor(const std::string& name);
+FUNZEL_API void RegisterDevice(const DeviceProperties& props);
+
+FUNZEL_API void LoadBackend(const std::string& name);
 }
 
 }

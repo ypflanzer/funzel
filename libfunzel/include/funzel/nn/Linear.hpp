@@ -23,7 +23,7 @@ namespace funzel
 namespace nn
 {
 
-class Linear : public Module
+class FUNZEL_API Linear : public Module
 {
 public:
 	Linear(size_t in, size_t out, bool bias = true);

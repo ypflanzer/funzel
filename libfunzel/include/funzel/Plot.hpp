@@ -21,7 +21,7 @@
 namespace funzel
 {
 
-class Subplot
+class FUNZEL_API Subplot
 {
 public:
 	Subplot& title(const std::string& str)
@@ -60,7 +60,7 @@ private:
 	Tensor m_data;
 };
 
-class Plot
+class FUNZEL_API Plot
 {
 public:
 	void show(bool wait = true);

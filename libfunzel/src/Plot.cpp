@@ -52,6 +52,11 @@ static std::string findGnuplot()
 #include <iostream>
 #include <filesystem>
 
+#ifdef WIN32
+#define popen _popen
+#define pclose _pclose
+#endif
+
 void Plot::sendToGnuplot(const std::string& code)
 {
 	const char* args = " -p";

@@ -18,7 +18,7 @@
 
 #define CL_HPP_ENABLE_EXCEPTIONS
 
-#ifdef __APPLE__
+#if defined(__APPLE__) || defined(WIN32)
 #define CL_HPP_MINIMUM_OPENCL_VERSION 110
 #define CL_HPP_TARGET_OPENCL_VERSION 120
 #include "opencl.hpp"

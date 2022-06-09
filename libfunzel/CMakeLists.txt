@@ -1,5 +1,5 @@
 file(GLOB_RECURSE SRC src/*.cpp)
-file(GLOB FFI_HEADERS include/capi/*.h)
+file(GLOB_RECURSE HEADERS include/funzel/*.h)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-compare")
@@ -38,8 +38,9 @@ endif()
 #)
 #FetchContent_MakeAvailable(MathGL)
 
-add_library(funzel SHARED ${SRC})
+add_library(funzel SHARED ${SRC} ${HEADERS})
 target_include_directories(funzel PUBLIC include)
+target_compile_definitions(funzel PRIVATE FUNZEL_EXPORT=1)
 
 ## MathGL
 set(enable-lgpl TRUE CACHE BOOL "" FORCE)

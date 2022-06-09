@@ -134,7 +134,7 @@ class BackendTensor;
  * @brief 
  * 
  */
-class Tensor
+class FUNZEL_API Tensor
 {
 public:
 	static Tensor ones(size_t count, DTYPE dtype = FLOAT32, const std::string& backend = EmptyStr);
@@ -354,7 +354,7 @@ inline Tensor operator+(double v, const Tensor& t) { return t.add(v); }
 inline Tensor operator*(double v, const Tensor& t) { return t.mul(v); }
 inline Tensor operator/(double v, const Tensor& t) { return Tensor::empty_like(t).fill(v).div_(t); }
 
-class BackendTensor
+class FUNZEL_API BackendTensor
 {
 public:
 	virtual ~BackendTensor() {}
@@ -408,9 +408,9 @@ inline size_t size(const Shape& shape)
 	return sz;
 }
 
-Tensor linspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, DTYPE dtype = FLOAT32);
-Tensor logspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, double base = 10.0, DTYPE dtype = FLOAT32);
-Tensor arange(double start, double stop, double step, DTYPE dtype = FLOAT32);
+FUNZEL_API Tensor linspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, DTYPE dtype = FLOAT32);
+FUNZEL_API Tensor logspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, double base = 10.0, DTYPE dtype = FLOAT32);
+FUNZEL_API Tensor arange(double start, double stop, double step, DTYPE dtype = FLOAT32);
 
 struct IRandomGenerator
 {
@@ -435,12 +435,12 @@ struct RandomGenerator : public IRandomGenerator
 	std::mt19937 gen;
 };
 
-Tensor& randn(Tensor& out, IRandomGenerator& generator);
-Tensor& randn(Tensor& out);
+FUNZEL_API Tensor& randn(Tensor& out, IRandomGenerator& generator);
+FUNZEL_API Tensor& randn(Tensor& out);
 
 #ifndef SWIG
-std::ostream& operator<<(std::ostream& out, const Tensor& s);
-std::ostream& operator<<(std::ostream& out, const Shape& s);
+FUNZEL_API std::ostream& operator<<(std::ostream& out, const Tensor& s);
+FUNZEL_API std::ostream& operator<<(std::ostream& out, const Shape& s);
 #endif
 
 }

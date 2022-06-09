@@ -17,5 +17,9 @@ endif()
 
 if(APPLE)
 	find_path(CBLAS_HEADER cblas.h)
-	target_include_directories(funzelBlas PRIVATE ${CBLAS_HEADER})
+elseif(WIN32)
+	# FIXME May produce errors when using Intel MKL or any other BLAS
+	find_path(CBLAS_HEADER cblas.h PATH_SUFFIXES openblas)
 endif()
+
+target_include_directories(funzelBlas PRIVATE ${CBLAS_HEADER})
