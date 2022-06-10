@@ -20,7 +20,7 @@ void outputTensor(std::ostream& out, const Tensor& s, const std::string& prefix 
 		if(s.shape[0] > 1)
 			out << "[";
 
-		size_t count = std::min(s.shape[0], 10ULL);
+		size_t count = std::min(s.shape[0], size_t(10));
 		for(size_t i = 0; i < count; i++)
 		{
 			out << s[i].item<double>() << (i < count - 1 ? ", " : "");
@@ -36,7 +36,7 @@ void outputTensor(std::ostream& out, const Tensor& s, const std::string& prefix 
 	}
 
 	out << "[";
-	for(size_t i = 0; i < std::min(s.shape[0], 10ULL); i++)
+	for(size_t i = 0; i < std::min(s.shape[0], size_t(10)); i++)
 	{
 		if(i > 0)
 		{

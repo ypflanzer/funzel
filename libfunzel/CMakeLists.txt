@@ -42,12 +42,16 @@ add_library(funzel SHARED ${SRC} ${HEADERS})
 target_include_directories(funzel PUBLIC include)
 target_compile_definitions(funzel PRIVATE FUNZEL_EXPORT=1)
 
+if(NOT WIN32)
+	target_compile_options(funzel PRIVATE -fvisibility=internal)
+endif()
+
 ## MathGL
-set(enable-lgpl TRUE CACHE BOOL "" FORCE)
-set(enable-mgl2 TRUE CACHE BOOL "" FORCE)
-set(enable-fltk TRUE CACHE BOOL "" FORCE)
-set(enable-qt TRUE CACHE BOOL "" FORCE)
-set(enable-glut TRUE CACHE BOOL "" FORCE)
+#set(enable-lgpl TRUE CACHE BOOL "" FORCE)
+#set(enable-mgl2 TRUE CACHE BOOL "" FORCE)
+#set(enable-fltk TRUE CACHE BOOL "" FORCE)
+#set(enable-qt TRUE CACHE BOOL "" FORCE)
+#set(enable-glut TRUE CACHE BOOL "" FORCE)
 
 #add_subdirectory(${mathgl_SOURCE_DIR}/mathgl-2x ${mathgl_BINARY_DIR} EXCLUDE_FROM_ALL)
 #target_link_libraries(funzel PUBLIC mgl mgl-fltk mgl-qt5 mgl-glut)

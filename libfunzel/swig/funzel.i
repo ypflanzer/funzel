@@ -8,13 +8,12 @@ using namespace std;
 
 %include <typemaps.i>
 %include <std_vector.i>
-
-%include <typemaps.i>
-%include <std_vector.i>
 %include <std_string.i>
 %include <std_except.i>
 
 %feature("autodoc", "3");
+
+%define FUNZEL_API %enddef
 %include "funzel/Tensor.hpp"
 
 %extend funzel::Tensor {

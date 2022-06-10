@@ -24,3 +24,8 @@ if(Python3_FOUND)
 	target_link_directories(PyFunzel PUBLIC ${Python3_LIBRARY_DIRS})
 	target_link_libraries(PyFunzel PUBLIC funzel funzelBlas ${Python3_LIBRARIES} Python3::Module)
 endif()
+
+if(NOT WIN32)
+	target_compile_options(PyFunzel PRIVATE -fvisibility=internal)
+	target_compile_options(LuaFunzel PRIVATE -fvisibility=internal)
+endif()

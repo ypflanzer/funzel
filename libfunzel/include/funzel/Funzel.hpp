@@ -23,14 +23,24 @@
 #include <sstream>
 
 // Definitions for symbol export
-#ifdef FUNZEL_EXPORT
-#define FUNZEL_API __declspec(dllexport)
+#ifdef WIN32
+	#define EXPORT __declspec(dllexport)
 #else
-#define FUNZEL_API __declspec(dllimport)
+	#define EXPORT __attribute__((visibility("default")))
+#endif
+
+#ifdef FUNZEL_EXPORT
+	#define FUNZEL_API EXPORT
+#else
+	#ifdef WIN32
+		#define FUNZEL_API __declspec(dllimport)
+	#else
+		#define FUNZEL_API
+	#endif
 #endif
 
 #define FUNZEL_REGISTER_BACKEND(name, type)\
-struct __declspec(dllexport) StaticInitializer##type \
+struct EXPORT StaticInitializer##type \
 {\
 	using T = type; \
 	StaticInitializer##type() { backend::RegisterTensorBackend(name, new TensorFactory<T>); T::initializeBackend(); } \

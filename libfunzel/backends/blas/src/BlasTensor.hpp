@@ -23,7 +23,7 @@ namespace funzel
 namespace blas
 {
 
-class __declspec(dllexport) BlasTensor : public BackendTensor
+class EXPORT BlasTensor : public BackendTensor
 {
 public:
 	BlasTensor() = default;
