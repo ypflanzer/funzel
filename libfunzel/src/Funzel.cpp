@@ -102,6 +102,8 @@ void funzel::PrintDevices()
 
 #ifdef WIN32
 #include <Windows.h>
+#elif defined(__unix__) || defined(__APPLE__)
+#include <dlfcn.h>
 #endif
 
 void funzel::backend::LoadBackend(const std::string& name)
@@ -109,7 +111,17 @@ void funzel::backend::LoadBackend(const std::string& name)
 #ifdef WIN32
 	auto backend = LoadLibrary(("funzel" + name + ".dll").c_str());
 	AssertExcept(backend != NULL, "Could not load backend: " << name);
+#elif defined(__unix__) || defined(__APPLE__)
+	#ifdef __APPLE__
+	const char* ext = ".dylib";
+	#else
+	const char* ext = ".so";
+	#endif
+
+	auto backend = dlopen(("libfunzel" + name + ext).c_str(), RTLD_LAZY);
+	AssertExcept(backend != NULL, "Could not load backend: " << name);
 #else
+	#warning "No implementation for loading backends at runtime was found!"
 	AssertExcept(false, "Could not load backend: " << name);
 #endif
 }
