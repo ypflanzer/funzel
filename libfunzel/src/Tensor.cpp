@@ -653,6 +653,17 @@ UNARY_OP_PAIR(tan)
 UNARY_OP_PAIR(tanh)
 UNARY_OP_PAIR(sigmoid)
 
+Tensor funzel::linspace(double start, double stop, size_t num, bool endPoint, DTYPE dtype)
+{
+	Tensor tstart = Tensor::empty({1}, dtype);
+	Tensor tend = Tensor::empty({1}, dtype);
+
+	tstart = start;
+	tend = stop;
+
+	return linspace(tstart, tend, num, endPoint, dtype);
+}
+
 Tensor funzel::linspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint, DTYPE dtype)
 {
 	AssertExcept(start.shape == stop.shape,

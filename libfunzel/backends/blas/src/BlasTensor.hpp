@@ -53,6 +53,14 @@ public:
 	void tanh(const Tensor& self, Tensor tgt) override;
 	double sum(const Tensor& self) override;
 
+	void pool2d(
+			const Tensor& self, Tensor tgt,
+			POOLING_MODE mode,
+			const UVec2& kernelSize,
+			const UVec2& stride,
+			const UVec2& padding,
+			const UVec2& dilation) override;
+
 	void set(Tensor& self, const Tensor& src) override;
 
 	static void initializeBackend();

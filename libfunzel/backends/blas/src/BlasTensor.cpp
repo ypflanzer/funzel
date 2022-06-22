@@ -434,3 +434,66 @@ void BlasTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 		default: ThrowError("Unsupported dtype!");
 	}
 }
+
+#include "Pool2D.hpp"
+
+void BlasTensor::pool2d(
+			const Tensor& self, Tensor tgt,
+			POOLING_MODE mode,
+			const UVec2& kernelSize,
+			const UVec2& stride,
+			const UVec2& padding,
+			const UVec2& dilation)
+{
+	AssertExcept(self.getBackend() != tgt.getBackend(), "Cannot apply a pooling operation in-place!");
+	if(self.shape.empty())
+		return;
+	
+	if(self.shape.size() > 2)
+	{
+		//#pragma omp parallel for
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			pool2d(self[i], tgt[i], mode, kernelSize, stride, padding, dilation);
+		}
+
+		return;
+	}
+
+	const void* adata = self.data(self.offset);
+	void* dest = tgt.data(tgt.offset);
+
+	const auto maxFunctor = [](const auto a, const auto b, int ksize) { return std::max(a,b); };
+	const auto meanFunctor = [](const auto a, const auto b, int ksize) { return a + b/ksize; };
+
+	switch(dtype)
+	{
+		case FLOAT32: {
+			Pool2D<float>(
+				(const float*) adata, (float*) dest,
+				{self.shape[0], self.shape[1]},
+				{tgt.shape[0], tgt.shape[1]},
+				{self.strides[0], self.strides[1]},
+				{tgt.strides[0], tgt.strides[1]},
+				kernelSize, stride, padding, dilation,
+				(mode == MEAN_POOLING ?
+					std::function<float(const float, const float, int)>(meanFunctor):
+					std::function<float(const float, const float, int)>(maxFunctor))
+			);
+		} break;
+		case FLOAT64: {
+			Pool2D<double>(
+				(const double*) adata, (double*) dest,
+				{self.shape[0], self.shape[1]},
+				{tgt.shape[0], tgt.shape[1]},
+				{self.strides[0], self.strides[1]},
+				{tgt.strides[0], tgt.strides[1]},
+				kernelSize, stride, padding, dilation,
+				(mode == MEAN_POOLING ?
+					std::function<double(const double, const double, int)>(meanFunctor):
+					std::function<double(const double, const double, int)>(maxFunctor))
+			);
+		} break;
+		default: ThrowError("Unsupported dtype!");
+	}
+}

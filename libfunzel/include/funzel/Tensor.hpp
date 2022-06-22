@@ -14,10 +14,10 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 #pragma once
 
 #include "Funzel.hpp"
+#include "Vector.hpp"
 
 #include <memory>
 #include <vector>
@@ -354,6 +354,12 @@ inline Tensor operator+(double v, const Tensor& t) { return t.add(v); }
 inline Tensor operator*(double v, const Tensor& t) { return t.mul(v); }
 inline Tensor operator/(double v, const Tensor& t) { return Tensor::empty_like(t).fill(v).div_(t); }
 
+enum POOLING_MODE
+{
+	MEAN_POOLING,
+	MAX_POOLING
+};
+
 class FUNZEL_API BackendTensor
 {
 public:
@@ -385,6 +391,14 @@ public:
 	virtual void tanh(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
 	virtual double sum(const Tensor& self) { ThrowError("Operation is not supported!"); return 0; }
 
+	virtual void pool2d(
+			const Tensor& self, Tensor tgt,
+			POOLING_MODE mode,
+			const UVec2& kernelSize,
+			const UVec2& stride,
+			const UVec2& padding,
+			const UVec2& dilation) { ThrowError("Operation is not supported!"); }
+
 	virtual void set(Tensor& self, const Tensor& src) { ThrowError("Operation is not supported!"); }
 
 	// With default implementation
@@ -408,6 +422,7 @@ inline size_t size(const Shape& shape)
 	return sz;
 }
 
+FUNZEL_API Tensor linspace(double start, double stop, size_t num, bool endPoint = true, DTYPE dtype = FLOAT32);
 FUNZEL_API Tensor linspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, DTYPE dtype = FLOAT32);
 FUNZEL_API Tensor logspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, double base = 10.0, DTYPE dtype = FLOAT32);
 FUNZEL_API Tensor arange(double start, double stop, double step, DTYPE dtype = FLOAT32);
