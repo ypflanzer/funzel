@@ -1,5 +1,5 @@
 file(GLOB_RECURSE SRC src/*.cpp)
-file(GLOB_RECURSE HEADERS include/funzel/*.h)
+file(GLOB_RECURSE HEADERS include/funzel/*.h*)
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wno-sign-compare")

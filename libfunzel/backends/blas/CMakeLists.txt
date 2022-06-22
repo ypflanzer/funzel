@@ -1,4 +1,5 @@
 file(GLOB SRC src/*.cpp)
+file(GLOB HEADERS src/*.h*)
 
 if(APPLE)
 	set(CMAKE_PREFIX_PATH "/usr/local/opt/openblas")
@@ -7,7 +8,7 @@ endif()
 set(BLA_VENDOR "OpenBLAS" CACHE STRING "The BLAS implementation to be used.")
 find_package(BLAS REQUIRED)
 
-add_library(funzelBlas SHARED ${SRC})
+add_library(funzelBlas SHARED ${SRC} ${HEADERS})
 target_link_libraries(funzelBlas PUBLIC funzel PRIVATE BLAS::BLAS)
 
 find_package(OpenMP)
