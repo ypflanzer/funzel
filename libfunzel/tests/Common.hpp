@@ -447,3 +447,23 @@ TEST(CommonTest, SequentialLayer)
 	EXPECT_EQ(r.shape, (Shape{10, 1024}));
 	// TODO Check values!
 }
+
+TEST(CommonTest, Pool2D)
+{
+	Tensor a = funzel::linspace(1, 256*256, 256*256).reshape({1, 256, 256}).to(TestDevice);
+
+	UVec2 padding{0, 0}, kernelSize{2, 2}, stride{2, 2}, dilation{1, 1};
+
+	size_t width = ((a.shape[1] + 2*padding[0] - dilation[0]*(kernelSize[0] - 1) - 1)/stride[0]) + 1;
+	size_t height = ((a.shape[2] + 2*padding[1] - dilation[1]*(kernelSize[1] - 1) - 1)/stride[1]) + 1;
+
+	Tensor b = Tensor::empty({1, width, height}, FLOAT32, TestDevice);
+
+	std::cout << a.cpu() << std::endl;
+
+	a->pool2d(a, b, MAX_POOLING, kernelSize, stride, padding, dilation);
+	std::cout << b.cpu() << std::endl;
+
+	a->pool2d(a, b, MEAN_POOLING, kernelSize, stride, padding, dilation);
+	std::cout << b.cpu() << std::endl;
+}

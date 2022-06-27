@@ -52,7 +52,7 @@ struct funzel::cl::CLTemplateKernel
 
 		if(localSz[0] == 0)
 		{
-			const auto maxWorkgroup = tensor->m_device.device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>();
+			const unsigned int maxWorkgroup = std::pow(tensor->m_device.device.getInfo<CL_DEVICE_MAX_WORK_GROUP_SIZE>(), 1.0/globalSz.dimensions());
 			
 			::cl::NDRange realLocalSz = globalSz;
 			::cl::NDRange realGlobalSz = globalSz;
@@ -468,3 +468,107 @@ void OpenCLTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 	AssertExcept(err == clblast::StatusCode::kSuccess, "CLBlast error: " + std::to_string((int) err));
 }
 
+static const std::string s_poolingKernel = R"krnl(
+__kernel void Kernel(
+	ulong inputCount,
+	__global const T* input, ulong aOffset, ulong aStrideX, ulong aStrideY,
+	ulong tgtWidth, ulong tgtHeight,
+	__global T* output, ulong tgtOffset, ulong tgtStrideX, ulong tgtStrideY,
+	int kernelW, int kernelH,
+	int dilationX, int dilationY,
+	int strideX, int strideY)
+{
+	const ulong yidx = get_global_id(0);
+	const ulong xidx = get_global_id(1);
+
+	if(xidx < tgtWidth && yidx < tgtHeight)
+	{
+		T accum = 0;
+
+		const ulong inX = xidx*strideX;
+		const ulong inY = yidx*strideY;
+
+		const ulong yinOff = inY*aStrideY;
+		const ulong xinOff = inX*aStrideX;
+
+		const ulong xoutOff = xidx*tgtStrideX;
+		const ulong youtOff = yidx*tgtStrideY;
+
+		const int halfKw = int(kernelW/2);
+		const int halfKh = int(kernelH/2);
+		const int ksize = kernelW*kernelH;
+
+		// TODO Optimize!
+		for(int ky = -halfKh; ky <= halfKh; ky++)
+		{
+			for(int kx = -halfKw; kx <= halfKw; kx++)
+			{
+				const int dkx = dilationX*kx;
+				const int dky = dilationY*ky;
+
+				const long inputOffset = yinOff + xinOff + dkx*aStrideX + dky*aStrideY;
+				if(inputOffset >= 0 && inputOffset < inputCount)
+				{
+					accum = ACCUM(accum, input[inputOffset], ksize);
+				}
+			}
+		}
+
+		output[youtOff + xoutOff] = accum;
+	}
+}
+)krnl";
+
+void OpenCLTensor::pool2d(
+			const Tensor& self, Tensor tgt,
+			POOLING_MODE mode,
+			const UVec2& kernelSize,
+			const UVec2& stride,
+			const UVec2& padding,
+			const UVec2& dilation)
+{
+	if(self.shape.empty())
+		return;
+
+	static CLTemplateKernel maxkernel{"#define ACCUM(accum, b, count) max(accum, b)\n" + s_poolingKernel};
+	static CLTemplateKernel meankernel{"#define ACCUM(accum, b, count) ((accum) + ((b)/(count)))\n" + s_poolingKernel};
+
+	auto* tgtBackend = tgt.getBackendAs<OpenCLTensor>();
+
+	AssertExcept(self.getBackend() != tgt.getBackend(), "Cannot apply pooling in-place!");
+	assert(self.getBackend() == this && "Wrong tensor given first!");
+
+	// Wait for both tensors to be available
+	wait();
+	tgtBackend->wait();
+
+	if(self.shape.size() > 2)
+	{
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			pool2d(self[i], tgt[i], mode, kernelSize, stride, padding, dilation);
+		}
+
+		return;
+	}
+
+	::cl::Buffer abuf = m_buffer;
+	::cl::Buffer cbuf = tgtBackend->m_buffer;
+
+	clblast::StatusCode err;
+
+	const int64_t outstrideY = tgt.strides[0]/dtypeSizeof(self.dtype);
+	const int64_t outstrideX = tgt.strides[1]/dtypeSizeof(self.dtype);
+	const int64_t instrideY = self.strides[0]/dtypeSizeof(self.dtype);
+	const int64_t instrideX = self.strides[1]/dtypeSizeof(self.dtype);
+
+	CLTemplateKernel& kernel = (mode == MEAN_POOLING ? meankernel : maxkernel);
+	kernel.call(tgtBackend, ::cl::NullRange, {tgt.shape[0], tgt.shape[1]}, ::cl::NullRange, self.dtype,
+				self.shape[0]*self.shape[1],
+				abuf, self.offset/dtypeSizeof(self.dtype), instrideX, instrideY,
+				tgt.shape[1], tgt.shape[0],
+				cbuf, tgt.offset/dtypeSizeof(tgt.dtype), outstrideX, outstrideY,
+				kernelSize[0], kernelSize[1],
+				dilation[0], dilation[1],
+				stride[0], stride[1]);
+}

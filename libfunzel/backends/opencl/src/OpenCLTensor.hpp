@@ -56,6 +56,14 @@ public:
 
 	double sum(const Tensor& self) override;
 
+	void pool2d(
+			const Tensor& self, Tensor tgt,
+			POOLING_MODE mode,
+			const UVec2& kernelSize,
+			const UVec2& stride,
+			const UVec2& padding,
+			const UVec2& dilation) override;
+
 protected:
 
 	size_t workgroupSize() const;

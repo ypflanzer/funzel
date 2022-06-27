@@ -1,5 +1,6 @@
-import PyFunzel as funzel
+# import PyFunzel as funzel
 import numpy as np
+import torch
 
 #print("Hello World!")
 #t = funzel.Tensor.ones((32))
@@ -52,7 +53,17 @@ def BroadcastTestVectorVector():
 	b = np.array([1, 1, 1])
 	print(a@b)
 
+def MaxPool2dTest():
+	P = torch.nn.MaxPool2d(2, 2, 0, 1)
+	t = torch.linspace(1, 256*256, 256*256,).reshape((1, 256, 256))
+
+	tp = P(t)
+
+	print(t, tp)
+
+
 MatmulTensorTest()
 MatmulTest()
 
 BroadcastTestVectorVector()
+MaxPool2dTest()
