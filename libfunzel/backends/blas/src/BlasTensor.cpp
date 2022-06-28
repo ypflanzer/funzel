@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include <funzel/Tensor.hpp>
 #include "BlasTensor.hpp"
 
@@ -5,6 +6,7 @@
 #include <cblas.h>
 #include <cstring>
 #include <cmath>
+#include <functional>
 
 #ifdef WIN32
 #include <windows.h>

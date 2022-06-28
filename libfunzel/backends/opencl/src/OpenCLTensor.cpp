@@ -494,8 +494,8 @@ __kernel void Kernel(
 		const ulong xoutOff = xidx*tgtStrideX;
 		const ulong youtOff = yidx*tgtStrideY;
 
-		const int halfKw = int(kernelW/2);
-		const int halfKh = int(kernelH/2);
+		const int halfKw = (int)(kernelW/2);
+		const int halfKh = (int)(kernelH/2);
 		const int ksize = kernelW*kernelH;
 
 		// TODO Optimize!
