@@ -467,3 +467,40 @@ TEST(CommonTest, Pool2D)
 	a->pool2d(a, b, MEAN_POOLING, kernelSize, stride, padding, dilation);
 	std::cout << b.cpu() << std::endl;
 }
+
+#include <funzel/Image.hpp>
+#include <funzel/Plot.hpp>
+
+TEST(CommonTest, Conv2d)
+{
+	auto img = image::load("test.jpg").astype<float>().to(TestDevice).mul_(1.0 / 255.0);
+	img.shape.erase(img.shape.begin() + 2);
+
+	auto tgt = Tensor::zeros_like(img);
+	
+#if 0
+	auto kernel = Tensor::ones({ 5, 5 }, FLOAT32, TestDevice);
+	kernel.mul_(1.0 / 25.0);
+#else
+	Tensor kernel({ 5, 5 }, {
+		0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, -1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, -1.0f, 0.0f,
+		0.0f, 1.0f, 0.0f, -1.0f, 0.0f,
+		0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
+	}, TestDevice);
+	kernel.mul_(1.0 / 3.0);
+#endif
+	
+	img->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
+
+	tgt.shape.push_back(1);
+	image::save(tgt.cpu().astype<uint8_t>(), "CommonTest_Conv2d.png");
+
+#if 1
+	Plot plt;
+	//plt.image(img.mul(255.0).cpu().astype<uint8_t>());
+	plt.image(tgt.mul(255.0).cpu().astype<uint8_t>(), "Result");
+	plt.show();
+#endif
+}

@@ -64,6 +64,13 @@ public:
 			const UVec2& padding,
 			const UVec2& dilation) override;
 
+	void conv2d(
+			const Tensor& self, Tensor tgt,
+			const Tensor& kernel,
+			const UVec2& stride,
+			const UVec2& padding,
+			const UVec2& dilation) override;
+
 protected:
 
 	size_t workgroupSize() const;

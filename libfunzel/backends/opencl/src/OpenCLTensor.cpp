@@ -572,3 +572,76 @@ void OpenCLTensor::pool2d(
 				dilation[0], dilation[1],
 				stride[0], stride[1]);
 }
+
+void OpenCLTensor::conv2d(
+	const Tensor& self, Tensor tgt,
+	const Tensor& kernel,
+	const UVec2& stride,
+	const UVec2& padding,
+	const UVec2& dilation)
+{
+	if (self.shape.empty())
+		return;
+
+	auto* tgtBackend = tgt.getBackendAs<OpenCLTensor>();
+	auto* krnlBackend = kernel.getBackendAs<OpenCLTensor>();
+
+	AssertExcept(self.getBackend() != tgt.getBackend(), "Cannot apply convolution in-place!");
+	assert(self.getBackend() == this && "Wrong tensor given first!");
+
+	// Wait for both tensors to be available
+	wait();
+	tgtBackend->wait();
+
+	if (self.shape.size() > 2)
+	{
+		for (int i = 0; i < self.shape[0]; i++)
+		{
+			conv2d(self[i], tgt[i], kernel, stride, padding, dilation);
+		}
+
+		return;
+	}
+
+	const size_t oh = ((self.shape[0] + size_t(2) * padding[0] - dilation[0] * (kernel.shape[0] - 1) - 1) / stride[0]) + 1;
+	const size_t ow = ((self.shape[1] + size_t(2) * padding[1] - dilation[1] * (kernel.shape[1] - 1) - 1) / stride[1]) + 1;
+	AssertExcept(tgt.shape[0] == oh && tgt.shape[1] == ow, "Invalid output size: " << tgt.shape[0] << " != " << oh << " or " << tgt.shape[1] << " != " << ow);
+
+	switch (dtype)
+	{
+	case FLOAT32: {
+		clblast::Convgemm<float>(clblast::KernelMode::kCrossCorrelation, 1,
+			self.shape[1], self.shape[0], // width, height
+			kernel.shape[1], kernel.shape[0], // kernelWidth, kernelHeight,
+			padding[1], padding[0],
+			stride[1], stride[0],
+			dilation[1], dilation[0],
+			(kernel.shape.size() > 2 ? kernel.shape[2] : 1), 
+			
+			1, // Batch size
+			self.getBackendAs<OpenCLTensor>()->m_buffer(), self.offset / sizeof(float),
+			krnlBackend->m_buffer(), kernel.offset / sizeof(float),
+			tgtBackend->m_buffer(), tgt.offset / sizeof(double),
+
+			&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
+	} break;
+
+	case FLOAT64: {
+		clblast::Convgemm<double>(clblast::KernelMode::kCrossCorrelation, 1,
+			self.shape[1], self.shape[0], // width, height
+			kernel.shape[1], kernel.shape[0], // kernelWidth, kernelHeight,
+			padding[1], padding[0],
+			stride[1], stride[0],
+			dilation[1], dilation[0],
+			(kernel.shape.size() > 2 ? kernel.shape[2] : 1),
+
+			1, // Batch size
+			self.getBackendAs<OpenCLTensor>()->m_buffer(), self.offset / sizeof(double),
+			krnlBackend->m_buffer(), kernel.offset / sizeof(double),
+			tgtBackend->m_buffer(), tgt.offset / sizeof(double),
+
+			&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
+	} break;
+	default: ThrowError("Unsupported dtype!");
+	}
+}

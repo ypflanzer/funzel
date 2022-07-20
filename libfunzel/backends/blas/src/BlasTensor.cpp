@@ -499,3 +499,77 @@ void BlasTensor::pool2d(
 		default: ThrowError("Unsupported dtype!");
 	}
 }
+
+#include "Conv2D.hpp"
+
+void BlasTensor::conv2d(
+	const Tensor& self, Tensor tgt,
+	const Tensor& kernel,
+	const UVec2& stride,
+	const UVec2& padding,
+	const UVec2& dilation)
+{
+	AssertExcept(self.getBackend() != tgt.getBackend(), "Cannot apply a convolution operation in-place!");
+	if (self.shape.empty())
+		return;
+
+	if (self.shape.size() > 2)
+	{
+		//#pragma omp parallel for
+		for (int i = 0; i < self.shape[0]; i++)
+		{
+			conv2d(self[i], tgt[i], kernel, stride, padding, dilation);
+		}
+
+		return;
+	}
+
+	const void* adata = self.data(self.offset);
+	void* dest = tgt.data(tgt.offset);
+	const void* kdata = kernel.data(kernel.offset);
+
+	switch (dtype)
+	{
+	case FLOAT32: {
+		Conv2DNaive<float>(
+			(const float*)adata, (const float*) kdata, (float*)dest,
+			{ self.shape[0], self.shape[1] },
+			{ kernel.shape[0], kernel.shape[1] },
+			{ tgt.shape[0], tgt.shape[1] },
+			{ self.strides[0], self.strides[1] },
+			{ tgt.strides[0], tgt.strides[1] },
+			stride, padding, dilation);
+
+#if 0
+		Pool2D<float>(
+			(const float*)adata, (float*)dest,
+			{ self.shape[0], self.shape[1] },
+			{ tgt.shape[0], tgt.shape[1] },
+			{ self.strides[0], self.strides[1] },
+			{ tgt.strides[0], tgt.strides[1] },
+			kernelSize, stride, padding, dilation,
+			(mode == MEAN_POOLING ?
+				std::function<float(const float, const float, int)>(meanFunctor) :
+				std::function<float(const float, const float, int)>(maxFunctor))
+			);
+#endif
+	} break;
+	case FLOAT64: {
+#if 0
+		Pool2D<double>(
+			(const double*)adata, (double*)dest,
+			{ self.shape[0], self.shape[1] },
+			{ tgt.shape[0], tgt.shape[1] },
+			{ self.strides[0], self.strides[1] },
+			{ tgt.strides[0], tgt.strides[1] },
+			kernelSize, stride, padding, dilation,
+			(mode == MEAN_POOLING ?
+				std::function<double(const double, const double, int)>(meanFunctor) :
+				std::function<double(const double, const double, int)>(maxFunctor))
+			);
+#endif
+	} break;
+	default: ThrowError("Unsupported dtype!");
+	}
+}
+

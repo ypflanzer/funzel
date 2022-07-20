@@ -59,7 +59,7 @@ static int saveUByteImage(const Tensor& tensor, const std::string& file, const s
 {
 	const auto w = tensor.shape[0];
 	const auto h = tensor.shape[1];
-	const auto c = tensor.shape[2];
+	const auto c = (tensor.shape.size() > 2 ? tensor.shape[2] : 1);
 	const void* data = tensor.data();
 
 	if(ext == "png")
@@ -92,7 +92,7 @@ static int saveFloatImage(const Tensor& tensor, const std::string& file, const s
 {
 	const auto w = tensor.shape[0];
 	const auto h = tensor.shape[1];
-	const auto c = tensor.shape[2];
+	const auto c = (tensor.shape.size() > 2 ? tensor.shape[2] : 1);
 	const float* data = (float*) tensor.data();
 
 	if(ext == "hdr")

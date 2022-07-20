@@ -49,20 +49,6 @@ TEST(OpenCLTensor, Abs)
 	//bigv.abs_();
 }
 
-#include <funzel/Image.hpp>
-#include <funzel/Plot.hpp>
-
-TEST(OpenCLTensor, Conv2d)
-{
-	auto img = image::load("test.jpg").to("OCL:0");
-
-	img->conv2d(img, tgt, kernel, {1, 1}, {0, 0}, {1, 1});
-
-	Plot plt;
-	plt.image(img.cpu());
-	plt.show();
-}
-
 #define CommonTest CLTensorTest
 #define TestDevice "OCL:0"
 #include "../../Common.hpp"
