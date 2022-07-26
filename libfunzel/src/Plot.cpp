@@ -83,6 +83,7 @@ void Plot::serialize(std::ostream& out) const
 void Plot::show(bool wait)
 {
 	std::stringstream ss;
+	// ss << "set terminal wxt\n";
 	serialize(ss);
 	sendToGnuplot(ss.str());
 }
@@ -123,8 +124,8 @@ public:
 		funzel::image::save(data(), imageName);
 		
 		out << "set size ratio -1\n"
-			<< "set xrange [0 : " << t.shape[0] << "]\n"
-			<< "set yrange [0 : " << t.shape[1] << "]\n"
+			<< "set yrange [0 : " << t.shape[0] << "]\n"
+			<< "set xrange [0 : " << t.shape[1] << "]\n"
 			<< (index > 0 ? "re" : "") << "plot '" << imageName << "' binary filetype=png w rgbimage title '" << title() << "'\n";
 	}
 };

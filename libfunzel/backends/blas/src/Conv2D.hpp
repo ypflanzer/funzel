@@ -42,13 +42,13 @@ void Conv2DNaive(
 	const int64_t instrideY = inputStride[0]/sizeof(T);
 	const int64_t instrideX = inputStride[1]/sizeof(T);
 
-	const int halfKw = int(kernelSize[1]/2);
-	const int halfKh = int(kernelSize[0]/2);
+	const int64_t halfKw = int64_t(kernelSize[1]/2);
+	const int64_t halfKh = int64_t(kernelSize[0]/2);
 
-	const int64_t inSizeMax = int64_t(inputSize[0])*inputSize[1];
+	const int64_t inSizeMax = int64_t(inputSize[0])*inputSize[1]*channels;
 	const int ksize = kernelSize[0]*kernelSize[1];
 
-	//#pragma omp parallel for
+	#pragma omp parallel for
 	for(int64_t y = 0; y < outputSize[0]; y++)
 	{
 		const int64_t inY = y*stride[0];
@@ -69,12 +69,13 @@ void Conv2DNaive(
 			}
 
 			// TODO Optimize!
-			for(int64_t ky = -halfKh; ky <= halfKh; ky++)
+			//int64_t ky = 1;
+			for(int64_t ky = -halfKh; ky < halfKh; ky++)
 			{
-				for(int64_t kx = -halfKw; kx <= halfKw; kx++)
+				for(int64_t kx = -halfKw; kx < halfKw; kx++)
 				{
-					const int dkx = dilation[1] * kx + inX;
-					const int dky = dilation[0] * ky + inY;
+					const int64_t dkx = -int64_t(padding[1]) + (halfKw+kx) * int64_t(dilation[1]) + int64_t(stride[1]) * x;
+					const int64_t dky = -int64_t(padding[0]) + (halfKh+ky) * int64_t(dilation[0]) + int64_t(stride[0]) * y;
 
 					if (dky < 0 || dky >= inputSize[0]
 						|| dkx < 0 || dkx >= inputSize[1])
@@ -82,13 +83,8 @@ void Conv2DNaive(
 						continue;
 					}
 
-					//std::cout << inY << "*" << instrideY << " + " << ky << "*" << inputSize[1] << " = " << (inY * instrideY + ky * inputSize[1]) << "\t" << (dkx * instrideX) + (inY * instrideY + ky * inputSize[1]) << std::endl;
-
-					const int64_t inputOffset = /*yinOff* + xinOff + */(dkx * instrideX) + (inY * instrideY + ky*inputSize[0]);
+					const int64_t inputOffset = (dkx * instrideX) + (dky * instrideY);
 					AssertExcept(inputOffset >= 0 && inputOffset < inSizeMax, "");
-
-					//*accum += input[inputOffset] / 25.0f;
-					//continue;
 
 					const auto kidx = ((halfKh+ky)*kernelSize[1] + halfKw + kx) * channels;
 					const auto inputValue = input[inputOffset];

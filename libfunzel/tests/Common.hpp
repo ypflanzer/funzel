@@ -475,12 +475,14 @@ TEST(CommonTest, Conv2d)
 {
 	auto img = image::load("test.jpg").astype<float>().to(TestDevice).mul_(1.0 / 255.0);
 	img.shape.erase(img.shape.begin() + 2);
+	img.reshape_(img.shape);
 
 	auto tgt = Tensor::zeros_like(img);
 	
-#if 0
-	auto kernel = Tensor::ones({ 5, 5 }, FLOAT32, TestDevice);
-	kernel.mul_(1.0 / 25.0);
+#if 1
+	auto kernel = Tensor::ones({ 25, 25 }, FLOAT32, TestDevice);
+	kernel.mul_(1.0 / (25.0*25.0));
+	img->conv2d(img, tgt, kernel, { 1, 1 }, { 12, 12 }, { 1, 1 });
 #else
 	Tensor kernel({ 5, 5 }, {
 		0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -490,9 +492,8 @@ TEST(CommonTest, Conv2d)
 		0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 	}, TestDevice);
 	kernel.mul_(1.0 / 3.0);
-#endif
-	
 	img->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
+#endif
 
 	tgt.shape.push_back(1);
 	image::save(tgt.cpu().astype<uint8_t>(), "CommonTest_Conv2d.png");

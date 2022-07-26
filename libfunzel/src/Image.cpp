@@ -51,14 +51,14 @@ Tensor funzel::image::load(const std::string& file, DTYPE dtype, const std::stri
 	}
 
 	AssertExcept(buffer != nullptr, "Could not load image: " << stbi_failure_reason());
-	return Tensor::empty({size_t(w), size_t(h), size_t(c)}, buffer, dtype, device);
+	return Tensor::empty({size_t(h), size_t(w), size_t(c)}, buffer, dtype, device);
 }
 
 
 static int saveUByteImage(const Tensor& tensor, const std::string& file, const std::string& ext)
 {
-	const auto w = tensor.shape[0];
-	const auto h = tensor.shape[1];
+	const auto h = tensor.shape[0];
+	const auto w = tensor.shape[1];
 	const auto c = (tensor.shape.size() > 2 ? tensor.shape[2] : 1);
 	const void* data = tensor.data();
 
@@ -90,8 +90,8 @@ static int saveUShortImage(const Tensor& tensor, const std::string& file, const 
 
 static int saveFloatImage(const Tensor& tensor, const std::string& file, const std::string& ext)
 {
-	const auto w = tensor.shape[0];
-	const auto h = tensor.shape[1];
+	const auto h = tensor.shape[0];
+	const auto w = tensor.shape[1];
 	const auto c = (tensor.shape.size() > 2 ? tensor.shape[2] : 1);
 	const float* data = (float*) tensor.data();
 

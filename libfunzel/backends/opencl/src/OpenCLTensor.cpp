@@ -611,28 +611,28 @@ void OpenCLTensor::conv2d(
 	{
 	case FLOAT32: {
 		clblast::Convgemm<float>(clblast::KernelMode::kCrossCorrelation, 1,
-			self.shape[1], self.shape[0], // width, height
-			kernel.shape[1], kernel.shape[0], // kernelWidth, kernelHeight,
-			padding[1], padding[0],
-			stride[1], stride[0],
-			dilation[1], dilation[0],
+			self.shape[0], self.shape[1], // width, height
+			kernel.shape[0], kernel.shape[1], // kernelWidth, kernelHeight,
+			padding[0], padding[1],
+			stride[0], stride[1],
+			dilation[0], dilation[1],
 			(kernel.shape.size() > 2 ? kernel.shape[2] : 1), 
 			
 			1, // Batch size
 			self.getBackendAs<OpenCLTensor>()->m_buffer(), self.offset / sizeof(float),
 			krnlBackend->m_buffer(), kernel.offset / sizeof(float),
-			tgtBackend->m_buffer(), tgt.offset / sizeof(double),
+			tgtBackend->m_buffer(), tgt.offset / sizeof(float),
 
 			&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
 	} break;
 
 	case FLOAT64: {
 		clblast::Convgemm<double>(clblast::KernelMode::kCrossCorrelation, 1,
-			self.shape[1], self.shape[0], // width, height
-			kernel.shape[1], kernel.shape[0], // kernelWidth, kernelHeight,
-			padding[1], padding[0],
-			stride[1], stride[0],
-			dilation[1], dilation[0],
+			self.shape[0], self.shape[1], // width, height
+			kernel.shape[0], kernel.shape[1], // kernelWidth, kernelHeight,
+			padding[0], padding[1],
+			stride[0], stride[1],
+			dilation[0], dilation[1],
 			(kernel.shape.size() > 2 ? kernel.shape[2] : 1),
 
 			1, // Batch size

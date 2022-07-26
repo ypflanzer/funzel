@@ -528,6 +528,10 @@ void BlasTensor::conv2d(
 	void* dest = tgt.data(tgt.offset);
 	const void* kdata = kernel.data(kernel.offset);
 
+	const size_t oh = ((self.shape[0] + size_t(2) * padding[0] - dilation[0] * (kernel.shape[0] - 1) - 1) / stride[0]) + 1;
+	const size_t ow = ((self.shape[1] + size_t(2) * padding[1] - dilation[1] * (kernel.shape[1] - 1) - 1) / stride[1]) + 1;
+	AssertExcept(tgt.shape[0] == oh && tgt.shape[1] == ow, "Invalid output size: " << tgt.shape[0] << " != " << oh << " or " << tgt.shape[1] << " != " << ow);
+
 	switch (dtype)
 	{
 	case FLOAT32: {
