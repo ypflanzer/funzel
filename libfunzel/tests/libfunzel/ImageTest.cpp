@@ -11,9 +11,9 @@ TEST(Image, LoadInvalid)
 
 TEST(Image, LoadSave)
 {
-	auto img = image::load("test.jpg");
+	auto img = image::load("mnist_png/training/8/225.png");
 	EXPECT_EQ(img.dtype, UBYTE);
-	EXPECT_EQ(img.shape, (Shape{1791, 2652, 3}));
+	EXPECT_EQ(img.shape, (Shape{28, 28, 1}));
 	
 	img = img.astype<float>();
 	EXPECT_EQ(img.dtype, FLOAT32);
@@ -26,9 +26,9 @@ TEST(Image, LoadSave)
 
 TEST(Image, PlotImage)
 {
-	auto img = image::load("test.jpg");
+	auto img = image::load("mnist_png/training/8/225.png");
 	EXPECT_EQ(img.dtype, UBYTE);
-	EXPECT_EQ(img.shape, (Shape{1791, 2652, 3}));
+	EXPECT_EQ(img.shape, (Shape{28, 28, 1}));
 	
 	Plot plt;
 	plt.image(img);

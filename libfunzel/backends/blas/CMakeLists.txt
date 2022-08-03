@@ -18,7 +18,7 @@ endif()
 
 if(APPLE)
 	find_path(CBLAS_HEADER cblas.h)
-elseif(WIN32)
+elseif(WIN32 OR UNIX)
 	# FIXME May produce errors when using Intel MKL or any other BLAS
 	find_path(CBLAS_HEADER cblas.h PATH_SUFFIXES openblas)
 endif()

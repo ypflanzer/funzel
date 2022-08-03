@@ -473,16 +473,16 @@ TEST(CommonTest, Pool2D)
 
 TEST(CommonTest, Conv2d)
 {
-	auto img = image::load("test.jpg").astype<float>().to(TestDevice).mul_(1.0 / 255.0);
+	auto img = image::load("mnist_png/training/8/225.png").astype<float>().to(TestDevice).mul_(1.0 / 255.0);
 	img.shape.erase(img.shape.begin() + 2);
 	img.reshape_(img.shape);
 
 	auto tgt = Tensor::zeros_like(img);
 	
 #if 1
-	auto kernel = Tensor::ones({ 25, 25 }, FLOAT32, TestDevice);
-	kernel.mul_(1.0 / (25.0*25.0));
-	img->conv2d(img, tgt, kernel, { 1, 1 }, { 12, 12 }, { 1, 1 });
+	auto kernel = Tensor::ones({ 5, 5 }, FLOAT32, TestDevice);
+	kernel.mul_(1.0 / (5.0*5.0));
+	img->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
 #else
 	Tensor kernel({ 5, 5 }, {
 		0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
