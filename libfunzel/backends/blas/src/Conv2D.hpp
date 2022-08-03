@@ -70,9 +70,9 @@ void Conv2DNaive(
 
 			// TODO Optimize!
 			//int64_t ky = 1;
-			for(int64_t ky = -halfKh; ky < halfKh; ky++)
+			for(int64_t ky = -halfKh; ky <= halfKh; ky++)
 			{
-				for(int64_t kx = -halfKw; kx < halfKw; kx++)
+				for(int64_t kx = -halfKw; kx <= halfKw; kx++)
 				{
 					const int64_t dkx = -int64_t(padding[1]) + (halfKw+kx) * int64_t(dilation[1]) + int64_t(stride[1]) * x;
 					const int64_t dky = -int64_t(padding[0]) + (halfKh+ky) * int64_t(dilation[0]) + int64_t(stride[0]) * y;
