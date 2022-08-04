@@ -61,6 +61,7 @@ const std::string EmptyStr;
 class BackendTensor;
 struct ITensorFactory
 {
+	virtual ~ITensorFactory() = default;
 	virtual std::shared_ptr<BackendTensor> create(const std::string& args = EmptyStr) = 0;
 };
 
