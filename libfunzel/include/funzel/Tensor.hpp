@@ -19,6 +19,8 @@
 #include "Funzel.hpp"
 #include "Vector.hpp"
 
+#include "small_vector"
+
 #include <memory>
 #include <vector>
 #include <random>
@@ -119,8 +121,10 @@ template<typename T>
 DTYPE dtypeOf(const T&) { return dtype<T>(); }
 #endif
 
-typedef std::vector<size_t> Shape;
-typedef std::vector<size_t> Index;
+typedef small_vector<size_t> Shape;
+typedef small_vector<size_t> Index;
+//typedef std::vector<size_t> Shape;
+//typedef std::vector<size_t> Index;
 
 enum TensorFlags
 {
