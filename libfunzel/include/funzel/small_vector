@@ -41,6 +41,7 @@ public:
 	typedef const_pointer const_iterator;
 	typedef std::reverse_iterator<iterator> reverse_iterator;
 	typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
+	typedef small_vector<T, StaticNum, SizeT, Allocator> container_type;
 
 	small_vector() = default;
 	
@@ -63,6 +64,66 @@ public:
 	~small_vector()
 	{
 		clear();
+	}
+
+	small_vector(const container_type& other)
+	{
+		*this = other;
+	}
+
+	small_vector(container_type&& other)
+	{
+		*this = std::move(other);
+	}
+
+	container_type& operator=(const container_type& other)
+	{
+		if(this == &other)
+			return *this;
+			
+		if(other.isInlined())
+		{
+			clear();
+
+			std::copy(other.begin(), other.end(), begin());
+			m_size = other.size();
+		}
+		else
+		{
+			if(m_capacity < other.size())
+			{
+				reserve(other.size());
+			}
+
+			std::copy(other.begin(), other.end(), begin());
+			m_size = other.size();
+		}
+
+		return *this;
+	}
+
+	container_type& operator=(container_type&& other)
+	{
+		if(this == &other)
+			return *this;
+
+		if(other.isInlined())
+		{
+			clear();
+
+			std::copy(other.begin(), other.end(), begin());
+			m_size = other.size();
+		}
+		else
+		{
+			m_capacity = other.max_size();
+			m_size = other.size();
+			m_data = other.data();
+
+			other.resetToCache();
+		}
+
+		return *this;
 	}
 
 	iterator begin() { return m_data; }
@@ -229,7 +290,15 @@ public:
 		return m_data[idx];
 	}
 
+	const_reference back() const { return m_data[m_size - 1]; }
+	reference back() { return m_data[m_size - 1]; }
+
+	const_pointer data() const { return m_data; }
+	pointer data() { return m_data; }
+
 private:
+
+	bool isInlined() const { return m_data == &cache[0]; }
 
 	void ensureSpace(size_type count = 1)
 	{
@@ -243,11 +312,33 @@ private:
 		reserve(newCap);
 	}
 
+	void resetToCache()
+	{
+		m_capacity = StaticNum;
+		m_data = cache;
+		m_size = 0;
+	}
+
 	SizeT m_size = 0, m_capacity = StaticNum;
 	T* m_data = &cache[0];
 
 	Allocator m_allocator;
 	T cache[StaticNum];
 };
+
+template<typename T>
+inline static bool operator==(const small_vector<T>& a, const small_vector<T>& b)
+{
+	if(a.size() != b.size())
+		return false;
+
+	for(size_t i = 0; i < a.size(); i++)
+	{
+		if(a[i] != b[i])
+			return false;
+	}
+
+	return true;
+}
 
 }
