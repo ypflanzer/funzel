@@ -21,6 +21,16 @@ using namespace std;
 	{
 		return $self->toString();
 	}
+
+	funzel::Tensor __getitem__(unsigned int i)
+	{
+		return (*$self)[i];
+	}
+
+	funzel::Tensor __getitem__(const funzel::Shape& i)
+	{
+		return (*$self)[i];
+	}
 }
 
 %extend std::vector<size_t> {
