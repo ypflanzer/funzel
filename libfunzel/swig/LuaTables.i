@@ -3,12 +3,12 @@
 // lua numbers will be cast into the type required (rounding may occur)
 // return 0 if non numbers found in the table
 // returns new'ed ptr if ok
-template<class T>
-std::vector<T>* SWIG_read_number_vector(lua_State* L, int index)
+template<class T, class V>
+V* SWIG_read_number_vector(lua_State* L, int index)
 {
 	int i=0;
 	size_t len = lua_rawlen(L, index);
-	std::vector<T>* vec = new std::vector<T>();
+	V* vec = new V();
 	vec->reserve(len);
 
 	while(1)
@@ -37,8 +37,8 @@ std::vector<T>* SWIG_read_number_vector(lua_State* L, int index)
 	return vec; // ok
 }
 // writes a vector of numbers out as a lua table
-template<class T>
-int SWIG_write_number_vector(lua_State* L,std::vector<T> *vec)
+template<class T, class V>
+int SWIG_write_number_vector(lua_State* L, V* vec)
 {
 	lua_newtable(L);
 	for(int i=0;i<vec->size();++i)
@@ -53,8 +53,8 @@ int SWIG_write_number_vector(lua_State* L,std::vector<T> *vec)
 // then the typemaps
 %define SWIG_TYPEMAP_NUM_VECTOR(T)
 // in
-%typemap(in) std::vector<T> *INPUT
-%{	$1 = SWIG_read_number_vector<T>(L,$input);
+%typemap(in) V *INPUT
+%{	$1 = SWIG_read_number_vector<T, std::vector<T>>(L,$input);
 	if (!$1) SWIG_fail;%}
 %typemap(freearg) std::vector<T> *INPUT
 %{	delete $1;%}
@@ -66,21 +66,21 @@ int SWIG_write_number_vector(lua_State* L,std::vector<T> *vec)
 %define SWIG_TYPEMAP_NUM_CUSTOM(C, T)
 // in
 %typemap(in) C
-%{	$1 = SWIG_read_number_vector<T>(L,$input);
+%{	$1 = SWIG_read_number_vector<T, std::remove_reference<C>::type>(L,$input);
 	if (!$1) SWIG_fail;%}
 %typemap(freearg) C
 %{	delete $1;%}
 // out
 %typemap(argout) C
-%{	SWIG_write_number_vector(L,$1); SWIG_arg++; %}
+%{	SWIG_write_number_vector<T, std::remove_reference<C>::type>(L,$1); SWIG_arg++; %}
 
 %typemap(in) C INPUT
-%{	$1 = SWIG_read_number_vector<T>(L,$input);
+%{	$1 = SWIG_read_number_vector<T, std::remove_reference<C>::type>(L,$input);
 	if (!$1) SWIG_fail;%}
 %typemap(freearg) C INPUT
 %{	delete $1;%}
 // out
 %typemap(argout) C OUTPUT
-%{	SWIG_write_number_vector(L,$1); SWIG_arg++; %}
+%{	SWIG_write_number_vector<T, std::remove_reference<C>::type>(L,$1); SWIG_arg++; %}
 %enddef
 
