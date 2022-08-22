@@ -44,3 +44,24 @@ using namespace std;
 		return str;
 	}
 }
+
+%include "funzel/small_vector"
+namespace funzel
+{
+%template(IntSmallVector) small_vector<unsigned int>;
+%template(FloatSmallVector) small_vector<float>;
+%template(DoubleSmallVector) small_vector<double>;
+%template(SizeSmallVector) small_vector<size_t>;
+}
+
+%extend funzel::small_vector<size_t> {
+	std::string __str__()
+	{
+		std::string str = "(";
+		for(auto& e : *$self)
+			str += std::to_string(e) + (&e != &$self->back() ? ", " : "");
+
+		str += ")";
+		return str;
+	}
+}
