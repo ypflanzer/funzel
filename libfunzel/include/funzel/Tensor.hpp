@@ -412,6 +412,8 @@ public:
 
 	virtual void set(Tensor& self, const Tensor& src) { ThrowError("Operation is not supported!"); }
 
+	virtual void relu(const Tensor& self, Tensor& tgt, double negativeSlope = 0.0)  { ThrowError("Operation is not supported!"); }
+
 	// With default implementation
 	virtual void sigmoid(const Tensor& self, Tensor& tgt);
 	

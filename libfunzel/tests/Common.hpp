@@ -505,3 +505,24 @@ TEST(CommonTest, Conv2d)
 	plt.show();
 #endif
 }
+
+TEST(CommonTest, ReLU)
+{
+	Tensor v = Tensor::empty({3, 3, 3});
+	funzel::randn(v);
+
+	v = v.to(TestDevice);
+	v->relu(v, v, 0);
+	v = v.cpu();
+
+	std::cout << v << std::endl;
+
+#if 0
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_EQ((v[{p, q, r}].item<float>()), std::max());
+			}
+#endif
+}

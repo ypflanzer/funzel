@@ -577,3 +577,13 @@ void BlasTensor::conv2d(
 	}
 }
 
+void BlasTensor::relu(const Tensor& self, Tensor& tgt, double negativeSlope)
+{
+	if(negativeSlope == 0.0)
+		TensorOp(self, tgt, [](const auto& v) {
+			using T = typename std::remove_reference<decltype(v)>::type;
+			return std::max(T(0), v);
+		});
+	else
+		TensorOp(self, tgt, [negativeSlope](const auto& v) { return v >= 0 ? v : v*negativeSlope; });
+}

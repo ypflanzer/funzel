@@ -56,6 +56,8 @@ public:
 
 	double sum(const Tensor& self) override;
 
+	void relu(const Tensor& self, Tensor& tgt, double negativeSlope = 0.0) override;
+
 	void pool2d(
 			const Tensor& self, Tensor tgt,
 			POOLING_MODE mode,

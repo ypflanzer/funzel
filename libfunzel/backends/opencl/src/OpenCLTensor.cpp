@@ -645,3 +645,32 @@ void OpenCLTensor::conv2d(
 	default: ThrowError("Unsupported dtype!");
 	}
 }
+
+static const std::string s_reluKernel = R"krnl(
+__kernel void Kernel(__global const T* src, __global T* dest, ulong offset, ulong stride, ulong count, double slope)
+{
+	const ulong idx = get_global_id(0);
+	if(idx < count)
+	{
+		const ulong gid = offset + idx*stride;
+		const T elem = src[gid];
+		dest[gid] = (elem < 0 ? elem*slope : elem);
+	}
+}
+)krnl";
+
+void OpenCLTensor::relu(const Tensor& self, Tensor& tgt, double negativeSlope)
+{
+	// Build kernels!
+	static CLTemplateKernel kernel{s_reluKernel};
+	auto* tgtBackend = getCLTensor(tgt);
+	
+	tgtBackend->wait();
+	wait();
+
+	const auto Relu = [tgtBackend, negativeSlope](OpenCLTensor* clt, const Tensor& self, size_t stride, size_t offset, size_t count) {
+		return kernel.call(tgtBackend, {0}, {count}, {0}, self.dtype, tgtBackend->m_buffer, clt->m_buffer, offset, stride, count, negativeSlope);
+	};
+
+	m_currentEvent = DoStrided(self, kernel, Relu);
+}
