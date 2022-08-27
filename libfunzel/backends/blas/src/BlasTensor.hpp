@@ -17,13 +17,14 @@
 #pragma once
 
 #include <funzel/Tensor.hpp>
+#include <funzel/nn/NNBackendTensor.hpp>
 
 namespace funzel
 {
 namespace blas
 {
 
-class EXPORT BlasTensor : public BackendTensor
+class EXPORT BlasTensor : public BackendTensor, public nn::NNBackendTensor
 {
 public:
 	BlasTensor() = default;

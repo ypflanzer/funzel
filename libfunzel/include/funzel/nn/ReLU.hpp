@@ -23,15 +23,14 @@ namespace funzel
 namespace nn
 {
 
-class Sigmoid : public Module
+class ReLU : public Module
 {
 public:
-	Sigmoid() = default;
+	ReLU() = default;
 	
 	Tensor forward(const Tensor& input) final override
 	{
 		return input;
-		//return input.sigmoid();
 	}
 
 	Tensor backward(const Tensor& input) final override

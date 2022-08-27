@@ -16,29 +16,14 @@
  */
 #pragma once
 
-#include "Module.hpp"
+#include <funzel/Tensor.hpp>
 
-namespace funzel
+namespace funzel::cv
 {
-namespace nn
-{
-
-class Sigmoid : public Module
+class CVBackendTensor
 {
 public:
-	Sigmoid() = default;
-	
-	Tensor forward(const Tensor& input) final override
-	{
-		return input;
-		//return input.sigmoid();
-	}
-
-	Tensor backward(const Tensor& input) final override
-	{
-		return Tensor::zeros_like(input); // TODO
-	}
+	virtual void toGrayscale(Tensor& self, Tensor& tgt) = 0;
 };
 
-}
 }

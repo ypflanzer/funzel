@@ -1,4 +1,5 @@
 #include <funzel/nn/Conv2D.hpp>
+#include <funzel/nn/NNBackendTensor.hpp>
 
 using namespace funzel;
 using namespace nn;
@@ -27,7 +28,7 @@ Conv2D::Conv2D(size_t inChannels, size_t outChannels,
 Tensor Conv2D::forward(const Tensor& input)
 {
 	Tensor result;
-	input->conv2d(input, result, weights(), m_stride, m_padding, m_dilation);
+	input.getBackendAs<nn::NNBackendTensor>()->conv2d(input, result, weights(), m_stride, m_padding, m_dilation);
 	
 	if(m_parameters.size() > 1)
 		result.add_(bias());

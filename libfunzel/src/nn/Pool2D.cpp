@@ -1,4 +1,5 @@
 #include <funzel/nn/Pool2D.hpp>
+#include <funzel/nn/NNBackendTensor.hpp>
 
 using namespace funzel;
 using namespace nn;
@@ -22,7 +23,7 @@ Pool2D::Pool2D(const UVec2& kernelSize,
 Tensor Pool2D::forward(const Tensor& input)
 {
 	Tensor result;
-	input->pool2d(input, result, m_mode, m_kernel, m_stride, m_padding, m_dilation);
+	input.getBackendAs<nn::NNBackendTensor>()->pool2d(input, result, m_mode, m_kernel, m_stride, m_padding, m_dilation);
 	return result;
 }
 

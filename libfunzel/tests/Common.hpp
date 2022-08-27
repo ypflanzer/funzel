@@ -2,6 +2,7 @@
 
 #include <gtest/gtest.h>
 #include <funzel/Tensor.hpp>
+#include <funzel/nn/NNBackendTensor.hpp>
 
 #include <cmath>
 
@@ -135,6 +136,7 @@ TEST(CommonTest, Cos)
 			}
 }
 
+#if 0
 TEST(CommonTest, Sigmoid)
 {
 	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
@@ -149,6 +151,7 @@ TEST(CommonTest, Sigmoid)
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), 0.88079707797788);
 			}
 }
+#endif
 
 TEST(CommonTest, Tan)
 {
@@ -461,10 +464,10 @@ TEST(CommonTest, Pool2D)
 
 	std::cout << a.cpu() << std::endl;
 
-	a->pool2d(a, b, MAX_POOLING, kernelSize, stride, padding, dilation);
+	a.getBackendAs<nn::NNBackendTensor>()->pool2d(a, b, MAX_POOLING, kernelSize, stride, padding, dilation);
 	std::cout << b.cpu() << std::endl;
 
-	a->pool2d(a, b, MEAN_POOLING, kernelSize, stride, padding, dilation);
+	a.getBackendAs<nn::NNBackendTensor>()->pool2d(a, b, MEAN_POOLING, kernelSize, stride, padding, dilation);
 	std::cout << b.cpu() << std::endl;
 }
 
@@ -482,7 +485,7 @@ TEST(CommonTest, Conv2d)
 #if 1
 	auto kernel = Tensor::ones({ 5, 5 }, FLOAT32, TestDevice);
 	kernel.mul_(1.0 / (5.0*5.0));
-	img->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
+	img.getBackendAs<nn::NNBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
 #else
 	Tensor kernel({ 5, 5 }, {
 		0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -492,7 +495,7 @@ TEST(CommonTest, Conv2d)
 		0.0f, 0.0f, 0.0f, 0.0f, 1.0f,
 	}, TestDevice);
 	kernel.mul_(1.0 / 3.0);
-	img->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
+	img.getBackendAs<nn::NNBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
 #endif
 
 	tgt.shape.push_back(1);
@@ -512,7 +515,7 @@ TEST(CommonTest, ReLU)
 	funzel::randn(v);
 
 	v = v.to(TestDevice);
-	v->relu(v, v, 0);
+	v.getBackendAs<nn::NNBackendTensor>()->relu(v, v, 0);
 	v = v.cpu();
 
 	std::cout << v << std::endl;

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include <funzel/Tensor.hpp>
+#include <funzel/nn/NNBackendTensor.hpp>
 
 using namespace funzel;
 
@@ -90,7 +91,6 @@ TEST(CPUTensorTest, Assign)
 {
 	Tensor a = Tensor::zeros({3, 3});
 	Tensor b = Tensor::ones(3);
-
 
 	Tensor subset = a[1];
 	a[1].set(b);

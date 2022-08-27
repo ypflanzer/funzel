@@ -651,7 +651,6 @@ UNARY_OP_PAIR(sin)
 UNARY_OP_PAIR(cos)
 UNARY_OP_PAIR(tan)
 UNARY_OP_PAIR(tanh)
-UNARY_OP_PAIR(sigmoid)
 
 Tensor funzel::linspace(double start, double stop, size_t num, bool endPoint, DTYPE dtype)
 {
@@ -753,10 +752,4 @@ Tensor& funzel::randn(Tensor& out)
 {
 	RandomGenerator<std::uniform_real_distribution<double>> gen{std::uniform_real_distribution<double>(-1.0, 1.0)};
 	return randn(out, gen);
-}
-
-// Backend Tensor default implementations
-void BackendTensor::sigmoid(const Tensor& self, Tensor& tgt)
-{
-	tgt = (1.0 / (1.0 + (-self).exp_()));
 }
