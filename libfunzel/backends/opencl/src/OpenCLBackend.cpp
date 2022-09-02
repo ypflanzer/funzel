@@ -3,6 +3,7 @@
 #include "OpenCLTensor.hpp"
 
 #include <iostream>
+#include <spdlog/spdlog.h>
 
 using namespace funzel;
 using namespace funzel::cl;
@@ -38,10 +39,12 @@ void OpenCLBackend::initCL()
 
 		for(auto& platform : platforms)
 		{
-			std::cout << "Using OpenCL Platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
+			spdlog::debug("Using OpenCL Platform: {}", platform.getInfo<CL_PLATFORM_NAME>());
+			//std::cout << "Using OpenCL Platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
 
 			platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
-			std::cout << "Found " << devices.size() << " GPU device(s):" << std::endl;
+			//std::cout << "Found " << devices.size() << " GPU device(s):" << std::endl;
+			spdlog::debug("Found {} GPU device(s):", devices.size());
 
 			// Prefer GPU devices for each platform
 			std::sort(devices.begin(), devices.end(), [](const ::cl::Device& a, const ::cl::Device& b) {
@@ -51,7 +54,8 @@ void OpenCLBackend::initCL()
 			::cl::Context context(devices);
 			for(auto& d : devices)
 			{
-				std::cout << '\t' << d.getInfo<CL_DEVICE_VENDOR>() << '\t' << d.getInfo<CL_DEVICE_NAME>() << std::endl;
+				spdlog::debug("\t{}\t{}", d.getInfo<CL_DEVICE_VENDOR>(), d.getInfo<CL_DEVICE_NAME>());
+				//std::cout << '\t' << d.getInfo<CL_DEVICE_VENDOR>() << '\t' << d.getInfo<CL_DEVICE_NAME>() << std::endl;
 
 				DeviceProperties props;
 				props.deviceID = "OCL:" + std::to_string(ctr++);
@@ -90,11 +94,13 @@ void OpenCLBackend::initCL()
 #endif
 		// Initialize cache
 		m_cacheDirectory = findCacheDirectory();
-		std::cout << "Using cache at: " << m_cacheDirectory << std::endl;
+		//std::cout << "Using cache at: " << m_cacheDirectory << std::endl;
+		spdlog::debug("Using cache at: {}", m_cacheDirectory.string());
 	}
 	catch(const ::cl::Error& e)
 	{
-		std::cout << "Could not initialize OpenCL backend: " << e.err() << std::endl;
+		// std::cout << "Could not initialize OpenCL backend: " << e.err() << std::endl;
+		spdlog::error("Could not initialize OpenCL backend: {}", e.err());
 	}
 }
 

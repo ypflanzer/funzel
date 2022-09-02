@@ -38,9 +38,12 @@ endif()
 #)
 #FetchContent_MakeAvailable(MathGL)
 
+find_package(spdlog REQUIRED)
+
 add_library(funzel SHARED ${SRC} ${HEADERS})
 target_include_directories(funzel PUBLIC include)
 target_compile_definitions(funzel PRIVATE FUNZEL_EXPORT=1)
+target_link_libraries(funzel PUBLIC spdlog::spdlog)
 
 if(NOT WIN32)
 	target_compile_options(funzel PRIVATE -fvisibility=internal)

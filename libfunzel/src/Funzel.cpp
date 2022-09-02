@@ -3,6 +3,7 @@
 #include <string>
 
 #include <iostream>
+#include <spdlog/spdlog.h>
 
 using namespace funzel;
 
@@ -16,7 +17,8 @@ std::string funzel::GetDefaultBackend()
 
 void funzel::backend::RegisterTensorBackend(const std::string& name, ITensorFactory* factory)
 {
-	std::cout << "Registering " << name << std::endl;
+	spdlog::debug("Registering {}", name);
+	// std::cout << "Registering " << name << std::endl;
 	s_tensorBackends[name] = std::unique_ptr<ITensorFactory>(factory);
 }
 
@@ -124,4 +126,25 @@ void funzel::backend::LoadBackend(const std::string& name)
 	#warning "No implementation for loading backends at runtime was found!"
 	AssertExcept(false, "Could not load backend: " << name);
 #endif
+}
+
+namespace
+{
+class LogInitializer
+{
+public:
+	LogInitializer()
+	{
+		spdlog::set_pattern("%^[%=8l]%$ %v");
+
+		auto level = spdlog::level::warn;
+		auto* envLevel = getenv("FUNZEL_LOG");
+		if(envLevel)
+			level = (spdlog::level::level_enum) std::min(std::stoul(envLevel), (ulong) spdlog::level::n_levels);
+	
+		spdlog::set_level(level);
+	}
+};
+
+static LogInitializer s_loginit;
 }
