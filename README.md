@@ -42,5 +42,5 @@ VCPKG supports the major three platforms, Windows, macOS and Linux, thus
 the following set of packages can be used everywhere.
 
 ```
-vcpkg install openblas opencl lua python3 gtest benchmark
+vcpkg install openblas opencl lua python3 gtest benchmark spdlog
 ```
