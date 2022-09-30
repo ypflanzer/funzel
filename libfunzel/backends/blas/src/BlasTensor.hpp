@@ -18,15 +18,21 @@
 
 #include <funzel/Tensor.hpp>
 #include <funzel/nn/NNBackendTensor.hpp>
+#include <funzel/cv/CVBackendTensor.hpp>
 
 namespace funzel
 {
 namespace blas
 {
 
-class EXPORT BlasTensor : public BackendTensor, public nn::NNBackendTensor
+class EXPORT BlasTensor:
+	public BackendTensor,
+	public nn::NNBackendTensor,
+	public cv::CVBackendTensor
 {
 public:
+	static void initializeBackend();
+
 	BlasTensor() = default;
 	BlasTensor(const std::string&) {}
 	
@@ -73,7 +79,8 @@ public:
 
 	void set(Tensor& self, const Tensor& src) override;
 
-	static void initializeBackend();
+	// cv backend
+	void convertGrayscale(Tensor& self, Tensor& tgt) override;
 
 private:
 	std::shared_ptr<char> m_data;

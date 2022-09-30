@@ -587,3 +587,8 @@ void BlasTensor::relu(const Tensor& self, Tensor& tgt, double negativeSlope)
 	else
 		TensorOp(self, tgt, [negativeSlope](const auto& v) { return v >= 0 ? v : v*negativeSlope; });
 }
+
+void BlasTensor::convertGrayscale(Tensor& self, Tensor& tgt)
+{
+	
+}

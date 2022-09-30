@@ -23,7 +23,7 @@ namespace funzel::cv
 class CVBackendTensor
 {
 public:
-	virtual void toGrayscale(Tensor& self, Tensor& tgt) = 0;
+	virtual void convertGrayscale(Tensor& self, Tensor& tgt) = 0;
 };
 
 }
