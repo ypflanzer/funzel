@@ -146,3 +146,47 @@ void funzel::image::save(const Tensor& tensor, const std::string& file)
 
 	AssertExcept(err, "Could not write image as " << ext << ": " << stbi_failure_reason());
 }
+
+#include <FL/Fl_Image.H>
+#include <FL/Fl_Window.H>
+#include <FL/Fl_Box.H>
+#include <FL/Fl.H>
+
+#include <thread>
+
+void image::imshow(const Tensor& t, const std::string& title, bool waitkey)
+{
+	auto fn = [t, title]() {
+
+		Tensor im;
+		if(!t.isContiguous())
+			im = t.unravel();
+		else
+			im = t;
+
+		const int w = im.shape[1];
+		const int h = im.shape[0];
+		const int c = im.shape[2];
+		const int stride = im.strides[0];
+		
+		Fl_Window win(w, h, title.c_str());
+		Fl_RGB_Image img((const uchar*) im.data(), w, h, c, stride);
+		Fl_Box box(0, 0, w, h);
+
+		box.image(img);
+		win.add(box);
+
+		win.show();
+		Fl::run();
+	};
+
+	if(waitkey)
+	{
+		fn();
+	}
+	else
+	{
+		std::thread thr(fn);
+		thr.detach();
+	}
+}

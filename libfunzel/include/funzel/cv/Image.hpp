@@ -38,5 +38,7 @@ namespace image
 
 		return t.permute({2, 0, 1});
 	}
+
+	FUNZEL_API void imshow(const Tensor& t, const std::string& title = "", bool waitkey = false);
 }
 }
