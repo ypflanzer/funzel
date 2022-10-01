@@ -1,5 +1,5 @@
 #include <gtest/gtest.h>
-#include <funzel/Image.hpp>
+#include <funzel/cv/Image.hpp>
 #include <funzel/Plot.hpp>
 
 using namespace funzel;
@@ -33,4 +33,22 @@ TEST(Image, PlotImage)
 	Plot plt;
 	plt.image(img);
 	plt.save("Image_PlotImage.png");
+}
+
+TEST(Image, PlotImageHWC)
+{
+	auto img = image::load("color_image.png");
+	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
+	
+	image::save(img, "Image_ImageHWC.png");
+}
+
+TEST(Image, PlotImageCHW)
+{
+	auto img = image::load("color_image.png", image::CHW);
+	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.shape, (Shape{3, 28, 28}));
+
+	image::save(image::toOrder(img, image::HWC), "Image_ImageCHW.png");
 }

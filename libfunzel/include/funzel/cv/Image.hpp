@@ -16,13 +16,27 @@
  */
 #pragma once
 
-#include "Tensor.hpp"
+#include "../Tensor.hpp"
 
 namespace funzel
 {
 namespace image
 {
-	FUNZEL_API Tensor load(const std::string& file, DTYPE dtype = NONE, const std::string& device = std::string());
+	enum CHANNEL_ORDER
+	{
+		HWC,
+		CHW
+	};
+
+	FUNZEL_API Tensor load(const std::string& file, CHANNEL_ORDER order = HWC, DTYPE dtype = NONE, const std::string& device = std::string());
 	FUNZEL_API void save(const Tensor& tensor, const std::string& file);
+
+	inline Tensor toOrder(const Tensor& t, CHANNEL_ORDER order)
+	{
+		if(order == HWC)
+			return t.permute({1, 2, 0});
+
+		return t.permute({2, 0, 1});
+	}
 }
 }

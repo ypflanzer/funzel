@@ -68,11 +68,21 @@ TEST(CPUTensorTest, Index)
 TEST(CPUTensorTest, Unravel)
 {
 	auto v = Tensor::zeros({3, 3});
+
 	v[{1, 0}] = 1;
+	EXPECT_EQ(v.dataAs<float>(3), 1);
 
 	auto vtrans = v.transpose();
 	EXPECT_TRUE(!vtrans.isContiguous());
-	EXPECT_TRUE(vtrans.unravel().isContiguous());
+
+	// The physical location of the value should not have changed
+	EXPECT_EQ(v.dataAs<float>(3), 1);
+
+	vtrans = vtrans.unravel();
+	EXPECT_TRUE(vtrans.isContiguous());
+
+	// Now it should have.
+	EXPECT_EQ(vtrans.dataAs<float>(1), 1);
 }
 
 TEST(CPUTensorTest, Reshape)

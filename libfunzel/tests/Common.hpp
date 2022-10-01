@@ -471,7 +471,7 @@ TEST(CommonTest, Pool2D)
 	std::cout << b.cpu() << std::endl;
 }
 
-#include <funzel/Image.hpp>
+#include <funzel/cv/Image.hpp>
 #include <funzel/Plot.hpp>
 
 TEST(CommonTest, Conv2d)
@@ -499,9 +499,30 @@ TEST(CommonTest, Conv2d)
 #endif
 
 	//tgt.shape.push_back(1);
-	tgt.permute_({1, 2, 0});
+	//tgt.permute_({1, 2, 0});
 
 	tgt = tgt.cpu().mul_(255.0).astype<uint8_t>();
+	image::save(tgt, "CommonTest_Conv2d.png");
+
+#if 1
+	Plot plt;
+	//plt.image(img.mul(255.0).cpu().astype<uint8_t>());
+	plt.image(tgt, "Result");
+	plt.show();
+#endif
+}
+
+TEST(CommonTest, Conv2dColor)
+{
+	auto img = image::load("color_image.png", image::CHW).astype<float>().to(TestDevice).mul_(1.0 / 255.0);
+	auto tgt = Tensor::zeros_like(img);
+	
+	auto kernel = Tensor::ones({ 5, 5 }, FLOAT32, TestDevice);
+	kernel.mul_(1.0 / (5.0*5.0));
+	img.getBackendAs<nn::NNBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
+
+	tgt = tgt.cpu().mul_(255.0).astype<uint8_t>();
+	tgt = image::toOrder(tgt, image::HWC);
 	image::save(tgt, "CommonTest_Conv2d.png");
 
 #if 1

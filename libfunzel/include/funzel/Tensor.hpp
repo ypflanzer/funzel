@@ -269,7 +269,7 @@ public:
 	Tensor reshape(const Shape& shape);
 	void reshape_(const Shape& shape);
 
-	Tensor permute(const Shape& shape);
+	Tensor permute(const Shape& shape) const;
 	void permute_(const Shape& shape);
 
 	Tensor cpu() const;

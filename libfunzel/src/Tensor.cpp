@@ -375,7 +375,7 @@ void Tensor::reshape_(const Shape& shape)
 	}
 }
 
-Tensor Tensor::permute(const Shape& shape)
+Tensor Tensor::permute(const Shape& shape) const
 {
 	Tensor t(*this);
 	t.permute_(shape);
@@ -398,24 +398,31 @@ void Tensor::permute_(const Shape& indices)
 		shape[i] = oldshape[indices[i]];
 		strides[i] = oldstrides[indices[i]];
 	}
+
+	flags &= (~C_CONTIGUOUS);
 }
 
 static void unravel(Tensor src, Tensor dest)
 {
 	if(src.shape.empty())
 		return;
+	
+	AssertExcept(src.shape == dest.shape, "Cannot unravel tensor into a target with different shape!");
+	if(src.shape.size() > 1)
+	{
+		//#pragma omp parallel for
+		for(int i = 0; i < src.shape[0]; i++)
+		{
+			unravel(src[i], dest[i]);
+		}
+
+		return;
+	}
 
 	#pragma omp parallel for
 	for(int64_t i = 0; i < src.shape[0]; i++)
 	{
-		if(src.shape.size() == 1)
-		{
-			dest[i] = src[i].item<double>();
-		}
-		else
-		{
-			unravel(src[i], dest[i]);
-		}
+		dest[i].set(src[i].item<double>());
 	}
 }
 
@@ -423,7 +430,7 @@ Tensor Tensor::unravel() const
 {
 	// TODO Allow each backend to implement its own ravelling
 	//      to enable usage of the GPU!
-	Tensor t = Tensor::empty_like(*this);
+	Tensor t = Tensor::empty(shape, dtype, device);
 	::unravel(this->cpu(), t);
 	return t.to(this->m_backend->backendName());
 }

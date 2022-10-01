@@ -1,4 +1,4 @@
-#include "funzel/Image.hpp"
+#include <funzel/cv/Image.hpp>
 #include <funzel/Plot.hpp>
 
 using namespace funzel;
