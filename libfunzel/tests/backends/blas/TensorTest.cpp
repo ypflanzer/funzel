@@ -87,6 +87,14 @@ TEST(CPUTensorTest, Reshape)
 	EXPECT_EQ(v.shape, Shape{9});
 }
 
+TEST(CPUTensorTest, Permute)
+{
+	auto v = Tensor::ones({3, 4, 5});
+	v.permute_({2, 0, 1});
+
+	std::cout << v.shape << v.strides << std::endl;
+}
+
 TEST(CPUTensorTest, Assign)
 {
 	Tensor a = Tensor::zeros({3, 3});

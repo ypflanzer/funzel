@@ -84,7 +84,7 @@ void Conv2DNaive(
 					}
 
 					const int64_t inputOffset = (dkx * instrideX) + (dky * instrideY);
-					AssertExcept(inputOffset >= 0 && inputOffset < inSizeMax, "");
+					//AssertExcept(inputOffset >= 0 && inputOffset < inSizeMax, "");
 
 					const auto kidx = ((halfKh+ky)*kernelSize[1] + halfKw + kx) * channels;
 					const auto inputValue = input[inputOffset];

@@ -160,7 +160,9 @@ Tensor Tensor::empty(const Shape& shape, DTYPE dtype, const std::string& backend
 
 Tensor Tensor::empty_like(const Tensor& t)
 {
-	return empty(t.shape, t.dtype, t.device);
+	auto nt = empty(t.shape, t.dtype, t.device);
+	nt.strides = t.strides;
+	return nt;
 }
 
 Tensor Tensor::ones(const Shape& shape, DTYPE dtype, const std::string& backend)
@@ -172,7 +174,9 @@ Tensor Tensor::ones(const Shape& shape, DTYPE dtype, const std::string& backend)
 
 Tensor Tensor::ones_like(const Tensor& t)
 {
-	return zeros(t.shape, t.dtype, t.device);
+	auto nt = ones(t.shape, t.dtype, t.device);
+	nt.strides = t.strides;
+	return nt;
 }
 
 Tensor Tensor::zeros(const Shape& shape, DTYPE dtype, const std::string& backend)
@@ -184,7 +188,9 @@ Tensor Tensor::zeros(const Shape& shape, DTYPE dtype, const std::string& backend
 
 Tensor Tensor::zeros_like(const Tensor& t)
 {
-	return zeros(t.shape, t.dtype, t.device);
+	auto nt = zeros(t.shape, t.dtype, t.device);
+	nt.strides = t.strides;
+	return nt;
 }
 
 size_t Tensor::size() const
@@ -366,6 +372,31 @@ void Tensor::reshape_(const Shape& shape)
 	{
 		strides[i] = offset*dtypeSizeof(dtype);
 		offset *= shape[i];
+	}
+}
+
+Tensor Tensor::permute(const Shape& shape)
+{
+	Tensor t(*this);
+	t.permute_(shape);
+	return t;
+}
+
+void Tensor::permute_(const Shape& indices)
+{
+	AssertExcept(indices.size() == this->shape.size(),
+		"Cannot permute axes, given order has a different number of dimensions: " << indices.size() << " vs " << this->shape.size());
+
+	const auto oldstrides = strides;
+	const auto oldshape = shape;
+
+	for(size_t i = 0; i < indices.size(); i++)
+	{
+		AssertExcept(indices[i] < shape.size(),
+			"Cannot permute axes, given index value exceeds the number of dimensions!");
+
+		shape[i] = oldshape[indices[i]];
+		strides[i] = oldstrides[indices[i]];
 	}
 }
 
@@ -562,7 +593,7 @@ Tensor& Tensor::mul_(double alpha)
 	Tensor t = Tensor::zeros_like(*this);
 	m_backend->mulAdd(*this, t, alpha);
 
-	*this = t;
+	*this = std::move(t);
 	return *this;
 }
 

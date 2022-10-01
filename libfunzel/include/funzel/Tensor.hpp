@@ -269,6 +269,9 @@ public:
 	Tensor reshape(const Shape& shape);
 	void reshape_(const Shape& shape);
 
+	Tensor permute(const Shape& shape);
+	void permute_(const Shape& shape);
+
 	Tensor cpu() const;
 	Tensor to(const std::string& device) const;
 

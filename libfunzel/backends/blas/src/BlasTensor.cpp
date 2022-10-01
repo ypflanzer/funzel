@@ -297,7 +297,7 @@ void BlasTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 	
 	if(self.shape.size() > 1 && self.shape[1] > 1)
 	{
-		#pragma omp parallel for
+		//#pragma omp parallel for
 		for(int i = 0; i < self.shape[0]; i++)
 		{
 			mulAdd(self[i], tgt[i], alpha);
