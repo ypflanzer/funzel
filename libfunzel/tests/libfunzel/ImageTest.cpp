@@ -52,3 +52,33 @@ TEST(Image, PlotImageCHW)
 
 	image::save(image::toOrder(img, image::HWC), "Image_ImageCHW.png");
 }
+
+TEST(Image, DrawCircle)
+{
+	auto img = image::load("color_image.png");
+	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
+	
+	image::drawCircle(img, {14, 14}, 10, 4);
+	// image::imshow(img, "", true);
+
+	image::save(img, "Image_DrawCircle.png");
+}
+
+TEST(Image, DrawCircles)
+{
+	auto img = image::load("color_image.png");
+	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
+	
+	Tensor circles({3, 3}, {
+		5.0f, 5.0f, 4.0f,
+		10.0f, 10.0f, 4.0f,
+		20.0f, 20.0f, 5.0f
+	});
+
+	image::drawCircles(img, circles, 2);
+	// image::imshow(img, "", true);
+
+	image::save(img, "Image_DrawCircles.png");
+}

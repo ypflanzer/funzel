@@ -17,6 +17,7 @@
 #pragma once
 
 #include "../Tensor.hpp"
+#include "../Vector.hpp"
 
 namespace funzel
 {
@@ -40,5 +41,8 @@ namespace image
 	}
 
 	FUNZEL_API void imshow(const Tensor& t, const std::string& title = "", bool waitkey = false);
+
+	FUNZEL_API void drawCircle(Tensor tgt, const Vec2& pos, float r, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
+	FUNZEL_API void drawCircles(Tensor tgt, Tensor circlesXYR, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
 }
 }

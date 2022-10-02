@@ -164,10 +164,10 @@ void image::imshow(const Tensor& t, const std::string& title, bool waitkey)
 		else
 			im = t;
 
-		const int w = im.shape[1];
-		const int h = im.shape[0];
-		const int c = im.shape[2];
-		const int stride = im.strides[0];
+		const uint w = im.shape[1];
+		const uint h = im.shape[0];
+		const uint c = im.shape[2];
+		const uint stride = im.strides[0];
 		
 		Fl_Window win(w, h, title.c_str());
 		Fl_RGB_Image img((const uchar*) im.data(), w, h, c, stride);
@@ -188,5 +188,74 @@ void image::imshow(const Tensor& t, const std::string& title, bool waitkey)
 	{
 		std::thread thr(fn);
 		thr.detach();
+	}
+}
+
+inline void PutPixel(Tensor& tgt, uint x, uint y, const Vec3& color)
+{
+	auto px = tgt[{x, y}];
+	for(int c = 0; c < tgt.shape.back(); c++)
+		px[c] = color[c];
+}
+
+static void DrawCircleInternal(Tensor& tgt, uint xc, uint yc, uint x, uint y, const Vec3& color)
+{
+	PutPixel(tgt, xc+x, yc+y, color);
+	PutPixel(tgt, xc-x, yc+y, color);
+	PutPixel(tgt, xc+x, yc-y, color);
+	PutPixel(tgt, xc-x, yc-y, color);
+	PutPixel(tgt, xc+y, yc+x, color);
+	PutPixel(tgt, xc-y, yc+x, color);
+	PutPixel(tgt, xc+y, yc-x, color);
+	PutPixel(tgt, xc-y, yc-x, color);
+}
+
+// Bresenham!
+static void DrawCircleInternal(Tensor tgt, const Vec2& pos, float r, const Vec3& color)
+{
+	int64_t x = 0, y = r;
+	int64_t d = 3 - 2 * r;
+
+	DrawCircleInternal(tgt, pos[0], pos[1], x, y, color);
+
+	while (y >= x)
+	{
+		x++;
+
+		if (d > 0)
+		{
+			y--;
+			d = d + 4 * (x - y) + 10;
+		}
+		else
+			d = d + 4 * x + 6;
+
+		DrawCircleInternal(tgt, pos[0], pos[1], x, y, color);
+	}
+}
+
+void image::drawCircle(Tensor tgt, const Vec2& pos, float r, float thickness, const Vec3& color)
+{
+	AssertExcept(tgt.isContiguous() && tgt.shape.size() == 3 && tgt.shape.back() <= 3,
+					"The target tensor needs to be contiguous and formatted as HWC!");
+
+	// Draw multiple circles to reach required thickness
+	for(int ir = r - thickness/2; ir <= r + thickness/2; ir++)
+	{
+		DrawCircleInternal(tgt, pos, ir, color);
+	}
+}
+
+void image::drawCircles(Tensor tgt, Tensor circlesXYR, float thickness, const Vec3& color)
+{
+	AssertExcept(tgt.isContiguous() && tgt.shape.size() == 3 && tgt.shape.back() <= 3,
+					"The target tensor needs to be contiguous and formatted as HWC!");
+	AssertExcept(circlesXYR.shape.size() == 2 && tgt.shape.back() == 3,
+					"The circle tensor needs to be of shape (N, 3) where the circle is encoded as [X, Y, R]!");
+
+	for(size_t i = 0; i < circlesXYR.shape[0]; i++)
+	{
+		auto circle = circlesXYR[i];
+		drawCircle(tgt, {circle[0].item<float>(), circle[1].item<float>()}, circle[2].item<float>(), thickness, color);
 	}
 }
