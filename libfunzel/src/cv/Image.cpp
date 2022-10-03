@@ -5,6 +5,11 @@
 #include <funzel/cv/CVBackendTensor.hpp>
 #include <funzel/nn/NNBackendTensor.hpp>
 
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
 #define STBI_ASSERT(x) AssertExcept((x), "Assertion failed: " #x)
@@ -15,6 +20,10 @@
 #define STB_IMAGE_WRITE_STATIC
 #define STBIW_ASSERT(x) AssertExcept((x), "Assertion failed: " #x)
 #include "stb_image_write.h"
+
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 using namespace funzel;
 using namespace image;
@@ -280,7 +289,7 @@ inline Tensor MakeGaussKernel(DTYPE dtype, unsigned int kernelSize, double sigma
 		{
 			const int localX = x - kernelSize/2;
 			const int localY = y - kernelSize/2;
-			tgt[{y, x}] = Gauss(localX, localY, 0, sigma);
+			tgt[{y, x}] = Gauss(localX, localY, mu, sigma);
 		}
 
 	return tgt;
