@@ -82,3 +82,19 @@ TEST(Image, DrawCircles)
 
 	image::save(img, "Image_DrawCircles.png");
 }
+
+TEST(Image, GaussBlur)
+{
+	auto img = image::load("test.jpg").astype<float>();
+	EXPECT_EQ(img.dtype, FLOAT32);
+	//EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
+	
+	img = image::toOrder(img, image::CHW).unravel();
+	img = image::gaussianBlur(img, 63, 25);
+
+	img = image::toOrder(img, image::HWC).unravel();
+	img = img.astype<uint8_t>();
+
+	//image::imshow(img, "", true);
+	image::save(img, "Image_GaussBlur.png");
+}

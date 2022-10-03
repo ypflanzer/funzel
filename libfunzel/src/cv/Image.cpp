@@ -2,6 +2,9 @@
 #include <filesystem>
 #include <algorithm>
 
+#include <funzel/cv/CVBackendTensor.hpp>
+#include <funzel/nn/NNBackendTensor.hpp>
+
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_STATIC
 #define STBI_ASSERT(x) AssertExcept((x), "Assertion failed: " #x)
@@ -258,4 +261,46 @@ void image::drawCircles(Tensor tgt, Tensor circlesXYR, float thickness, const Ve
 		auto circle = circlesXYR[i];
 		drawCircle(tgt, {circle[0].item<float>(), circle[1].item<float>()}, circle[2].item<float>(), thickness, color);
 	}
+}
+
+inline double Gauss(double x, double y, double mu, double sigma)
+{
+	const double xMinusMu = x-mu;
+	const double yMinusMu = y-mu;
+	const double sigmaSqr = sigma*sigma;
+
+	return (1.0/(sigmaSqr*M_PI)) * std::exp(-(xMinusMu*xMinusMu + yMinusMu*yMinusMu)/(2.0*sigmaSqr));
+}
+
+inline Tensor MakeGaussKernel(DTYPE dtype, unsigned int kernelSize, double sigma, double mu)
+{
+	Tensor tgt = Tensor::empty({kernelSize, kernelSize}, dtype);
+	for(uint y = 0; y < kernelSize; y++)
+		for(uint x = 0; x < kernelSize; x++)
+		{
+			const int localX = x - kernelSize/2;
+			const int localY = y - kernelSize/2;
+			tgt[{y, x}] = Gauss(localX, localY, 0, sigma);
+		}
+
+	return tgt;
+}
+
+Tensor image::gaussianBlur(Tensor input, unsigned int kernelSize, double sigma)
+{
+	Tensor output = Tensor::empty_like(input);
+	gaussianBlur(input, output, kernelSize, sigma);
+	return output;
+}
+
+Tensor& image::gaussianBlur(Tensor input, Tensor& tgt, unsigned int kernelSize, double sigma)
+{
+	auto* backend = tgt.getBackendAs<nn::NNBackendTensor>();
+	AssertExcept(backend, "A conv2d capable backend is required!");
+
+	const auto kernel = MakeGaussKernel(tgt.dtype, kernelSize, sigma, 0);
+
+	backend->conv2d(input, tgt, kernel, {1, 1}, {kernelSize/2, kernelSize/2}, {1, 1});
+
+	return tgt;
 }

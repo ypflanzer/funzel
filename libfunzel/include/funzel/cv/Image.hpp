@@ -44,5 +44,8 @@ namespace image
 
 	FUNZEL_API void drawCircle(Tensor tgt, const Vec2& pos, float r, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
 	FUNZEL_API void drawCircles(Tensor tgt, Tensor circlesXYR, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
+
+	FUNZEL_API Tensor gaussianBlur(Tensor input, unsigned int kernelSize, double sigma);
+	FUNZEL_API Tensor& gaussianBlur(Tensor input, Tensor& tgt, unsigned int kernelSize, double sigma);
 }
 }
