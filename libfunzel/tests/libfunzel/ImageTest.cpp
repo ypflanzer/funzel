@@ -90,11 +90,27 @@ TEST(Image, GaussBlur)
 	//EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
 	
 	img = image::toOrder(img, image::CHW).unravel();
-	img = image::gaussianBlur(img, 63, 25);
+	img = image::gaussianBlur(img, 21, 5);
 
 	img = image::toOrder(img, image::HWC).unravel();
 	img = img.astype<uint8_t>();
 
 	//image::imshow(img, "", true);
 	image::save(img, "Image_GaussBlur.png");
+}
+
+TEST(Image, Sobel)
+{
+	auto img = image::load("graytest.jpg").astype<float>();
+	EXPECT_EQ(img.dtype, FLOAT32);
+	//EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
+	
+	img = image::toOrder(img, image::CHW).unravel();
+	img = image::sobelDerivative(img, true);
+
+	img = image::toOrder(img, image::HWC).unravel();
+	img = img.astype<uint8_t>();
+
+	//image::imshow(img, "", true);
+	image::save(img, "Image_Sobel.png");
 }

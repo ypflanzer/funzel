@@ -269,7 +269,7 @@ inline double Gauss(double x, double y, double mu, double sigma)
 	const double yMinusMu = y-mu;
 	const double sigmaSqr = sigma*sigma;
 
-	return (1.0/(sigmaSqr*M_PI)) * std::exp(-(xMinusMu*xMinusMu + yMinusMu*yMinusMu)/(2.0*sigmaSqr));
+	return (1.0/(2.0*sigmaSqr*M_PI)) * std::exp(-(xMinusMu*xMinusMu + yMinusMu*yMinusMu)/(2.0*sigmaSqr));
 }
 
 inline Tensor MakeGaussKernel(DTYPE dtype, unsigned int kernelSize, double sigma, double mu)
@@ -302,5 +302,39 @@ Tensor& image::gaussianBlur(Tensor input, Tensor& tgt, unsigned int kernelSize, 
 
 	backend->conv2d(input, tgt, kernel, {1, 1}, {kernelSize/2, kernelSize/2}, {1, 1});
 
+	return tgt;
+}
+
+
+Tensor image::sobelDerivative(Tensor input, bool horizontal)
+{
+	Tensor output = Tensor::empty_like(input);
+	sobelDerivative(input, output, horizontal);
+	return output;
+}
+
+Tensor& image::sobelDerivative(Tensor input, Tensor& tgt, bool horizontal)
+{
+	// Kernels
+	static const Tensor s_horKernel({3, 3}, {
+		1.0f, 0.0f, -1.0f,
+		2.0f, 0.0f, -2.0f,
+		1.0f, 0.0f, -1.0f
+	});
+
+	static const Tensor s_vertKernel({3, 3}, {
+		1.0f, 2.0f, 1.0f,
+		0.0f, 0.0f, 0.0f,
+		-1.0f, -2.0f, -1.0f
+	});
+
+	auto* backend = tgt.getBackendAs<nn::NNBackendTensor>();
+	AssertExcept(backend, "A conv2d capable backend is required!");
+
+	Tensor kernel = (horizontal ? 
+			s_horKernel.astype(input.dtype).to(input.device)
+			: s_vertKernel.astype(input.dtype).to(input.device));
+
+	backend->conv2d(input, tgt, kernel, {1, 1}, {1, 1}, {1, 1});
 	return tgt;
 }

@@ -47,5 +47,8 @@ namespace image
 
 	FUNZEL_API Tensor gaussianBlur(Tensor input, unsigned int kernelSize, double sigma);
 	FUNZEL_API Tensor& gaussianBlur(Tensor input, Tensor& tgt, unsigned int kernelSize, double sigma);
+
+	FUNZEL_API Tensor sobelDerivative(Tensor input, bool horizontal);
+	FUNZEL_API Tensor& sobelDerivative(Tensor input, Tensor& tgt, bool horizontal);
 }
 }
