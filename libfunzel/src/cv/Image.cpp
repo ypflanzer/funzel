@@ -304,16 +304,15 @@ Tensor image::gaussianBlur(Tensor input, unsigned int kernelSize, double sigma)
 
 Tensor& image::gaussianBlur(Tensor input, Tensor& tgt, unsigned int kernelSize, double sigma)
 {
-	auto* backend = tgt.getBackendAs<nn::NNBackendTensor>();
+	auto* backend = input.getBackendAs<nn::NNBackendTensor>();
 	AssertExcept(backend, "A conv2d capable backend is required!");
 
-	const auto kernel = MakeGaussKernel(tgt.dtype, kernelSize, sigma, 0);
+	const auto kernel = MakeGaussKernel(tgt.dtype, kernelSize, sigma, 0).to(tgt.device);
 
 	backend->conv2d(input, tgt, kernel, {1, 1}, {kernelSize/2, kernelSize/2}, {1, 1});
 
 	return tgt;
 }
-
 
 Tensor image::sobelDerivative(Tensor input, bool horizontal)
 {
@@ -337,7 +336,7 @@ Tensor& image::sobelDerivative(Tensor input, Tensor& tgt, bool horizontal)
 		-1.0f, -2.0f, -1.0f
 	});
 
-	auto* backend = tgt.getBackendAs<nn::NNBackendTensor>();
+	auto* backend = input.getBackendAs<nn::NNBackendTensor>();
 	AssertExcept(backend, "A conv2d capable backend is required!");
 
 	Tensor kernel = (horizontal ? 
