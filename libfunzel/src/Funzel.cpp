@@ -24,8 +24,7 @@ void funzel::backend::RegisterTensorBackend(const std::string& name, ITensorFact
 
 std::shared_ptr<BackendTensor> funzel::backend::CreateBackendTensor(const std::string& name)
 {
-	ITensorFactory* factory = nullptr;
-	if(name.empty())
+ 	if(name.empty())
 	{
 		auto iter = s_tensorBackends.find(s_defaultBackend);
 		if(iter == s_tensorBackends.end())
