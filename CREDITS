@@ -8,3 +8,5 @@ subdirectory.
 - CLBlast, Apache License 2.0, https://github.com/CNugteren/CLBlast
 - stb_image, Public Domain, https://github.com/nothings/stb
 - stb_image_write, Public Domain, https://github.com/nothings/stb
+- spdlog, MIT License, https://github.com/gabime/spdlog
+- FLTK, LGPLv2 with exception for static linking, https://www.fltk.org/
