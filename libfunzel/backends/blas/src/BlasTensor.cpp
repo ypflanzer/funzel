@@ -187,7 +187,7 @@ double BlasTensor::sum(const Tensor& self)
 template<typename T, typename Fn>
 inline void TensorOpInner(const Tensor& self, Tensor& tgt, Fn op)
 {
-	for(size_t x = 0; x < self.shape[0]; x++)
+	for(int64_t x = 0; x < self.shape[0]; x++)
 	{
 		T& v = self[x].ritem<T>();
 		tgt[x].ritem<T>() = op(v);
@@ -586,6 +586,11 @@ void BlasTensor::relu(const Tensor& self, Tensor& tgt, double negativeSlope)
 		});
 	else
 		TensorOp(self, tgt, [negativeSlope](const auto& v) { return v >= 0 ? v : v*negativeSlope; });
+}
+
+void BlasTensor::unravel(const Tensor& self, Tensor tgt)
+{
+	TensorOp(self, tgt, [](const auto& v) { return v; });
 }
 
 void BlasTensor::convertGrayscale(Tensor& self, Tensor& tgt)

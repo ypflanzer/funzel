@@ -428,11 +428,9 @@ static void unravel(Tensor src, Tensor dest)
 
 Tensor Tensor::unravel() const
 {
-	// TODO Allow each backend to implement its own ravelling
-	//      to enable usage of the GPU!
 	Tensor t = Tensor::empty(shape, dtype, device);
-	::unravel(this->cpu(), t);
-	return t.to(this->m_backend->backendName());
+	m_backend->unravel(*this, t);
+	return t;
 }
 
 Tensor Tensor::clone() const

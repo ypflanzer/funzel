@@ -78,6 +78,7 @@ public:
 			const UVec2& dilation) override;
 
 	void set(Tensor& self, const Tensor& src) override;
+	void unravel(const Tensor& self, Tensor tgt) override;
 
 	// cv backend
 	void convertGrayscale(Tensor& self, Tensor& tgt) override;

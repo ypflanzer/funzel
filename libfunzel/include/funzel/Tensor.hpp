@@ -398,6 +398,7 @@ public:
 	virtual void tanh(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
 	virtual double sum(const Tensor& self) { ThrowError("Operation is not supported!"); return 0; }
 	virtual void set(Tensor& self, const Tensor& src) { ThrowError("Operation is not supported!"); }
+	virtual void unravel(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
 
 	DTYPE dtype;
 	size_t size;
