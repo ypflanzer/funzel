@@ -34,13 +34,6 @@ public:
 			const UVec2& padding,
 			const UVec2& dilation) { ThrowError("Operation is not supported!"); }
 
-	virtual void conv2d(
-			const Tensor& self, Tensor tgt,
-			const Tensor& kernel,
-			const UVec2& stride,
-			const UVec2& padding,
-			const UVec2& dilation) { ThrowError("Operation is not supported!"); }
-
 	virtual void relu(const Tensor& self, Tensor& tgt, double negativeSlope = 0.0)  { ThrowError("Operation is not supported!"); }
 
 	// With default implementation

@@ -19,6 +19,7 @@
 #include "funzel/OpenCLBackend.hpp"
 #include <funzel/Tensor.hpp>
 #include <funzel/nn/NNBackendTensor.hpp>
+#include <funzel/cv/CVBackendTensor.hpp>
 
 namespace funzel
 {
@@ -26,7 +27,10 @@ namespace cl
 {
 
 class CLTemplateKernel;
-class OpenCLTensor : public BackendTensor, public nn::NNBackendTensor
+class OpenCLTensor :
+	public BackendTensor,
+	public nn::NNBackendTensor,
+	public cv::CVBackendTensor
 {
 public:
 	OpenCLTensor();
