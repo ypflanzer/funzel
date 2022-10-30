@@ -20,9 +20,19 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT ANDROID)
+	add_compile_options(-stdlib=libc++)
+	add_link_options(-stdlib=libc++)
+endif()
+
 ## Set some optimization flags for MSVC
 if(MSVC)
-	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "/O2 /Ob2 /Oi /Ot")
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /O2 /Ob2 /Oi /Ot")
+endif()
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+	option(ENABLE_AVX2 "Use AVX2 instruction set." ON)
+	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2") # "-march=native")
 endif()
 
 set(CMAKE_CXX_STANDARD 20)
