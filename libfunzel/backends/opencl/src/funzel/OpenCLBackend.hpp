@@ -65,6 +65,19 @@ public:
 
 	size_t parseArgs(const std::string& str) const;
 
+	void setBuildOptions(const std::string& opts)
+	{
+		m_buildOptions = opts;
+	}
+
+	void addBuildOptions(const std::string& opts)
+	{
+		m_buildOptions += opts;
+	}
+
+	std::string getBuildOptions() const { return m_buildOptions; }
+
+
 	::cl::Program buildProgram(CLDevice& device, const std::string& src, DTYPE type);
 	::cl::Kernel buildKernel(CLDevice& device, const std::string& src, DTYPE type);
 
@@ -84,7 +97,7 @@ private:
 	std::unordered_map<std::string, ::cl::Kernel> m_deviceKernels;
 	
 	std::vector<CLDevice> m_devices;
-	//::cl::Context m_context;
+	std::string m_buildOptions = " -O3 -cl-mad-enable -cl-std=CL1.2 ";
 };
 
 }

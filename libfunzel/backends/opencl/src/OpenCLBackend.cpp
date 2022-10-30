@@ -119,7 +119,7 @@ CLDevice OpenCLBackend::getDevice(size_t idx) const
 {
 	::cl::Program p(device.context, src);
 	const auto strtype = dtypeToNativeString(type);
-	p.build(device.device, ("-DT=" + strtype + " -DKernel=Kernel_" + strtype).c_str());
+	p.build(device.device, (m_buildOptions + " -DT=" + strtype + " -DKernel=Kernel_" + strtype).c_str());
 	return p;
 }
 
@@ -150,7 +150,7 @@ static std::string formatCachedName(const std::string& name, const ::cl::Device&
 
 	try
 	{
-		p.build(device.device, ("-DT=" + strtype + " -DKernel=" + kernelName).c_str());
+		p.build(device.device, (m_buildOptions + " -DT=" + strtype + " -DKernel=" + kernelName).c_str());
 	}
 	catch(...)
 	{
@@ -221,6 +221,7 @@ std::filesystem::path OpenCLBackend::findCacheDirectory()
 		return ::cl::Kernel();
 
 	//std::cout << "Loading binary from: " << inpath << std::endl;
+	spdlog::debug("Loading binary kernel from cache at: {}", inpath.string());
 	std::ifstream in(inpath, std::ios::in | std::ios::binary);
 	
 	AssertExcept(!!in, "Could not open file for reading: " << inpath);
@@ -253,6 +254,8 @@ void OpenCLBackend::updateCache(const std::string& name, const ::cl::Device& dev
 	AssertExcept(!binaries.empty(), "Could not update OpenCL kernel cache, no binaries could be generated: " << err);
 
 	const auto outpath = m_cacheDirectory / name;
+	spdlog::debug("Writing binary kernel to cache at: {}", outpath.string());
+
 	//std::cout << "Saving binary to: " << outpath << std::endl;
 
 	// Write the first valid binary to file.
