@@ -3,6 +3,8 @@
 #include <clblast.h>
 #include <cassert>
 
+#include <spdlog/spdlog.h>
+
 using namespace funzel;
 using namespace funzel::cl;
 
@@ -116,7 +118,6 @@ std::shared_ptr<char> OpenCLTensor::buffer()
 	return dest;
 }
 
-#include <iostream>
 void OpenCLTensor::empty(const void* buffer, size_t sz, const Shape& shape, DTYPE dtype)
 {
 	this->dtype = dtype;
@@ -150,17 +151,6 @@ std::shared_ptr<BackendTensor> OpenCLTensor::clone() const
 	return std::shared_ptr<BackendTensor>(t);
 }
 
-static const std::string s_fillKernel = R"krnl(
-__kernel void Kernel(__global T* dest, ulong count, T value)
-{
-	ulong idx = get_global_id(0);
-	if(idx < count)
-	{
-		dest[idx] = value;
-	}
-}
-)krnl";
-
 void OpenCLTensor::fill(const Tensor& self, double scalar)
 {
 	wait();
@@ -175,19 +165,6 @@ void OpenCLTensor::fill(const Tensor& self, double scalar)
 		break;
 		default: ThrowError("Unsupported dtype!");
 	}
-
-	#if 0
-	// Build kernels!
-	static CLTemplateKernel kernel{s_fillKernel};
-	wait();
-
-	switch(dtype)
-	{
-		case FLOAT32: m_currentEvent = kernel.call(m_cmdQueue, {0}, {size}, {32}, dtype, m_buffer, size, static_cast<float>(scalar)); break;
-		case FLOAT64: m_currentEvent = kernel.call(m_cmdQueue, {0}, {size}, {32}, dtype, m_buffer, size, static_cast<double>(scalar)); break;
-		default: ThrowError("Unsupported dtype!");
-	}
-	#endif
 }
 
 double OpenCLTensor::sum(const Tensor& self)
@@ -216,7 +193,6 @@ template<typename Fn>
 	size_t stride = self.strides.back()/tsize;
 	size_t offset = self.offset/tsize;
 	size_t size = self.size();
-
 	return fn(this, self, stride, offset, size);
 }
 
@@ -315,7 +291,9 @@ void OpenCLTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 	wait();
 	tgtBackend->wait();
 
-	if(self.shape.size() > 1 && self.shape[1] > 1)
+	// We can handle contiguous memory at once, without subdividing further.
+	//if(self.shape.size() > 1 && self.shape[1] > 1)
+	if(!(self.flags & C_CONTIGUOUS) && self.shape.size() > 1)
 	{
 		for(int i = 0; i < self.shape[0]; i++)
 		{
@@ -555,8 +533,6 @@ void OpenCLTensor::pool2d(
 	::cl::Buffer abuf = m_buffer;
 	::cl::Buffer cbuf = tgtBackend->m_buffer;
 
-	clblast::StatusCode err;
-
 	const int64_t outstrideY = tgt.strides[0]/dtypeSizeof(self.dtype);
 	const int64_t outstrideX = tgt.strides[1]/dtypeSizeof(self.dtype);
 	const int64_t instrideY = self.strides[0]/dtypeSizeof(self.dtype);
@@ -573,6 +549,137 @@ void OpenCLTensor::pool2d(
 				stride[0], stride[1]);
 }
 
+template<typename T>
+static inline void Conv2DInner(
+	const Tensor& self, Tensor tgt,
+	const Tensor& kernel,
+	const UVec2& stride,
+	const UVec2& padding,
+	const UVec2& dilation,
+	size_t finalDimensions,
+	size_t width, size_t height, size_t batch, size_t channels)
+{
+	
+	if (self.shape.size() > finalDimensions)
+	{
+		for (int i = 0; i < self.shape[0]; i++)
+		{
+			Conv2DInner<T>(self[i], tgt[i], kernel, stride, padding, dilation, finalDimensions, width, height, batch, channels);
+		}
+		return;
+	}
+
+	auto* tgtBackend = tgt.getBackendAs<OpenCLTensor>();
+	auto* krnlBackend = kernel.getBackendAs<OpenCLTensor>();
+
+	clblast::Convgemm<T>(clblast::KernelMode::kCrossCorrelation, channels,
+			width, height, // width, height
+			kernel.shape[0], kernel.shape[1], // kernelWidth, kernelHeight,
+			padding[0], padding[1],
+			stride[0], stride[1],
+			dilation[0], dilation[1],
+			(kernel.shape.size() > 2 ? kernel.shape[2] : 1),
+			
+			batch, // Batch size
+			self.getBackendAs<OpenCLTensor>()->clbuffer()(), self.offset / sizeof(T),
+			krnlBackend->clbuffer()(), kernel.offset / sizeof(T),
+			tgtBackend->clbuffer()(), tgt.offset / sizeof(T),
+
+			&tgtBackend->clcmdQueue()(), &tgtBackend->clcurrentEvent()());
+}
+
+#if 0
+void OpenCLTensor::conv2d(
+	const Tensor& self, Tensor tgt,
+	const Tensor& kernel,
+	const UVec2& stride,
+	const UVec2& padding,
+	const UVec2& dilation)
+{
+	if (self.shape.empty())
+		return;
+
+	AssertExcept(self.shape.size() >= 2,
+		"A 2D convolutions requires a tensor of type BCHW, CHW or HW, the given tensor has only one dimension.");
+
+	size_t finalDimensions = 2;
+	size_t width = 0, height = 0;
+	size_t batch = 1, channels = 1;
+	
+	const auto rshape = self.shape.rbegin();
+
+	for(auto i = rshape; i != self.shape.rend(); i++)
+		spdlog::critical(*i);
+
+	// Check if input can be processed as one batch
+	if(self.shape.size() >= 4)
+	{
+		finalDimensions = 4;
+		batch = rshape[3];
+		channels = rshape[2];
+		height = rshape[1];
+		width = rshape[0];
+	}
+	else if(self.shape.size() == 3)
+	{
+		finalDimensions = 3;
+		batch = 1;
+		channels = rshape[2];
+		height = rshape[1];
+		width = rshape[0];
+	}
+	else if(self.shape.size() == 2)
+	{
+		finalDimensions = 2;
+		batch = 1;
+		channels = 1;
+		height = rshape[1];
+		width = rshape[0];
+	}
+
+	auto* tgtBackend = tgt.getBackendAs<OpenCLTensor>();
+
+	AssertExcept(self.getBackend() != tgt.getBackend(), "Cannot apply convolution in-place!");
+	assert(self.getBackend() == this && "Wrong tensor given first!");
+
+	const size_t oh = ((height + size_t(2) * padding[0] - dilation[0] * (kernel.shape[0] - 1) - 1) / stride[0]) + 1;
+	const size_t ow = ((width + size_t(2) * padding[1] - dilation[1] * (kernel.shape[1] - 1) - 1) / stride[1]) + 1;
+	//AssertExcept(tgt.shape[0] == oh && tgt.shape[1] == ow, "Invalid output size: " << tgt.shape[0] << " != " << oh << " or " << tgt.shape[1] << " != " << ow);
+
+	// Wait for both tensors to be available
+	wait();
+	tgtBackend->wait();
+	
+	//return;
+
+	switch (dtype)
+	{
+	case FLOAT32: {
+		Conv2DInner<float>(
+			self, tgt,
+			kernel,
+			stride,
+			padding,
+			dilation,
+			finalDimensions,
+			width, height, batch, channels);
+	} break;
+
+	case FLOAT64: {
+		Conv2DInner<double>(
+			self, tgt,
+			kernel,
+			stride,
+			padding,
+			dilation,
+			finalDimensions,
+			width, height, batch, channels);
+	} break;
+	default: ThrowError("Unsupported dtype!");
+	}
+}
+#endif
+#if 1
 void OpenCLTensor::conv2d(
 	const Tensor& self, Tensor tgt,
 	const Tensor& kernel,
@@ -585,6 +692,9 @@ void OpenCLTensor::conv2d(
 
 	auto* tgtBackend = tgt.getBackendAs<OpenCLTensor>();
 	auto* krnlBackend = kernel.getBackendAs<OpenCLTensor>();
+	auto* selfBackend = self.getBackendAs<OpenCLTensor>();
+
+	AssertExcept(tgtBackend && krnlBackend && selfBackend, "At least one of the input tensors is not an OpenCL tensor!");
 
 	AssertExcept(self.getBackend() != tgt.getBackend(), "Cannot apply convolution in-place!");
 	assert(self.getBackend() == this && "Wrong tensor given first!");
@@ -610,16 +720,16 @@ void OpenCLTensor::conv2d(
 	switch (dtype)
 	{
 	case FLOAT32: {
-		clblast::Convgemm<float>(clblast::KernelMode::kCrossCorrelation, 1,
+		clblast::Convgemm<float>(clblast::KernelMode::kCrossCorrelation, (self.shape.size() > 2 ? self.shape[2] : 1),
 			self.shape[0], self.shape[1], // width, height
 			kernel.shape[0], kernel.shape[1], // kernelWidth, kernelHeight,
 			padding[0], padding[1],
 			stride[0], stride[1],
 			dilation[0], dilation[1],
-			(kernel.shape.size() > 2 ? kernel.shape[2] : 1), 
+			(kernel.shape.size() > 2 ? kernel.shape[2] : 1),
 			
 			1, // Batch size
-			self.getBackendAs<OpenCLTensor>()->m_buffer(), self.offset / sizeof(float),
+			selfBackend->m_buffer(), self.offset / sizeof(float),
 			krnlBackend->m_buffer(), kernel.offset / sizeof(float),
 			tgtBackend->m_buffer(), tgt.offset / sizeof(float),
 
@@ -645,7 +755,7 @@ void OpenCLTensor::conv2d(
 	default: ThrowError("Unsupported dtype!");
 	}
 }
-
+#endif
 static const std::string s_reluKernel = R"krnl(
 __kernel void Kernel(__global const T* src, __global T* dest, ulong offset, ulong stride, ulong count, double slope)
 {

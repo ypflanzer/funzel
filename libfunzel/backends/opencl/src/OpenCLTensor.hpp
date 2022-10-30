@@ -74,6 +74,10 @@ public:
 			const UVec2& padding,
 			const UVec2& dilation) override;
 
+	::cl::Buffer& clbuffer() { return m_buffer; }
+	::cl::CommandQueue& clcmdQueue() { return m_cmdQueue; }
+	::cl::Event& clcurrentEvent() { return m_currentEvent; }
+
 protected:
 
 	size_t workgroupSize() const;
