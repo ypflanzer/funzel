@@ -81,7 +81,7 @@ public:
 	void unravel(const Tensor& self, Tensor tgt) override;
 
 	// cv backend
-	void convertGrayscale(Tensor& self, Tensor& tgt) override;
+	void convertGrayscale(const Tensor& self, Tensor tgt) override;
 
 private:
 	std::shared_ptr<char> m_data;

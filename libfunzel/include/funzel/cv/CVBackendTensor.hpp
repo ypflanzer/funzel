@@ -23,7 +23,7 @@ namespace funzel::cv
 class CVBackendTensor
 {
 public:
-	virtual void convertGrayscale(Tensor& self, Tensor& tgt) { ThrowError("Operation is not supported!"); }
+	virtual void convertGrayscale(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
 
 	virtual void conv2d(
 			const Tensor& self, Tensor tgt,

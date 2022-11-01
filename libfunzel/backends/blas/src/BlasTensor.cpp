@@ -7,6 +7,7 @@
 #include <cstring>
 #include <cmath>
 #include <functional>
+#include <spdlog/spdlog.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -209,9 +210,30 @@ inline void TensorOpOuter(const Tensor& self, Tensor tgt, Fn op)
 	TensorOpInner<T>(self, tgt, op);
 }
 
-template<typename Fn>
+template<bool EnableUnsigned = true, typename Fn>
 inline void TensorOp(const Tensor& self, Tensor& tgt, Fn op)
 {
+	if constexpr (EnableUnsigned)
+	{
+		switch(self.dtype)
+		{
+			case UINT16: {
+				TensorOpOuter<uint16_t>(self, tgt, op);
+				return;
+			}
+			case UINT32: {
+				TensorOpOuter<uint32_t>(self, tgt, op);
+				return;
+			}
+			case UINT64: {
+				TensorOpOuter<uint64_t>(self, tgt, op);
+				return;
+			}
+
+			default: {}
+		}
+	}
+
 	switch(self.dtype)
 	{
 		case FLOAT32: {
@@ -219,6 +241,23 @@ inline void TensorOp(const Tensor& self, Tensor& tgt, Fn op)
 		} break;
 		case FLOAT64: {
 			TensorOpOuter<double>(self, tgt, op);
+		} break;
+		
+		case BYTE: {
+			TensorOpOuter<int8_t>(self, tgt, op);
+		} break;
+		case UBYTE: {
+			TensorOpOuter<uint8_t>(self, tgt, op);
+		} break;
+		
+		case INT16: {
+			TensorOpOuter<int16_t>(self, tgt, op);
+		} break;
+		case INT32: {
+			TensorOpOuter<int32_t>(self, tgt, op);
+		} break;
+		case INT64: {
+			TensorOpOuter<int64_t>(self, tgt, op);
 		} break;
 		default: ThrowError("Unsupported dtype!");
 	}
@@ -236,7 +275,7 @@ inline void TensorAbs(const Tensor& self, Tensor& tgt)
 
 void BlasTensor::abs(const Tensor& self, Tensor tgt)
 {
-	TensorOp(self, tgt, [](const auto& v) { return std::abs(v); });
+	TensorOp<false>(self, tgt, [](const auto& v) { return std::abs(v); });
 	#if 0
 	if(self.shape.size() > 1)
 	{
@@ -593,7 +632,57 @@ void BlasTensor::unravel(const Tensor& self, Tensor tgt)
 	TensorOp(self, tgt, [](const auto& v) { return v; });
 }
 
-void BlasTensor::convertGrayscale(Tensor& self, Tensor& tgt)
+template<typename T>
+static void ConvertRGBToGrayCHW(const Tensor& self, Tensor& tgt)
 {
+	#pragma omp parallel for
+	for(int64_t y = 0; y < self.shape[1]; y++)
+	{
+		const size_t yoffIn = (y*self.strides[1])/sizeof(T);
+		const size_t yoffOut = (y*tgt.strides[1])/sizeof(T);
+		
+		for(int64_t x = 0; x < self.shape[2]; x++)
+		{
+			const size_t xoffIn = (x*self.strides[2])/sizeof(T);
+			const size_t xoffOut = (x*tgt.strides[2])/sizeof(T);
+
+			T accum = T(0);
+			for(int c = 0; c < self.shape[0]; c++)
+			{
+				const size_t inOff = (yoffIn + xoffIn + (c*self.strides[0]/sizeof(T)));
+				accum += self.dataAs<T>(inOff);
+			}
+
+			const size_t outOff = xoffOut + yoffOut;
+			tgt.dataAs<T>(outOff) = accum / self.shape[0];
+		}
+	}
+}
+
+void BlasTensor::convertGrayscale(const Tensor& self, Tensor tgt)
+{
+	if(self.shape.size() <= 2)
+		return;
 	
+	if(self.shape.size() > 3)
+	{
+		//#pragma omp parallel for
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			convertGrayscale(self[i], tgt[i]);
+		}
+
+		return;
+	}
+
+	switch(dtype)
+	{
+		case FLOAT32: {
+			ConvertRGBToGrayCHW<float>(self, tgt);
+		} break;
+		case FLOAT64: {
+			ConvertRGBToGrayCHW<double>(self, tgt);
+		} break;
+		default: ThrowError("Unsupported dtype!");
+	}
 }

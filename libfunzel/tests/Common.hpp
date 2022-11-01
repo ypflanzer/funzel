@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 #include <funzel/Tensor.hpp>
 #include <funzel/nn/NNBackendTensor.hpp>
+#include <funzel/cv/CVBackendTensor.hpp>
 
 #include <cmath>
 
@@ -485,7 +486,7 @@ TEST(CommonTest, Conv2d)
 #if 1
 	auto kernel = Tensor::ones({ 5, 5 }, FLOAT32, TestDevice);
 	kernel.mul_(1.0 / (5.0*5.0));
-	img.getBackendAs<nn::NNBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
+	img.getBackendAs<cv::CVBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
 #else
 	Tensor kernel({ 5, 5 }, {
 		0.0f, 0.0f, 0.0f, 0.0f, 0.0f,
@@ -519,7 +520,7 @@ TEST(CommonTest, Conv2dColor)
 	
 	auto kernel = Tensor::ones({ 5, 5 }, FLOAT32, TestDevice);
 	kernel.mul_(1.0 / (5.0*5.0));
-	img.getBackendAs<nn::NNBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
+	img.getBackendAs<cv::CVBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
 
 	tgt = tgt.cpu().mul_(255.0).astype<uint8_t>();
 	tgt = image::toOrder(tgt, image::HWC);
@@ -531,6 +532,19 @@ TEST(CommonTest, Conv2dColor)
 	plt.image(tgt, "Result");
 	plt.show();
 #endif
+}
+
+TEST(CommonTest, ConvertToGrayscale)
+{
+	auto img = image::load("test.jpg", image::CHW).astype<float>().to(TestDevice);
+	auto tgt = Tensor::empty({1, img.shape[1], img.shape[2]}, img.dtype);
+
+	img.getBackendAs<cv::CVBackendTensor>()->convertGrayscale(img, tgt);
+
+	tgt = tgt.cpu().astype<uint8_t>();
+	tgt = image::toOrder(tgt, image::HWC);
+	image::save(tgt, "CommonTest_Grayscale.png");
+	image::imshow(tgt, "Grayscale", true);
 }
 
 TEST(CommonTest, ReLU)
