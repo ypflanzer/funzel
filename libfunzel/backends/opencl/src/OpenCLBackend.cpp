@@ -44,7 +44,7 @@ void OpenCLBackend::initCL()
 
 			platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
 			//std::cout << "Found " << devices.size() << " GPU device(s):" << std::endl;
-			spdlog::debug("Found {} GPU device(s):", devices.size());
+			spdlog::debug("Found {} OpenCL device(s):", devices.size());
 
 			// Prefer GPU devices for each platform
 			std::sort(devices.begin(), devices.end(), [](const ::cl::Device& a, const ::cl::Device& b) {
@@ -54,9 +54,6 @@ void OpenCLBackend::initCL()
 			::cl::Context context(devices);
 			for(auto& d : devices)
 			{
-				spdlog::debug("\t{}\t{}", d.getInfo<CL_DEVICE_VENDOR>(), d.getInfo<CL_DEVICE_NAME>());
-				//std::cout << '\t' << d.getInfo<CL_DEVICE_VENDOR>() << '\t' << d.getInfo<CL_DEVICE_NAME>() << std::endl;
-
 				DeviceProperties props;
 				props.deviceID = "OCL:" + std::to_string(ctr++);
 				props.deviceName = d.getInfo<CL_DEVICE_NAME>();
@@ -66,6 +63,8 @@ void OpenCLBackend::initCL()
 				backend::RegisterDevice(props);
 
 				m_devices.emplace_back(context, d);
+
+				spdlog::debug("\t{}\t{}\t{}", props.deviceID, props.vendorName, props.deviceName);
 			}
 		}
 
