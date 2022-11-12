@@ -583,34 +583,16 @@ void BlasTensor::conv2d(
 			{ tgt.strides[0], tgt.strides[1] },
 			stride, padding, dilation);
 
-#if 0
-		Pool2D<float>(
-			(const float*)adata, (float*)dest,
-			{ self.shape[0], self.shape[1] },
-			{ tgt.shape[0], tgt.shape[1] },
-			{ self.strides[0], self.strides[1] },
-			{ tgt.strides[0], tgt.strides[1] },
-			kernelSize, stride, padding, dilation,
-			(mode == MEAN_POOLING ?
-				std::function<float(const float, const float, int)>(meanFunctor) :
-				std::function<float(const float, const float, int)>(maxFunctor))
-			);
-#endif
 	} break;
 	case FLOAT64: {
-#if 0
-		Pool2D<double>(
-			(const double*)adata, (double*)dest,
-			{ self.shape[0], self.shape[1] },
-			{ tgt.shape[0], tgt.shape[1] },
-			{ self.strides[0], self.strides[1] },
-			{ tgt.strides[0], tgt.strides[1] },
-			kernelSize, stride, padding, dilation,
-			(mode == MEAN_POOLING ?
-				std::function<double(const double, const double, int)>(meanFunctor) :
-				std::function<double(const double, const double, int)>(maxFunctor))
-			);
-#endif
+		Conv2DNaive<double>(
+					(const double*)adata, (const double*) kdata, (double*)dest,
+					{ self.shape[0], self.shape[1] },
+					{ kernel.shape[0], kernel.shape[1] },
+					{ tgt.shape[0], tgt.shape[1] },
+					{ self.strides[0], self.strides[1] },
+					{ tgt.strides[0], tgt.strides[1] },
+					stride, padding, dilation);
 	} break;
 	default: ThrowError("Unsupported dtype!");
 	}
