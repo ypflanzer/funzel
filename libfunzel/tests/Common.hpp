@@ -515,14 +515,14 @@ TEST(CommonTest, Conv2d)
 
 TEST(CommonTest, Conv2dColor)
 {
-	auto img = image::load("color_image.png", image::CHW).astype<float>().to(TestDevice).mul_(1.0 / 255.0);
+	auto img = image::load("test.jpg", image::CHW).astype<float>().to(TestDevice).mul_(1.0 / 255.0);
 	auto tgt = Tensor::zeros_like(img);
 	
-	auto kernel = Tensor::ones({ 5, 5 }, FLOAT32, TestDevice);
+	auto kernel = Tensor::ones({ 5, 5, 3 }, FLOAT32, TestDevice);
 	kernel.mul_(1.0 / (5.0*5.0));
 	img.getBackendAs<cv::CVBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
 
-	tgt = tgt.cpu().mul_(255.0).astype<uint8_t>();
+	tgt = tgt.mul_(255.0).cpu().astype<uint8_t>();
 	tgt = image::toOrder(tgt, image::HWC);
 	image::save(tgt, "CommonTest_Conv2d.png");
 
