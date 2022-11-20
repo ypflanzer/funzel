@@ -45,21 +45,14 @@ void Conv2DNaive(
 	const int64_t halfKw = int64_t(kernelSize[1]/2);
 	const int64_t halfKh = int64_t(kernelSize[0]/2);
 
-	const int64_t inSizeMax = int64_t(inputSize[0])*inputSize[1]*channels;
 	const int ksize = kernelSize[0]*kernelSize[1];
 
 	#pragma omp parallel for
 	for(int64_t y = 0; y < outputSize[0]; y++)
 	{
-		const int64_t inY = y*stride[0];
-		const int64_t yinOff = inY*instrideY;
-
 		const int64_t youtOff = y*outstrideY;
 		for(int64_t x = 0; x < outputSize[1]; x++)
 		{
-			const int64_t inX = x*stride[1];
-			const int64_t xinOff = inX*instrideX;
-
 			const int64_t xoutOff = x*outstrideX;
 			auto* accum = &output[youtOff + xoutOff];
 
