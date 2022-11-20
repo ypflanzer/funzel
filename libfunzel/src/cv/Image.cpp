@@ -2,6 +2,9 @@
 #include <filesystem>
 #include <algorithm>
 
+#define _USE_MATH_DEFINES
+#include <math.h>
+
 #include <funzel/cv/CVBackendTensor.hpp>
 #include <funzel/nn/NNBackendTensor.hpp>
 
@@ -37,27 +40,27 @@ Tensor funzel::image::load(const std::string& file, CHANNEL_ORDER order, DTYPE d
 	if(dtype == NONE)
 	{
 		if(stbi_is_16_bit(file.c_str()))
-			dtype = UINT16;
+			dtype = DUINT16;
 		if(stbi_is_hdr(file.c_str()))
-			dtype = FLOAT32;
+			dtype = DFLOAT32;
 		else
-			dtype = UBYTE;
+			dtype = DUINT8;
 	}
 
 	switch(dtype)
 	{
-	case UINT16:
-	case INT16:
+	case DUINT16:
+	case DINT16:
 		buffer = std::shared_ptr<char>((char*) stbi_load_16(file.c_str(), &w, &h, &c, 0));
 		break;
 
-	case FLOAT32:
+	case DFLOAT32:
 		buffer = std::shared_ptr<char>((char*) stbi_loadf(file.c_str(), &w, &h, &c, 0));
 		break;
 	
 	default:
-	case BYTE:
-	case UBYTE:
+	case DINT8:
+	case DUINT8:
 		buffer = std::shared_ptr<char>((char*) stbi_load(file.c_str(), &w, &h, &c, 0));
 		break;
 	}
@@ -140,18 +143,18 @@ void funzel::image::save(const Tensor& tensor, const std::string& file)
 	int err = 0;
 	switch(contiguousTensor.dtype)
 	{
-	case UINT16:
-	case INT16:
+	case DUINT16:
+	case DINT16:
 		err = saveUShortImage(contiguousTensor, file, ext);
 		break;
 
-	case FLOAT32:
+	case DFLOAT32:
 		err = saveFloatImage(contiguousTensor, file, ext);
 		break;
 	
 	default:
-	case BYTE:
-	case UBYTE:
+	case DINT8:
+	case DUINT8:
 		err = saveUByteImage(contiguousTensor, file, ext);
 		break;
 	}
@@ -176,10 +179,10 @@ void image::imshow(const Tensor& t, const std::string& title, bool waitkey)
 		else
 			im = t;
 
-		const uint w = im.shape[1];
-		const uint h = im.shape[0];
-		const uint c = im.shape[2];
-		const uint stride = im.strides[0];
+		const uint32_t w = im.shape[1];
+		const uint32_t h = im.shape[0];
+		const uint32_t c = im.shape[2];
+		const uint32_t stride = im.strides[0];
 		
 		Fl_Window win(w, h, title.c_str());
 		Fl_RGB_Image img((const uchar*) im.data(), w, h, c, stride);
@@ -203,14 +206,14 @@ void image::imshow(const Tensor& t, const std::string& title, bool waitkey)
 	}
 }
 
-inline void PutPixel(Tensor& tgt, uint x, uint y, const Vec3& color)
+inline void PutPixel(Tensor& tgt, uint32_t x, uint32_t y, const Vec3& color)
 {
 	auto px = tgt[{x, y}];
 	for(int c = 0; c < tgt.shape.back(); c++)
 		px[c] = color[c];
 }
 
-static void DrawCircleInternal(Tensor& tgt, uint xc, uint yc, uint x, uint y, const Vec3& color)
+static void DrawCircleInternal(Tensor& tgt, uint32_t xc, uint32_t yc, uint32_t x, uint32_t y, const Vec3& color)
 {
 	PutPixel(tgt, xc+x, yc+y, color);
 	PutPixel(tgt, xc-x, yc+y, color);
@@ -284,8 +287,8 @@ inline double Gauss(double x, double y, double mu, double sigma)
 inline Tensor MakeGaussKernel(DTYPE dtype, unsigned int kernelSize, double sigma, double mu)
 {
 	Tensor tgt = Tensor::empty({kernelSize, kernelSize}, dtype);
-	for(uint y = 0; y < kernelSize; y++)
-		for(uint x = 0; x < kernelSize; x++)
+	for(uint32_t y = 0; y < kernelSize; y++)
+		for(uint32_t x = 0; x < kernelSize; x++)
 		{
 			const int localX = x - kernelSize/2;
 			const int localY = y - kernelSize/2;

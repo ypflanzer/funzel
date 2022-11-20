@@ -6,6 +6,8 @@
 #include <spdlog/spdlog.h>
 #include <iostream>
 
+#include <funzel/cv/Image.hpp>
+
 using namespace funzel;
 using namespace funzel::cl;
 
@@ -126,6 +128,7 @@ void OpenCLTensor::empty(const void* buffer, size_t sz, const Shape& shape, DTYP
 
 	sz *= dtypeSizeof(dtype);
 	m_buffer = ::cl::Buffer(m_device.context, CL_MEM_READ_WRITE, sz);
+	AssertExcept(m_buffer.get(), "Could not allocated GPU buffer!");
 
 	if(buffer)
 	{
@@ -157,11 +160,11 @@ void OpenCLTensor::fill(const Tensor& self, double scalar)
 	wait();
 	switch(dtype)
 	{
-		case FLOAT32:
+		case DFLOAT32:
 			m_cmdQueue.enqueueFillBuffer<float>(m_buffer, scalar, self.offset/sizeof(float), self.size()*sizeof(float), nullptr, &m_currentEvent);
 		break;
 		
-		case FLOAT64:
+		case DFLOAT64:
 			m_cmdQueue.enqueueFillBuffer<double>(m_buffer, scalar, self.offset/sizeof(double), self.size()*sizeof(double), nullptr, &m_currentEvent);
 		break;
 		default: ThrowError("Unsupported dtype!");
@@ -311,13 +314,13 @@ void OpenCLTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 	clblast::StatusCode err;
 	switch(dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			err = clblast::Axpy<float>(self.size(), float(alpha), abuf(), self.offset/sizeof(float), stride/sizeof(float),
 										bbuf(), tgt.offset/sizeof(float), stride/sizeof(float),
 										&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
 		} break;
 
-		case FLOAT64: {
+		case DFLOAT64: {
 			err = clblast::Axpy<double>(self.size(), double(alpha), abuf(), self.offset/sizeof(double), stride/sizeof(double),
 										bbuf(), tgt.offset/sizeof(double), stride/sizeof(double),
 										&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
@@ -421,7 +424,7 @@ void OpenCLTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 
 	switch(dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			err = clblast::Gemm<float>(
 				clblast::Layout::kRowMajor, clblast::Transpose::kNo, clblast::Transpose::kNo,
 				m, n, k, 1.0f,
@@ -431,7 +434,7 @@ void OpenCLTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 				cbuf(), tgt.offset/sizeof(float), n,
 				&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
 		} break;
-		case FLOAT64: {
+		case DFLOAT64: {
 			err = clblast::Gemm<double>(
 				clblast::Layout::kRowMajor, clblast::Transpose::kNo, clblast::Transpose::kNo,
 				m, n, k, 1.0f,
@@ -574,7 +577,11 @@ static inline void Conv2DInner(
 	auto* krnlBackend = kernel.getBackendAs<OpenCLTensor>();
 	auto* selfBackend = self.getBackendAs<OpenCLTensor>();
 
-	auto status = clblast::Convgemm<T>(clblast::KernelMode::kConvolution,
+	auto& tgtBuffer = tgtBackend->clbuffer();
+	auto& selfBuffer = selfBackend->clbuffer();
+	auto& krnlBuffer = krnlBackend->clbuffer();
+
+	auto status = clblast::Convgemm<T>(clblast::KernelMode::kCrossCorrelation,
 			channels,
 			height, width, // width, height
 			kernel.shape[0], kernel.shape[1], // kernelWidth, kernelHeight,
@@ -584,11 +591,12 @@ static inline void Conv2DInner(
 			1, // 1 kernel only. Maybe that can be more?
 			
 			batch, // Batch size
-			selfBackend->clbuffer()(), self.offset / sizeof(T),
-			krnlBackend->clbuffer()(), kernel.offset / sizeof(T),
-			tgtBackend->clbuffer()(), tgt.offset / sizeof(T),
+			selfBuffer(), self.offset / sizeof(T),
+			krnlBuffer(), kernel.offset / sizeof(T),
+			tgtBuffer(), tgt.offset / sizeof(T),
 
 			&tgtBackend->clcmdQueue()(), &tgtBackend->clcurrentEvent()());
+
 
 	AssertExcept(status == clblast::StatusCode::kSuccess, "CLBlast Error: " + std::to_string((int) status));
 }
@@ -608,10 +616,11 @@ void OpenCLTensor::conv2d(
 		"A 2D convolutions requires a tensor of type BCHW, CHW or HW, the given tensor has only one dimension.");
 
 	size_t finalDimensions = 2;
-	size_t width = 0, height = 0;
+	size_t width = 0, height = 0, outWidth = 0, outHeight = 0;
 	size_t batch = 1, channels = 1;
-	
+
 	const auto rshape = self.shape.rbegin();
+	const auto outRshape = tgt.shape.rbegin();
 
 	// Check if input can be processed as one batch
 	if(self.shape.size() >= 4)
@@ -622,6 +631,9 @@ void OpenCLTensor::conv2d(
 		channels = rshape[2];
 		height = rshape[1];
 		width = rshape[0];
+
+		outHeight = outRshape[1];
+		outWidth = outRshape[0];
 	}
 	else if(self.shape.size() == 3)
 	{
@@ -631,6 +643,9 @@ void OpenCLTensor::conv2d(
 		channels = rshape[2];
 		height = rshape[1];
 		width = rshape[0];
+
+		outHeight = outRshape[1];
+		outWidth = outRshape[0];
 	}
 	else if(self.shape.size() == 2)
 	{
@@ -639,16 +654,20 @@ void OpenCLTensor::conv2d(
 		channels = 1;
 		height = rshape[1];
 		width = rshape[0];
+
+		outHeight = outRshape[1];
+		outWidth = outRshape[0];
 	}
 
 	auto* tgtBackend = tgt.getBackendAs<OpenCLTensor>();
+	auto* kernelBackend = kernel.getBackendAs<OpenCLTensor>();
 
 	AssertExcept(self.getBackend() != tgt.getBackend(), "Cannot apply convolution in-place!");
 	assert(self.getBackend() == this && "Wrong tensor given first!");
 
 	const size_t oh = ((height + size_t(2) * padding[0] - dilation[0] * (kernel.shape[0] - 1) - 1) / stride[0]) + 1;
 	const size_t ow = ((width + size_t(2) * padding[1] - dilation[1] * (kernel.shape[1] - 1) - 1) / stride[1]) + 1;
-	AssertExcept(tgt.shape[1] == oh && tgt.shape[2] == ow, "Invalid output size: " << tgt.shape[1] << " != " << oh << " or " << tgt.shape[2] << " != " << ow);
+	AssertExcept(outHeight == oh && outWidth == ow, "Invalid output size: " << outHeight << " != " << oh << " or " << outWidth << " != " << ow);
 
 	AssertExcept((channels == 1 && kernel.shape.size() == 2) || kernel.shape[2] == channels,
 					"An image with CHW needs a kernel with HWC, the number of channels must match!");
@@ -656,10 +675,11 @@ void OpenCLTensor::conv2d(
 	// Wait for both tensors to be available
 	wait();
 	tgtBackend->wait();
+	kernelBackend->wait();
 
 	switch (dtype)
 	{
-	case FLOAT32: {
+	case DFLOAT32: {
 		Conv2DInner<float>(
 			self, tgt,
 			kernel,
@@ -670,7 +690,7 @@ void OpenCLTensor::conv2d(
 			width, height, batch, channels);
 	} break;
 
-	case FLOAT64: {
+	case DFLOAT64: {
 		Conv2DInner<double>(
 			self, tgt,
 			kernel,
@@ -690,8 +710,7 @@ void OpenCLTensor::conv2d(
 	const Tensor& kernel,
 	const UVec2& stride,
 	const UVec2& padding,
-	const UVec2& dilation,
-	image::CHANNEL_ORDER order)
+	const UVec2& dilation)
 {
 	if (self.shape.empty())
 		return;
@@ -708,12 +727,13 @@ void OpenCLTensor::conv2d(
 	// Wait for both tensors to be available
 	wait();
 	tgtBackend->wait();
+	krnlBackend->wait();
 
-	if ((self.shape.size() > 2 && order == image::CHW) || (self.shape.size() > 3 && order == image::HWC))
+	if (self.shape.size() > 2)
 	{
 		for (int i = 0; i < self.shape[0]; i++)
 		{
-			conv2d(self[i], tgt[i], kernel, stride, padding, dilation, order);
+			conv2d(self[i], tgt[i], kernel, stride, padding, dilation);
 		}
 
 		return;
@@ -723,14 +743,12 @@ void OpenCLTensor::conv2d(
 	const size_t ow = ((self.shape[1] + size_t(2) * padding[1] - dilation[1] * (kernel.shape[1] - 1) - 1) / stride[1]) + 1;
 	AssertExcept(tgt.shape[0] == oh && tgt.shape[1] == ow, "Invalid output size: " << tgt.shape[0] << " != " << oh << " or " << tgt.shape[1] << " != " << ow);
 
-	const size_t channels = (order == image::HWC ? self.shape[2] : 1);
-	const size_t kernels = (kernel.shape.size() > 2 ? kernel.shape[2] : 1);
-
-	std::cout << self.shape << std::endl;
+	const size_t channels = 1;
+	const size_t kernels = 1; // (kernel.shape.size() > 2 ? kernel.shape[2] : 1);
 
 	switch (dtype)
 	{
-	case FLOAT32: {
+	case DFLOAT32: {
 		clblast::Convgemm<float>(clblast::KernelMode::kCrossCorrelation, channels,
 			self.shape[0], self.shape[1], // width, height
 			kernel.shape[0], kernel.shape[1], // kernelWidth, kernelHeight,
@@ -747,7 +765,7 @@ void OpenCLTensor::conv2d(
 			&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
 	} break;
 
-	case FLOAT64: {
+	case DFLOAT64: {
 		clblast::Convgemm<double>(clblast::KernelMode::kCrossCorrelation, 1,
 			self.shape[0], self.shape[1], // width, height
 			kernel.shape[0], kernel.shape[1], // kernelWidth, kernelHeight,

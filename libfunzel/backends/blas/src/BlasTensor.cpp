@@ -134,14 +134,14 @@ void BlasTensor::fill(const Tensor& self, double scalar)
 	const auto sz = self.size();
 	switch(self.dtype)
 	{
-		case INT32: Fill<int32_t>(m_data.get() + self.offset, scalar, sz); break;
-		case INT64: Fill<int64_t>(m_data.get() + self.offset, scalar, sz); break;
-		case FLOAT32: Fill<float>(m_data.get() + self.offset, scalar, sz); break;
-		case FLOAT64: Fill<double>(m_data.get() + self.offset, scalar, sz); break;
-		case UINT32: Fill<uint32_t>(m_data.get() + self.offset, scalar, sz); break;
-		case UINT64: Fill<uint64_t>(m_data.get() + self.offset, scalar, sz); break;
-		case BYTE: Fill<char>(m_data.get() + self.offset, scalar, sz); break;
-		case UBYTE: Fill<unsigned char>(m_data.get() + self.offset, scalar, sz); break;
+		case DINT32: Fill<int32_t>(m_data.get() + self.offset, scalar, sz); break;
+		case DINT64: Fill<int64_t>(m_data.get() + self.offset, scalar, sz); break;
+		case DFLOAT32: Fill<float>(m_data.get() + self.offset, scalar, sz); break;
+		case DFLOAT64: Fill<double>(m_data.get() + self.offset, scalar, sz); break;
+		case DUINT32: Fill<uint32_t>(m_data.get() + self.offset, scalar, sz); break;
+		case DUINT64: Fill<uint64_t>(m_data.get() + self.offset, scalar, sz); break;
+		case DINT8: Fill<char>(m_data.get() + self.offset, scalar, sz); break;
+		case DUINT8: Fill<unsigned char>(m_data.get() + self.offset, scalar, sz); break;
 		default: ThrowError("Uknown dtype!");
 	}
 }
@@ -171,11 +171,11 @@ double BlasTensor::sum(const Tensor& self)
 
 	switch(dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			const float one = 1.0f;
 			return cblas_sdot(self.size(), reinterpret_cast<float*>(data), stride/sizeof(float), &one, 0);
 		}
-		case FLOAT64: {
+		case DFLOAT64: {
 			const double one = 1.0;
 			return cblas_ddot(self.size(), reinterpret_cast<double*>(data), stride/sizeof(double), &one, 0);
 		}
@@ -217,15 +217,15 @@ inline void TensorOp(const Tensor& self, Tensor& tgt, Fn op)
 	{
 		switch(self.dtype)
 		{
-			case UINT16: {
+			case DUINT16: {
 				TensorOpOuter<uint16_t>(self, tgt, op);
 				return;
 			}
-			case UINT32: {
+			case DUINT32: {
 				TensorOpOuter<uint32_t>(self, tgt, op);
 				return;
 			}
-			case UINT64: {
+			case DUINT64: {
 				TensorOpOuter<uint64_t>(self, tgt, op);
 				return;
 			}
@@ -236,27 +236,27 @@ inline void TensorOp(const Tensor& self, Tensor& tgt, Fn op)
 
 	switch(self.dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			TensorOpOuter<float>(self, tgt, op);
 		} break;
-		case FLOAT64: {
+		case DFLOAT64: {
 			TensorOpOuter<double>(self, tgt, op);
 		} break;
 		
-		case BYTE: {
+		case DINT8: {
 			TensorOpOuter<int8_t>(self, tgt, op);
 		} break;
-		case UBYTE: {
+		case DUINT8: {
 			TensorOpOuter<uint8_t>(self, tgt, op);
 		} break;
 		
-		case INT16: {
+		case DINT16: {
 			TensorOpOuter<int16_t>(self, tgt, op);
 		} break;
-		case INT32: {
+		case DINT32: {
 			TensorOpOuter<int32_t>(self, tgt, op);
 		} break;
-		case INT64: {
+		case DINT64: {
 			TensorOpOuter<int64_t>(self, tgt, op);
 		} break;
 		default: ThrowError("Unsupported dtype!");
@@ -288,10 +288,10 @@ void BlasTensor::abs(const Tensor& self, Tensor tgt)
 
 	switch(dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			TensorAbs<float>(self, tgt);
 		} break;
-		case FLOAT64: {
+		case DFLOAT64: {
 			TensorAbs<double>(self, tgt);
 		} break;
 		default: ThrowError("Unsupported dtype!");
@@ -351,11 +351,11 @@ void BlasTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 
 	switch(dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			return cblas_saxpy(self.size(), alpha, reinterpret_cast<const float*>(src),
 								stride/sizeof(float), reinterpret_cast<float*>(dest), stride/sizeof(float));
 		}
-		case FLOAT64: {
+		case DFLOAT64: {
 			return cblas_daxpy(self.size(), alpha, reinterpret_cast<const double*>(src), stride/sizeof(double), 
 								reinterpret_cast<double*>(dest), stride/sizeof(double));
 		}
@@ -403,14 +403,14 @@ void BlasTensor::div(const Tensor& self, const Tensor& b, Tensor tgt)
 
 	switch(dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			return TensorDiv<float>(
 						self.size(),
 						reinterpret_cast<const float*>(src), self.strides.back()/sizeof(float),
 						reinterpret_cast<const float*>(bdata), b.strides.back()/sizeof(float),
 						reinterpret_cast<float*>(dest), tgt.strides.back()/sizeof(float));
 		}
-		case FLOAT64: {
+		case DFLOAT64: {
 			return TensorDiv<double>(
 						self.size(),
 						reinterpret_cast<const double*>(src), self.strides.back()/sizeof(double),
@@ -451,7 +451,7 @@ void BlasTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 
 	switch(dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			cblas_sgemm(
 				CblasRowMajor, CblasNoTrans, CblasNoTrans,
 				m, n, k, 1.0,
@@ -462,7 +462,7 @@ void BlasTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 			);
 
 		} break;
-		case FLOAT64: {
+		case DFLOAT64: {
 			cblas_dgemm(
 				CblasRowMajor, CblasNoTrans, CblasNoTrans,
 				m, n, k, 1.0,
@@ -509,7 +509,7 @@ void BlasTensor::pool2d(
 
 	switch(dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			Pool2D<float>(
 				(const float*) adata, (float*) dest,
 				{self.shape[0], self.shape[1]},
@@ -522,7 +522,7 @@ void BlasTensor::pool2d(
 					std::function<float(const float, const float, int)>(maxFunctor))
 			);
 		} break;
-		case FLOAT64: {
+		case DFLOAT64: {
 			Pool2D<double>(
 				(const double*) adata, (double*) dest,
 				{self.shape[0], self.shape[1]},
@@ -573,7 +573,7 @@ void BlasTensor::conv2d(
 
 	switch (dtype)
 	{
-	case FLOAT32: {
+	case DFLOAT32: {
 		Conv2DNaive<float>(
 			(const float*)adata, (const float*) kdata, (float*)dest,
 			{ self.shape[0], self.shape[1] },
@@ -584,7 +584,7 @@ void BlasTensor::conv2d(
 			stride, padding, dilation);
 
 	} break;
-	case FLOAT64: {
+	case DFLOAT64: {
 		Conv2DNaive<double>(
 					(const double*)adata, (const double*) kdata, (double*)dest,
 					{ self.shape[0], self.shape[1] },
@@ -659,10 +659,10 @@ void BlasTensor::convertGrayscale(const Tensor& self, Tensor tgt)
 
 	switch(dtype)
 	{
-		case FLOAT32: {
+		case DFLOAT32: {
 			ConvertRGBToGrayCHW<float>(self, tgt);
 		} break;
-		case FLOAT64: {
+		case DFLOAT64: {
 			ConvertRGBToGrayCHW<double>(self, tgt);
 		} break;
 		default: ThrowError("Unsupported dtype!");

@@ -8,7 +8,7 @@ TEST(OpenCLTensor, Init)
 {
 	// funzel::cl::OpenCLBackend::initialize();
 
-	auto ones = Tensor::ones({3, 3, 3}, funzel::FLOAT32, "OCL:0");
+	auto ones = Tensor::ones({3, 3, 3}, funzel::DFLOAT32, "OCL:0");
 	EXPECT_EQ(ones.strides, Shape({36, 12, 4}));
 	EXPECT_EQ(ones.shape, Shape({3, 3, 3}));
 
@@ -45,7 +45,7 @@ TEST(OpenCLTensor, Abs)
 	std::cout << vabs << std::endl;
 
 	//std::cout << "Abs!" << std::endl;
-	//auto bigv = Tensor::empty({3000, 30000}, FLOAT32, "OpenCL:0");
+	//auto bigv = Tensor::empty({3000, 30000}, DFLOAT32, "OpenCL:0");
 	//bigv.abs_();
 }
 

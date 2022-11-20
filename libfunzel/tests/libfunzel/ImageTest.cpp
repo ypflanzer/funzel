@@ -12,11 +12,11 @@ TEST(Image, LoadInvalid)
 TEST(Image, LoadSave)
 {
 	auto img = image::load("mnist_png/training/8/225.png");
-	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.dtype, DUINT8);
 	EXPECT_EQ(img.shape, (Shape{28, 28, 1}));
 	
 	img = img.astype<float>();
-	EXPECT_EQ(img.dtype, FLOAT32);
+	EXPECT_EQ(img.dtype, DFLOAT32);
 
 	img.mul_(0.5);
 
@@ -27,7 +27,7 @@ TEST(Image, LoadSave)
 TEST(Image, PlotImage)
 {
 	auto img = image::load("mnist_png/training/8/225.png");
-	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.dtype, DUINT8);
 	EXPECT_EQ(img.shape, (Shape{28, 28, 1}));
 	
 	Plot plt;
@@ -38,7 +38,7 @@ TEST(Image, PlotImage)
 TEST(Image, PlotImageHWC)
 {
 	auto img = image::load("color_image.png");
-	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.dtype, DUINT8);
 	EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
 	
 	image::save(img, "Image_ImageHWC.png");
@@ -47,7 +47,7 @@ TEST(Image, PlotImageHWC)
 TEST(Image, PlotImageCHW)
 {
 	auto img = image::load("color_image.png", image::CHW);
-	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.dtype, DUINT8);
 	EXPECT_EQ(img.shape, (Shape{3, 28, 28}));
 
 	image::save(image::toOrder(img, image::HWC), "Image_ImageCHW.png");
@@ -56,7 +56,7 @@ TEST(Image, PlotImageCHW)
 TEST(Image, DrawCircle)
 {
 	auto img = image::load("color_image.png");
-	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.dtype, DUINT8);
 	EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
 	
 	image::drawCircle(img, {14, 14}, 10, 4);
@@ -68,7 +68,7 @@ TEST(Image, DrawCircle)
 TEST(Image, DrawCircles)
 {
 	auto img = image::load("color_image.png");
-	EXPECT_EQ(img.dtype, UBYTE);
+	EXPECT_EQ(img.dtype, DUINT8);
 	EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
 	
 	Tensor circles({3, 3}, {
@@ -86,7 +86,7 @@ TEST(Image, DrawCircles)
 TEST(Image, GaussBlur)
 {
 	auto img = image::load("test.jpg").astype<float>();
-	EXPECT_EQ(img.dtype, FLOAT32);
+	EXPECT_EQ(img.dtype, DFLOAT32);
 	//EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
 	
 	img = image::toOrder(img, image::CHW).unravel();
@@ -102,7 +102,7 @@ TEST(Image, GaussBlur)
 TEST(Image, Sobel)
 {
 	auto img = image::load("graytest.jpg").astype<float>();
-	EXPECT_EQ(img.dtype, FLOAT32);
+	EXPECT_EQ(img.dtype, DFLOAT32);
 	//EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
 	
 	img = image::toOrder(img, image::CHW).unravel();

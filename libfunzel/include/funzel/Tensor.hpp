@@ -30,16 +30,16 @@ namespace funzel
 
 enum DTYPE
 {
-	INT16 = 0,
-	INT32,
-	INT64,
-	UINT16,
-	UINT32,
-	UINT64,
-	FLOAT32,
-	FLOAT64,
-	BYTE,
-	UBYTE,
+	DINT16 = 0,
+	DINT32,
+	DINT64,
+	DUINT16,
+	DUINT32,
+	DUINT64,
+	DFLOAT32,
+	DFLOAT64,
+	DINT8,
+	DUINT8,
 	NONE,
 	DTYPE_MAX
 };
@@ -56,19 +56,19 @@ inline constexpr size_t dtypeSizeof(const DTYPE dtype)
 {
 	switch(dtype)
 	{
-		case INT16:
-		case UINT16: return 2;
+		case DINT16:
+		case DUINT16: return 2;
 
-		case FLOAT32:
-		case UINT32:
-		case INT32: return 4;
+		case DFLOAT32:
+		case DUINT32:
+		case DINT32: return 4;
 
-		case FLOAT64:
-		case UINT64:
-		case INT64: return 8;
+		case DFLOAT64:
+		case DUINT64:
+		case DINT64: return 8;
 	
-		case BYTE:
-		case UBYTE:
+		case DINT8:
+		case DUINT8:
 			return 1;
 
 		case NONE:
@@ -81,19 +81,19 @@ inline std::string dtypeToNativeString(const DTYPE dtype)
 {
 	switch(dtype)
 	{
-		case UINT16: return "ushort";
-		case INT16: return "short";
+		case DUINT16: return "ushort";
+		case DINT16: return "short";
 
-		case FLOAT32: return "float";
-		case UINT32: return "uint";
-		case INT32: return "int";
+		case DFLOAT32: return "float";
+		case DUINT32: return "uint";
+		case DINT32: return "int";
 
-		case FLOAT64: return "double";
-		case UINT64: return "ulong";
-		case INT64: return "long";
+		case DFLOAT64: return "double";
+		case DUINT64: return "ulong";
+		case DINT64: return "long";
 	
-		case BYTE: return "char";
-		case UBYTE: return "uchar";
+		case DINT8: return "char";
+		case DUINT8: return "uchar";
 
 		default:
 		case NONE: return "void";
@@ -104,16 +104,16 @@ inline std::string dtypeToNativeString(const DTYPE dtype)
 template<typename T>
 DTYPE dtype()
 {
-	if constexpr(std::is_same_v<T, double>) return FLOAT64;
-	else if constexpr(std::is_same_v<T, float>) return FLOAT32;
-	else if constexpr(std::is_same_v<T, int64_t>) return INT64;
-	else if constexpr(std::is_same_v<T, uint64_t>) return UINT64;
-	else if constexpr(std::is_same_v<T, int>) return INT32;
-	else if constexpr(std::is_same_v<T, unsigned int>) return UINT32;
-	else if constexpr(std::is_same_v<T, short>) return INT16;
-	else if constexpr(std::is_same_v<T, unsigned short>) return UINT16;
-	else if constexpr(std::is_same_v<T, char>) return BYTE;
-	else if constexpr(std::is_same_v<T, unsigned char>) return UBYTE;
+	if constexpr(std::is_same_v<T, double>) return DFLOAT64;
+	else if constexpr(std::is_same_v<T, float>) return DFLOAT32;
+	else if constexpr(std::is_same_v<T, int64_t>) return DINT64;
+	else if constexpr(std::is_same_v<T, uint64_t>) return DUINT64;
+	else if constexpr(std::is_same_v<T, int>) return DINT32;
+	else if constexpr(std::is_same_v<T, unsigned int>) return DUINT32;
+	else if constexpr(std::is_same_v<T, short>) return DINT16;
+	else if constexpr(std::is_same_v<T, unsigned short>) return DUINT16;
+	else if constexpr(std::is_same_v<T, char>) return DINT8;
+	else if constexpr(std::is_same_v<T, unsigned char>) return DUINT8;
 	return NONE;
 }
 
@@ -141,18 +141,18 @@ class BackendTensor;
 class FUNZEL_API Tensor
 {
 public:
-	static Tensor ones(size_t count, DTYPE dtype = FLOAT32, const std::string& backend = EmptyStr);
-	static Tensor zeros(size_t count, DTYPE dtype = FLOAT32, const std::string& backend = EmptyStr);
+	static Tensor ones(size_t count, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
+	static Tensor zeros(size_t count, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
 	
-	static Tensor empty(const Shape& shape, const std::shared_ptr<char>& data, DTYPE dtype = FLOAT32, const std::string& backend = EmptyStr);
-	static Tensor empty(const Shape& shape, const void* data, DTYPE dtype = FLOAT32, const std::string& backend = EmptyStr);
-	static Tensor empty(const Shape& shape, DTYPE dtype = FLOAT32, const std::string& backend = EmptyStr);
+	static Tensor empty(const Shape& shape, const std::shared_ptr<char>& data, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
+	static Tensor empty(const Shape& shape, const void* data, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
+	static Tensor empty(const Shape& shape, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
 	static Tensor empty_like(const Tensor& t);
 	
-	static Tensor ones(const Shape& shape, DTYPE dtype = FLOAT32, const std::string& backend = EmptyStr);
+	static Tensor ones(const Shape& shape, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
 	static Tensor ones_like(const Tensor& t);
 
-	static Tensor zeros(const Shape& shape, DTYPE dtype = FLOAT32, const std::string& backend = EmptyStr);
+	static Tensor zeros(const Shape& shape, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
 	static Tensor zeros_like(const Tensor& t);
 
 	Tensor() = default;
@@ -215,14 +215,14 @@ public:
 	{
 		switch(dtype)
 		{
-			case FLOAT32: ritem<float>() = t; break;
-			case UINT32: ritem<uint32_t>() = t; break;
-			case INT32: ritem<int32_t>() = t; break;
-			case FLOAT64: ritem<double>() = t; break;
-			case UINT64: ritem<uint64_t>() = t; break;
-			case INT64: ritem<int64_t>() = t; break;
-			case BYTE: ritem<char>() = t; break;
-			case UBYTE: ritem<unsigned char>() = t; break;
+			case DFLOAT32: ritem<float>() = t; break;
+			case DUINT32: ritem<uint32_t>() = t; break;
+			case DINT32: ritem<int32_t>() = t; break;
+			case DFLOAT64: ritem<double>() = t; break;
+			case DUINT64: ritem<uint64_t>() = t; break;
+			case DINT64: ritem<int64_t>() = t; break;
+			case DINT8: ritem<char>() = t; break;
+			case DUINT8: ritem<unsigned char>() = t; break;
 			
 			default:
 			case NONE: break;
@@ -242,16 +242,16 @@ public:
 
 		switch(dtype)
 		{
-			case FLOAT32: return *reinterpret_cast<const float*>(data); break;
-			case UINT32: return *reinterpret_cast<const uint32_t*>(data); break;
-			case INT32: return *reinterpret_cast<const int32_t*>(data); break;
-			case FLOAT64: return *reinterpret_cast<const double*>(data); break;
-			case UINT64: return *reinterpret_cast<const uint64_t*>(data); break;
-			case INT64: return *reinterpret_cast<const int64_t*>(data); break;
-			case BYTE: return *reinterpret_cast<const char*>(data); break;
+			case DFLOAT32: return *reinterpret_cast<const float*>(data); break;
+			case DUINT32: return *reinterpret_cast<const uint32_t*>(data); break;
+			case DINT32: return *reinterpret_cast<const int32_t*>(data); break;
+			case DFLOAT64: return *reinterpret_cast<const double*>(data); break;
+			case DUINT64: return *reinterpret_cast<const uint64_t*>(data); break;
+			case DINT64: return *reinterpret_cast<const int64_t*>(data); break;
+			case DINT8: return *reinterpret_cast<const char*>(data); break;
 
 			default:
-			case UBYTE: return *reinterpret_cast<const unsigned char*>(data); break;
+			case DUINT8: return *reinterpret_cast<const unsigned char*>(data); break;
 		}
 	}
 
@@ -375,8 +375,8 @@ public:
 	// Placeholder to be overridden!
 	static void initializeBackend() {}
 
-	virtual void empty(std::shared_ptr<char> buffer, size_t sz, const Shape& shape, DTYPE dtype = FLOAT32) = 0;
-	virtual void empty(const void* buffer, size_t sz, const Shape& shape, DTYPE dtype = FLOAT32) = 0;
+	virtual void empty(std::shared_ptr<char> buffer, size_t sz, const Shape& shape, DTYPE dtype = DFLOAT32) = 0;
+	virtual void empty(const void* buffer, size_t sz, const Shape& shape, DTYPE dtype = DFLOAT32) = 0;
 
 	virtual void* data(size_t offset = 0) = 0;
 	virtual std::shared_ptr<char> buffer() = 0;
@@ -418,10 +418,10 @@ inline size_t size(const Shape& shape)
 	return sz;
 }
 
-FUNZEL_API Tensor linspace(double start, double stop, size_t num, bool endPoint = true, DTYPE dtype = FLOAT32);
-FUNZEL_API Tensor linspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, DTYPE dtype = FLOAT32);
-FUNZEL_API Tensor logspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, double base = 10.0, DTYPE dtype = FLOAT32);
-FUNZEL_API Tensor arange(double start, double stop, double step, DTYPE dtype = FLOAT32);
+FUNZEL_API Tensor linspace(double start, double stop, size_t num, bool endPoint = true, DTYPE dtype = DFLOAT32);
+FUNZEL_API Tensor linspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, DTYPE dtype = DFLOAT32);
+FUNZEL_API Tensor logspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, double base = 10.0, DTYPE dtype = DFLOAT32);
+FUNZEL_API Tensor arange(double start, double stop, double step, DTYPE dtype = DFLOAT32);
 
 struct IRandomGenerator
 {

@@ -83,13 +83,13 @@ std::ostream& funzel::operator<<(std::ostream& out, const Shape& s)
 Tensor::Tensor(const Shape& shape, const float data[], unsigned long long sz, const std::string& device)
 {
 	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
-	*this = empty(shape, (const void*) data, FLOAT32, device);
+	*this = empty(shape, (const void*) data, DFLOAT32, device);
 }
 
 Tensor::Tensor(const Shape& shape, const double data[], unsigned long long sz, const std::string& device)
 {
 	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
-	*this = empty(shape, (const void*) data, FLOAT64, device);
+	*this = empty(shape, (const void*) data, DFLOAT64, device);
 }
 
 Tensor::Tensor(const Shape& shape, const std::initializer_list<double> data, const std::string& device):
@@ -269,14 +269,14 @@ static void convertType(DTYPE to, const Tensor& in, Tensor& tgt)
 {
 	switch(to)
 	{
-		case FLOAT32: convertType<From, float>(in, tgt); break;
-		case UINT32: convertType<From, uint32_t>(in, tgt); break;
-		case INT32: convertType<From, int32_t>(in, tgt); break;
-		case FLOAT64: convertType<From, double>(in, tgt); break;
-		case UINT64: convertType<From, uint64_t>(in, tgt); break;
-		case INT64: convertType<From, int64_t>(in, tgt); break;
-		case BYTE: convertType<From, char>(in, tgt); break;
-		case UBYTE: convertType<From, unsigned char>(in, tgt); break;
+		case DFLOAT32: convertType<From, float>(in, tgt); break;
+		case DUINT32: convertType<From, uint32_t>(in, tgt); break;
+		case DINT32: convertType<From, int32_t>(in, tgt); break;
+		case DFLOAT64: convertType<From, double>(in, tgt); break;
+		case DUINT64: convertType<From, uint64_t>(in, tgt); break;
+		case DINT64: convertType<From, int64_t>(in, tgt); break;
+		case DINT8: convertType<From, char>(in, tgt); break;
+		case DUINT8: convertType<From, unsigned char>(in, tgt); break;
 		
 		default:
 		case NONE: break;
@@ -291,14 +291,14 @@ Tensor Tensor::astype(DTYPE type) const
 
 	switch(this->dtype)
 	{
-		case FLOAT32: convertType<float>(type, *this, tgt); break;
-		case UINT32: convertType<uint32_t>(type, *this, tgt); break;
-		case INT32: convertType<int32_t>(type, *this, tgt); break;
-		case FLOAT64: convertType<double>(type, *this, tgt); break;
-		case UINT64: convertType<uint64_t>(type, *this, tgt); break;
-		case INT64: convertType<int64_t>(type, *this, tgt); break;
-		case BYTE: convertType<char>(type, *this, tgt); break;
-		case UBYTE: convertType<unsigned char>(type, *this, tgt); break;
+		case DFLOAT32: convertType<float>(type, *this, tgt); break;
+		case DUINT32: convertType<uint32_t>(type, *this, tgt); break;
+		case DINT32: convertType<int32_t>(type, *this, tgt); break;
+		case DFLOAT64: convertType<double>(type, *this, tgt); break;
+		case DUINT64: convertType<uint64_t>(type, *this, tgt); break;
+		case DINT64: convertType<int64_t>(type, *this, tgt); break;
+		case DINT8: convertType<char>(type, *this, tgt); break;
+		case DUINT8: convertType<unsigned char>(type, *this, tgt); break;
 		
 		default:
 		case NONE: break;
@@ -770,14 +770,14 @@ Tensor& funzel::randn(Tensor& out, IRandomGenerator& generator)
 	const auto sz = out.size();
 	switch(out.dtype)
 	{
-		case INT32: FillRandom<int32_t>(out.data(out.offset), generator, sz); break;
-		case INT64: FillRandom<int64_t>(out.data(out.offset), generator, sz); break;
-		case FLOAT32: FillRandom<float>(out.data(out.offset), generator, sz); break;
-		case FLOAT64: FillRandom<double>(out.data(out.offset), generator, sz); break;
-		case UINT32: FillRandom<uint32_t>(out.data(out.offset), generator, sz); break;
-		case UINT64: FillRandom<uint64_t>(out.data(out.offset), generator, sz); break;
-		case BYTE: FillRandom<char>(out.data(out.offset), generator, sz); break;
-		case UBYTE: FillRandom<unsigned char>(out.data(out.offset), generator, sz); break;
+		case DINT32: FillRandom<int32_t>(out.data(out.offset), generator, sz); break;
+		case DINT64: FillRandom<int64_t>(out.data(out.offset), generator, sz); break;
+		case DFLOAT32: FillRandom<float>(out.data(out.offset), generator, sz); break;
+		case DFLOAT64: FillRandom<double>(out.data(out.offset), generator, sz); break;
+		case DUINT32: FillRandom<uint32_t>(out.data(out.offset), generator, sz); break;
+		case DUINT64: FillRandom<uint64_t>(out.data(out.offset), generator, sz); break;
+		case DINT8: FillRandom<char>(out.data(out.offset), generator, sz); break;
+		case DUINT8: FillRandom<unsigned char>(out.data(out.offset), generator, sz); break;
 		default: ThrowError("Uknown dtype!");
 	}
 

@@ -12,7 +12,7 @@
 #endif
 
 #ifndef TestDtype
-#define TestDtype FLOAT32
+#define TestDtype DFLOAT32
 #endif
 
 #define PREFIXED_BENCHMARK(b) \

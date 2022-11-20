@@ -445,7 +445,7 @@ TEST(CommonTest, SequentialLayer)
 	seq.defaultInitialize();
 	seq.to(TestDevice);
 
-	auto in = Tensor::ones({10, 2}, FLOAT32, TestDevice);
+	auto in = Tensor::ones({10, 2}, DFLOAT32, TestDevice);
 	auto r = seq(in).cpu();
 
 	EXPECT_EQ(r.shape, (Shape{10, 1024}));
@@ -461,7 +461,7 @@ TEST(CommonTest, Pool2D)
 	size_t width = ((a.shape[1] + 2*padding[0] - dilation[0]*(kernelSize[0] - 1) - 1)/stride[0]) + 1;
 	size_t height = ((a.shape[2] + 2*padding[1] - dilation[1]*(kernelSize[1] - 1) - 1)/stride[1]) + 1;
 
-	Tensor b = Tensor::empty({1, width, height}, FLOAT32, TestDevice);
+	Tensor b = Tensor::empty({1, width, height}, DFLOAT32, TestDevice);
 
 	std::cout << a.cpu() << std::endl;
 
@@ -484,7 +484,7 @@ TEST(CommonTest, Conv2d)
 	auto tgt = Tensor::zeros_like(img);
 	
 #if 1
-	auto kernel = Tensor::ones({ 5, 5 }, FLOAT32, TestDevice);
+	auto kernel = Tensor::ones({ 5, 5 }, DFLOAT32, TestDevice);
 	kernel.mul_(1.0 / (5.0*5.0));
 	img.getBackendAs<cv::CVBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
 #else
@@ -515,14 +515,14 @@ TEST(CommonTest, Conv2d)
 
 TEST(CommonTest, Conv2dColor)
 {
-	auto img = image::load("test.jpg", image::CHW).astype<float>().to(TestDevice).mul_(1.0 / 255.0);
+	auto img = image::load("test.jpg", image::CHW).astype<float>().mul_(1.0 / 255.0).to(TestDevice);
 	auto tgt = Tensor::zeros_like(img);
 	
-	auto kernel = Tensor::ones({ 5, 5, 3 }, FLOAT32, TestDevice);
+	auto kernel = Tensor::ones({ 5, 5, 3 }, DFLOAT32, TestDevice);
 	kernel.mul_(1.0 / (5.0*5.0));
 	img.getBackendAs<cv::CVBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
 
-	tgt = tgt.mul_(255.0).cpu().astype<uint8_t>();
+	tgt = tgt.cpu().mul_(255.0).astype<uint8_t>();
 	tgt = image::toOrder(tgt, image::HWC);
 	image::save(tgt, "CommonTest_Conv2d.png");
 
