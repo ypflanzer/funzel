@@ -1,17 +1,21 @@
 cmake_minimum_required(VERSION 3.22)
 
-option(USE_VCPKG "Use VCPKG instead of system packages for dependencies." OFF)
-if(WIN32 OR USE_VCPKG)
+if(EXISTS ${CMAKE_SOURCE_DIR}/vcpkg AND "${VCPKG_ROOT}" STREQUAL "")
+	set(VCPKG_ROOT ${CMAKE_SOURCE_DIR}/vcpkg)
+endif()
 
+if(NOT VCPKG_ROOT STREQUAL "")
 	if(WIN32)
 		set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "The VCPKG target triplet to use.")
-	elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-		set(VCPKG_TARGET_TRIPLET "x64-linux-libcpp" CACHE STRING "The VCPKG target triplet to use.")
+	else()
+		set(VCPKG_TARGET_TRIPLET "x64-linux" CACHE STRING "The VCPKG target triplet to use.")
 	endif()
 
 	set(CMAKE_TOOLCHAIN_FILE
-			"${CMAKE_CURRENT_SOURCE_DIR}/vcpkg/scripts/buildsystems/vcpkg.cmake"
+			"${VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
 			CACHE PATH "The VCPKG installation to use.")
+
+	set(USE_VCPKG TRUE)
 endif()
 
 project(
