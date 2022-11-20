@@ -38,7 +38,7 @@ endif()
 #)
 #FetchContent_MakeAvailable(MathGL)
 
-find_package(spdlog REQUIRED)
+find_package(spdlog CONFIG REQUIRED)
 find_package(FLTK REQUIRED)
 
 add_library(funzel SHARED ${SRC} ${HEADERS})
