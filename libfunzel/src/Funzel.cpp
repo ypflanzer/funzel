@@ -1,3 +1,5 @@
+#define NOMINMAX
+
 #include <funzel/Funzel.hpp>
 #include <unordered_map>
 #include <string>
@@ -139,7 +141,7 @@ public:
 		auto level = spdlog::level::warn;
 		auto* envLevel = getenv("FUNZEL_LOG");
 		if(envLevel)
-			level = (spdlog::level::level_enum) std::min(std::stoul(envLevel), (ulong) spdlog::level::n_levels);
+			level = (spdlog::level::level_enum) std::min(std::stoul(envLevel), (unsigned long) spdlog::level::n_levels);
 	
 		spdlog::set_level(level);
 	}
