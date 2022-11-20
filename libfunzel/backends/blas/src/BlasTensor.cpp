@@ -42,6 +42,10 @@ void BlasTensor::initializeBackend()
 	props.isGPU = false;
 
 	backend::RegisterDevice(props);
+
+#ifdef BLAS_VENDOR_OPENBLAS
+	spdlog::debug("OpenBLAS Corename (may not be accurate): {}", openblas_get_corename());
+#endif
 }
 
 void* BlasTensor::data(size_t offset)
@@ -59,7 +63,7 @@ void BlasTensor::empty(std::shared_ptr<char> buffer, size_t sz, const Shape& sha
 
 	if(!buffer)
 	{
-		// m_data = std::shared_ptr<char>((char*) std::aligned_alloc(8, size()*dtypeSizeof(dtype)));
+		// m_data = std::shared_ptr<char>((char*) std::aligned_alloc(16, size*dtypeSizeof(dtype)));
 		m_data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
 	}
 	else
