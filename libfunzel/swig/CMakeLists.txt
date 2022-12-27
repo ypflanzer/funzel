@@ -3,6 +3,8 @@ find_package(SWIG REQUIRED)
 include(${SWIG_USE_FILE})
 
 set(SWIG_USE_TARGET_INCLUDE_DIRECTORIES ON)
+set(CMAKE_STATIC_LIBRARY_PREFIX "")
+set(CMAKE_SHARED_LIBRARY_PREFIX "")
 
 include_directories(../include)
 
@@ -14,8 +16,29 @@ if(Lua_FOUND)
 	target_include_directories(LuaFunzel PRIVATE ${LUA_INCLUDE_DIR})
 endif()
 
+# Dotnet
+find_program(CSC_EXE csc)
+if(CSC_EXE)
+	set_source_files_properties(CSFunzel.i PROPERTIES CPLUSPLUS ON)
+	set(FUNZEL_SHARP_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/csfunzel)
+	set(FUNZEL_DLL_FILE ${FUNZEL_SHARP_DIR}/FunzelSharp.dll)
+
+	set(CMAKE_SWIG_FLAGS "-namespace" "FunzelSharp") # "-debug-tmsearch")
+	swig_add_library(CSFunzel TYPE SHARED LANGUAGE csharp SOURCES CSFunzel.i OUTPUT_DIR ${FUNZEL_SHARP_DIR})
+	target_link_libraries(CSFunzel PUBLIC funzel funzelBlas)
+
+	add_custom_command(
+		TARGET CSFunzel POST_BUILD
+		COMMAND ${CSC_EXE} -out:${FUNZEL_DLL_FILE} -target:library -recurse:${FUNZEL_SHARP_DIR}/*.cs -recurse:${CMAKE_CURRENT_SOURCE_DIR}/*.cs -nologo
+		MAIN_DEPENDENCY CSFunzel.i
+		COMMENT "Compiling C#..."
+	)
+
+	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../tests/csharp/csharp.csproj.in" "${CMAKE_CURRENT_SOURCE_DIR}/../tests/csharp/csharp.csproj")
+endif()
+
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development.Module)
-list(APPEND CMAKE_SWIG_FLAGS "-py3" "-DPY3")
+set(CMAKE_SWIG_FLAGS "-py3" "-DPY3")
 include_directories(${Python3_INCLUDE_DIRS})
 
 if(Python3_FOUND)

@@ -161,13 +161,16 @@ public:
 
 	//explicit Tensor(const Shape& shape, const std::vector<double>& data, const std::string& device = EmptyStr);
 
+#ifndef SWIG
 	explicit Tensor(const Shape& shape, std::initializer_list<float> data, const std::string& device = EmptyStr);
 	explicit Tensor(const Shape& shape, std::initializer_list<double> data, const std::string& device = EmptyStr);
+#endif
 
 	BackendTensor* getBackend() { return m_backend.get(); }
+	
+#ifndef SWIG
 	const BackendTensor* getBackend() const { return m_backend.get(); }
 
-#ifndef SWIG
 	BackendTensor* operator->() { return m_backend.get(); }
 	BackendTensor* operator->() const { return m_backend.get(); }
 
@@ -185,8 +188,11 @@ public:
 	Tensor get(const Index& idx) const;
 	Tensor get(size_t idx) const;
 	void* data(size_t offset = 0);
+
+#ifndef SWIG
 	const void* data(size_t offset = 0) const;
-	
+#endif
+
 	template<typename T> 
 	const T& dataAs(size_t offset) const
 	{
@@ -279,6 +285,7 @@ public:
 	Tensor unravel() const;
 	Tensor transpose() const;
 
+#ifndef SWIG
 	Tensor operator+(const Tensor& t) const { return add(t); }
 	Tensor operator-(const Tensor& t) const { return sub(t); }
 	Tensor operator*(const Tensor& t) const { return matmul(t); }
@@ -289,6 +296,7 @@ public:
 	Tensor operator/(const Tensor& t) const { return div(t); }
 
 	Tensor operator-() const { return mul(-1.0); }
+#endif
 
 	Tensor& fill(double value);
 

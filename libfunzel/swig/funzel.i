@@ -13,6 +13,13 @@ using namespace std;
 
 %feature("autodoc", "3");
 
+%rename(copy) *::operator=;
+%rename(add) *::operator+;
+%rename(sub) *::operator-;
+%rename(mul) *::operator*;
+%rename(div) *::operator/;
+%ignore *::operator[];
+
 %define FUNZEL_API %enddef
 %include "funzel/Tensor.hpp"
 
@@ -48,7 +55,7 @@ using namespace std;
 %include "funzel/small_vector"
 namespace funzel
 {
-%template(IntSmallVector) small_vector<unsigned int>;
+%template(IntSmallVector) small_vector<int>;
 %template(FloatSmallVector) small_vector<float>;
 %template(DoubleSmallVector) small_vector<double>;
 %template(SizeSmallVector) small_vector<size_t>;

@@ -45,11 +45,13 @@ public:
 
 	small_vector() = default;
 	
+	#ifndef SWIG
 	small_vector(std::initializer_list<T> values)
 	{
 		resize(values.size());
 		std::copy_n(std::make_move_iterator(values.begin()), values.size(), begin());
 	}
+	#endif
 
 	small_vector(size_type sz)
 	{
@@ -59,6 +61,13 @@ public:
 	small_vector(size_type sz, const T& v)
 	{
 		resize(sz, v);
+	}
+
+	// ATTENTION: Non standard for C++ containers!
+	small_vector(const T* values, size_type sz)
+	{
+		resize(sz);
+		std::copy(values, values + sz, begin());
 	}
 
 	~small_vector()
@@ -71,10 +80,12 @@ public:
 		*this = other;
 	}
 
+#ifndef SWIG
 	small_vector(container_type&& other)
 	{
 		*this = std::move(other);
 	}
+#endif
 
 	container_type& operator=(const container_type& other)
 	{
@@ -102,6 +113,7 @@ public:
 		return *this;
 	}
 
+#ifndef SWIG
 	container_type& operator=(container_type&& other)
 	{
 		if(this == &other)
@@ -125,18 +137,25 @@ public:
 
 		return *this;
 	}
+#endif
 
 	iterator begin() { return m_data; }
 	iterator end() { return m_data + m_size; }
+
+#ifndef SWIG
 	const_iterator begin() const { return m_data; }
 	const_iterator end() const { return m_data + m_size; }
 	const_iterator cbegin() const { return m_data; }
 	const_iterator cend() const { return m_data + m_size; }
+#endif
 
 	std::reverse_iterator<T*> rbegin() { return std::reverse_iterator(m_data + m_size); }
 	std::reverse_iterator<T*> rend() { return std::reverse_iterator(m_data); }
+	
+#ifndef SWIG
 	const std::reverse_iterator<T*> rbegin() const { return std::reverse_iterator(m_data + m_size); }
 	const std::reverse_iterator<T*> rend() const { return std::reverse_iterator(m_data); }
+#endif
 
 	bool empty() const { return m_size == 0; }
 	size_type size() const { return m_size; }
@@ -281,12 +300,14 @@ public:
 	const_reference operator[](size_type idx) const { return m_data[idx]; }
 	reference operator[](size_type idx) { return m_data[idx]; }
 
+#ifndef SWIG
 	const_reference at(size_type idx) const
 	{
 		if(idx >= m_size)
 			throw std::out_of_range("Index out of bounds error.");
 		return m_data[idx];
 	}
+#endif
 
 	reference at(size_type idx)
 	{
@@ -295,11 +316,13 @@ public:
 		return m_data[idx];
 	}
 
-	const_reference back() const { return m_data[m_size - 1]; }
 	reference back() { return m_data[m_size - 1]; }
-
-	const_pointer data() const { return m_data; }
 	pointer data() { return m_data; }
+
+#ifndef SWIG
+	const_reference back() const { return m_data[m_size - 1]; }
+	const_pointer data() const { return m_data; }
+#endif
 
 private:
 
