@@ -44,5 +44,7 @@ public partial class Tensor : global::System.IDisposable
 	{
 		get { return this.get(new SizeSmallVector(idx)); }
 	}
+
+	public static uint[] _(params uint[] v) => v;
 }
 }

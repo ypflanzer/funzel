@@ -1,5 +1,6 @@
 ﻿
 using FunzelSharp;
+using static FunzelSharp.Tensor;
 
 internal class Program
 {
@@ -12,7 +13,7 @@ internal class Program
 							3.0f
 				});
 
-		var t = Tensor.ones(new uint[]{3, 3, 3});
+		var t = Tensor.ones(_(2, 2));
 
 		t = t * 5;
 
