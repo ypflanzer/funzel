@@ -12,8 +12,10 @@ find_package(Lua)
 if(Lua_FOUND)
 	set_source_files_properties(LuaFunzel.i PROPERTIES CPLUSPLUS ON)
 	swig_add_library(LuaFunzel LANGUAGE lua SOURCES LuaFunzel.i OUTPUT_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
-	target_link_libraries(LuaFunzel PUBLIC funzel funzelBlas ${LUA_LIBRARIES})
 	target_include_directories(LuaFunzel PRIVATE ${LUA_INCLUDE_DIR})
+
+	target_link_libraries(LuaFunzel PUBLIC funzel funzelBlas)
+	target_link_options(LuaFunzel PUBLIC ${LUA_LIBRARIES}) # options, or else CMake will make a wrong link to libm.
 endif()
 
 # Dotnet
