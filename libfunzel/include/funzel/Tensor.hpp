@@ -348,9 +348,6 @@ public:
 	Tensor tanh() const;
 	Tensor& tanh_();
 
-	Tensor sigmoid() const;
-	Tensor& sigmoid_();
-
 	double sum();
 
 	bool isContiguous() const { return flags & C_CONTIGUOUS; }

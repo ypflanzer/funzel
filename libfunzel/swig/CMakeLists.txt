@@ -9,17 +9,30 @@ set(CMAKE_SHARED_LIBRARY_PREFIX "")
 include_directories(../include)
 
 find_package(Lua)
-if(Lua_FOUND)
+if(LUA_FOUND)
 	set_source_files_properties(LuaFunzel.i PROPERTIES CPLUSPLUS ON)
 	swig_add_library(LuaFunzel LANGUAGE lua SOURCES LuaFunzel.i OUTPUT_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 	target_include_directories(LuaFunzel PRIVATE ${LUA_INCLUDE_DIR})
 
-	target_link_libraries(LuaFunzel PUBLIC funzel funzelBlas)
-	target_link_options(LuaFunzel PUBLIC ${LUA_LIBRARIES}) # options, or else CMake will make a wrong link to libm.
+	if(NOT WIN32)
+		target_link_libraries(LuaFunzel PUBLIC funzel funzelBlas)
+		target_link_options(LuaFunzel PUBLIC ${LUA_LIBRARIES}) # options, or else CMake will make a wrong link to libm.
+	else()
+		target_link_libraries(LuaFunzel PUBLIC funzel funzelBlas ${LUA_LIBRARIES})
+	endif()
+else()
+	message("-- Could not find Lua")
 endif()
 
 # Dotnet
-find_program(CSC_EXE csc)
+if(WIN32)
+	enable_language(CSharp)
+	set(CSC_EXE ${CMAKE_CSharp_COMPILER})
+	# find_program(CSC_EXE csc HINTS "C:/WINDOWS/Microsoft.NET/Framework64/")
+else()
+	find_program(CSC_EXE csc)
+endif()
+
 if(CSC_EXE)
 	set_source_files_properties(CSFunzel.i PROPERTIES CPLUSPLUS ON)
 	set(FUNZEL_SHARP_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/csfunzel)
