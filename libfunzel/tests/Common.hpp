@@ -296,7 +296,7 @@ TEST(CommonTest, MatmulMatrixVector)
 
 TEST(CommonTest, MatmulVectorVector)
 {
-	Tensor a({3, 1},
+	Tensor a({1, 3},
 	{
 		1.0f, 2.0f, 3.0f,
 	}, TestDevice);
@@ -311,7 +311,7 @@ TEST(CommonTest, MatmulVectorVector)
 		6.0f
 	});
 
-	auto c = a.transpose().matmul(b).cpu();
+	auto c = a.matmul(b).cpu();
 	EXPECT_TENSOR_EQ(c, expected);
 }
 
@@ -425,7 +425,7 @@ TEST(CommonTest, LinearLayer)
 #include <funzel/nn/Sequential.hpp>
 #include <funzel/nn/Sigmoid.hpp>
 
-TEST(CommonTest, SequentialLayer)
+TEST(CommonTest, DISABLED_SequentialLayer)
 {
 	using namespace nn;
 	Sequential seq{
@@ -452,6 +452,7 @@ TEST(CommonTest, SequentialLayer)
 	// TODO Check values!
 }
 
+#if 0
 TEST(CommonTest, Pool2D)
 {
 	Tensor a = funzel::linspace(1, 256*256, 256*256).reshape({1, 256, 256}).to(TestDevice);
@@ -471,6 +472,7 @@ TEST(CommonTest, Pool2D)
 	a.getBackendAs<nn::NNBackendTensor>()->pool2d(a, b, MEAN_POOLING, kernelSize, stride, padding, dilation);
 	std::cout << b.cpu() << std::endl;
 }
+#endif
 
 #include <funzel/cv/Image.hpp>
 #include <funzel/Plot.hpp>

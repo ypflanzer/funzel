@@ -633,12 +633,11 @@ Tensor Tensor::matmul(const Tensor& b) const
 	AssertExcept(dtype == b.dtype, "Cannot multiply matrices with different dtypes!");
 	Tensor tgt;
 	Broadcast<2>(*this, b, tgt,
-		[](const auto& a, const auto& b) {
+		[](const Shape& a, const Shape& b) {
 			AssertExcept(a.size() >= 2 && a.size() == b.size(), "Invalid matrix shapes: Number of dimensions do not match!");
 
 			auto* matShapeA = &a[a.size() - 2];
 			auto* matShapeB = &b[b.size() - 2];
-
 			AssertExcept(matShapeB[0] == matShapeA[1], "Invalid matrix shapes: " << matShapeB[0] << " != " << matShapeA[1]);
 
 			Shape newshape(a);
@@ -651,15 +650,6 @@ Tensor Tensor::matmul(const Tensor& b) const
 		});
 
 	return tgt;
-# if 0
-	
-
-	// std::cout << shape << b.shape << newshape << std::endl;
-
-	Tensor t = Tensor::zeros(newshape, dtype, device);
-	m_backend->matmul(*this, b, t);
-	return t;
-#endif
 }
 
 double Tensor::sum()
