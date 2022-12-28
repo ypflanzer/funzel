@@ -81,7 +81,7 @@ public:
 	}
 
 #ifndef SWIG
-	small_vector(container_type&& other)
+	small_vector(container_type&& other) noexcept
 	{
 		*this = std::move(other);
 	}
@@ -114,7 +114,7 @@ public:
 	}
 
 #ifndef SWIG
-	container_type& operator=(container_type&& other)
+	container_type& operator=(container_type&& other) noexcept
 	{
 		if(this == &other)
 			return *this;
