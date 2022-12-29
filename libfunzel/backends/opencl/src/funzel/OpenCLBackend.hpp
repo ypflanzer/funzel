@@ -43,10 +43,12 @@ struct CLDevice
 	CLDevice() = default;
 	CLDevice(const ::cl::Context& ctx, const ::cl::Device& dev):
 		device(dev),
-		context(ctx) {}
+		context(ctx),
+		queue(::cl::CommandQueue(ctx, dev)) {}
 	
 	::cl::Device device;
 	::cl::Context context;
+	::cl::CommandQueue queue;
 };
 
 class OpenCLBackend
@@ -97,7 +99,7 @@ private:
 	std::unordered_map<std::string, ::cl::Kernel> m_deviceKernels;
 	
 	std::vector<CLDevice> m_devices;
-	std::string m_buildOptions = " -O3 -cl-mad-enable -cl-std=CL1.2 ";
+	std::string m_buildOptions = " -cl-mad-enable -cl-std=CL1.2 ";
 };
 
 }

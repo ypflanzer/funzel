@@ -67,10 +67,10 @@ struct funzel::cl::CLTemplateKernel
 				realGlobalSz.get()[i] = padGlobalSize(globalSz[i], maxWorkgroup);
 			}
 
-			tensor->m_cmdQueue.enqueueNDRangeKernel(kernels[dtype], dims, realGlobalSz, realLocalSz, nullptr, &event);
+			tensor->m_device.queue.enqueueNDRangeKernel(kernels[dtype], dims, realGlobalSz, realLocalSz, nullptr, &event);
 		}
 		else
-			tensor->m_cmdQueue.enqueueNDRangeKernel(kernels[dtype], dims, globalSz, localSz, nullptr, &event);
+			tensor->m_device.queue.enqueueNDRangeKernel(kernels[dtype], dims, globalSz, localSz, nullptr, &event);
 
 		return event;
 	}
@@ -91,7 +91,6 @@ OpenCLTensor::OpenCLTensor(const std::string& args):
 	if(!args.empty())
 		idx = std::stol(args);
 
-	m_cmdQueue = backend.getCommandQueue(idx);
 	m_device = backend.getDevice(idx);
 }
 
@@ -117,7 +116,7 @@ std::shared_ptr<char> OpenCLTensor::buffer()
 	auto dest = std::shared_ptr<char>((char*) std::malloc(sz));
 
 	wait();
-	m_cmdQueue.enqueueReadBuffer(m_buffer, CL_TRUE, 0, sz, dest.get());
+	m_device.queue.enqueueReadBuffer(m_buffer, CL_TRUE, 0, sz, dest.get());
 	return dest;
 }
 
@@ -133,7 +132,7 @@ void OpenCLTensor::empty(const void* buffer, size_t sz, const Shape& shape, DTYP
 	if(buffer)
 	{
 		// TODO: Can we do without the sync here? It seems to introduce a race condition
-		m_cmdQueue.enqueueWriteBuffer(m_buffer, CL_FALSE, 0, sz, buffer, nullptr, &m_currentEvent);
+		m_device.queue.enqueueWriteBuffer(m_buffer, CL_FALSE, 0, sz, buffer, nullptr, &m_currentEvent);
 		wait();
 	}
 }
@@ -151,7 +150,7 @@ std::shared_ptr<BackendTensor> OpenCLTensor::clone() const
 	t->empty(nullptr, sz, {size}, dtype);
 
 	t->wait();
-	t->m_cmdQueue.enqueueCopyBuffer(m_buffer, t->m_buffer, 0, 0, sz, nullptr, &t->m_currentEvent);	
+	t->m_device.queue.enqueueCopyBuffer(m_buffer, t->m_buffer, 0, 0, sz, nullptr, &t->m_currentEvent);	
 	return std::shared_ptr<BackendTensor>(t);
 }
 
@@ -161,11 +160,11 @@ void OpenCLTensor::fill(const Tensor& self, double scalar)
 	switch(dtype)
 	{
 		case DFLOAT32:
-			m_cmdQueue.enqueueFillBuffer<float>(m_buffer, scalar, self.offset/sizeof(float), self.size()*sizeof(float), nullptr, &m_currentEvent);
+			m_device.queue.enqueueFillBuffer<float>(m_buffer, scalar, self.offset/sizeof(float), self.size()*sizeof(float), nullptr, &m_currentEvent);
 		break;
 		
 		case DFLOAT64:
-			m_cmdQueue.enqueueFillBuffer<double>(m_buffer, scalar, self.offset/sizeof(double), self.size()*sizeof(double), nullptr, &m_currentEvent);
+			m_device.queue.enqueueFillBuffer<double>(m_buffer, scalar, self.offset/sizeof(double), self.size()*sizeof(double), nullptr, &m_currentEvent);
 		break;
 		default: ThrowError("Unsupported dtype!");
 	}
@@ -317,13 +316,13 @@ void OpenCLTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 		case DFLOAT32: {
 			err = clblast::Axpy<float>(self.size(), float(alpha), abuf(), self.offset/sizeof(float), stride/sizeof(float),
 										bbuf(), tgt.offset/sizeof(float), stride/sizeof(float),
-										&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
+										&tgtBackend->m_device.queue(), &tgtBackend->m_currentEvent());
 		} break;
 
 		case DFLOAT64: {
 			err = clblast::Axpy<double>(self.size(), double(alpha), abuf(), self.offset/sizeof(double), stride/sizeof(double),
 										bbuf(), tgt.offset/sizeof(double), stride/sizeof(double),
-										&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
+										&tgtBackend->m_device.queue(), &tgtBackend->m_currentEvent());
 		} break;
 		default: ThrowError("Unsupported dtype!");
 	}
@@ -415,8 +414,7 @@ void OpenCLTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 	::cl::Buffer cbuf = tgtBackend->m_buffer;
 
 	clblast::StatusCode err;
-	AssertExcept(self.shape[1] == b.shape[0], "A");
-	//AssertExcept(self.shape[0] == tgt.shape[0] && tgt.shape[1] == b.shape[1], "B");
+	AssertExcept(self.shape[1] == b.shape[0], "Invalid shapes for matrix multiplication!");
 
 	auto m = tgt.shape[0];
 	auto k = self.shape[1];
@@ -432,7 +430,7 @@ void OpenCLTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 				bbuf(), b.offset/sizeof(float), n,
 				1.0f,
 				cbuf(), tgt.offset/sizeof(float), n,
-				&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
+				&tgtBackend->m_device.queue(), &tgtBackend->m_currentEvent());
 		} break;
 		case DFLOAT64: {
 			err = clblast::Gemm<double>(
@@ -442,7 +440,7 @@ void OpenCLTensor::matmul(const Tensor& self, Tensor b, Tensor tgt)
 				bbuf(), b.offset/sizeof(double), n,
 				1.0f,
 				cbuf(), tgt.offset/sizeof(double), n,
-				&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
+				&tgtBackend->m_device.queue(), &tgtBackend->m_currentEvent());
 		} break;
 		default: ThrowError("Unsupported dtype!");
 	}
@@ -762,7 +760,7 @@ void OpenCLTensor::conv2d(
 			krnlBackend->m_buffer(), kernel.offset / sizeof(float),
 			tgtBackend->m_buffer(), tgt.offset / sizeof(float),
 
-			&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
+			&tgtBackend->m_device.queue(), &tgtBackend->m_currentEvent());
 	} break;
 
 	case DFLOAT64: {
@@ -779,7 +777,7 @@ void OpenCLTensor::conv2d(
 			krnlBackend->m_buffer(), kernel.offset / sizeof(double),
 			tgtBackend->m_buffer(), tgt.offset / sizeof(double),
 
-			&tgtBackend->m_cmdQueue(), &tgtBackend->m_currentEvent());
+			&tgtBackend->m_device.queue(), &tgtBackend->m_currentEvent());
 	} break;
 	default: ThrowError("Unsupported dtype!");
 	}

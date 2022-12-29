@@ -34,6 +34,8 @@ void OpenCLBackend::initCL()
 		std::vector<::cl::Platform> platforms;
 		::cl::Platform::get(&platforms);
 
+		spdlog::debug("Found {} platforms.", platforms.size());
+
 		std::vector<::cl::Device> devices;
 		int ctr = 0;
 
@@ -43,6 +45,10 @@ void OpenCLBackend::initCL()
 			//std::cout << "Using OpenCL Platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
 
 			platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
+			
+			if(devices.empty())
+				continue;
+			
 			//std::cout << "Found " << devices.size() << " GPU device(s):" << std::endl;
 			spdlog::debug("Found {} OpenCL device(s):", devices.size());
 
@@ -68,29 +74,6 @@ void OpenCLBackend::initCL()
 			}
 		}
 
-		#if 0
-		auto m_platform = ::cl::Platform::getDefault();
-		std::cout << "Using OpenCL Platform: " << m_platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
-
-		m_platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &m_devices);
-		std::cout << "Found " << m_devices.size() << " GPU device(s):" << std::endl;
-		
-		int ctr = 0;
-		for(auto& d : m_devices)
-		{
-			std::cout << '\t' << d.getInfo<CL_DEVICE_VENDOR>() << '\t' << d.getInfo<CL_DEVICE_NAME>() << std::endl;
-
-			DeviceProperties props;
-			props.deviceID = "OCL:" + std::to_string(ctr++);
-			props.deviceName = d.getInfo<CL_DEVICE_NAME>();
-			props.vendorName = d.getInfo<CL_DEVICE_VENDOR>();
-			props.memorySize = d.getInfo<CL_DEVICE_GLOBAL_MEM_SIZE>();
-			props.isGPU = d.getInfo<CL_DEVICE_TYPE> == CL_DEVICE_TYPE_GPU;
-			backend::RegisterDevice(props);
-		}
-
-		m_context = ::cl::Context(m_devices);
-#endif
 		// Initialize cache
 		m_cacheDirectory = findCacheDirectory();
 		//std::cout << "Using cache at: " << m_cacheDirectory << std::endl;
@@ -106,7 +89,9 @@ void OpenCLBackend::initCL()
 ::cl::CommandQueue OpenCLBackend::getCommandQueue(size_t idx) const
 {
 	auto& dev = m_devices.at(idx);
-	return ::cl::CommandQueue(dev.context, dev.device);
+
+	// One queue per device. More will crash AMD.
+	return dev.queue; //::cl::CommandQueue(dev.context, dev.device);
 }
 
 CLDevice OpenCLBackend::getDevice(size_t idx) const

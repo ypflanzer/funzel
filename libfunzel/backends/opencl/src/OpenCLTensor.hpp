@@ -79,7 +79,7 @@ public:
 			const UVec2& dilation) override;
 
 	::cl::Buffer& clbuffer() { return m_buffer; }
-	::cl::CommandQueue& clcmdQueue() { return m_cmdQueue; }
+	::cl::CommandQueue& clcmdQueue() { return m_device.queue; }
 	::cl::Event& clcurrentEvent() { return m_currentEvent; }
 
 protected:
@@ -92,7 +92,6 @@ protected:
 	void wait();
 
 	CLDevice m_device;
-	::cl::CommandQueue m_cmdQueue;
 	::cl::Buffer m_buffer;
 	::cl::Event m_currentEvent;
 	std::string m_clArgs;
