@@ -29,3 +29,8 @@ elseif(WIN32 OR UNIX)
 endif()
 
 target_include_directories(funzelBlas PRIVATE ${CBLAS_HEADER})
+
+install(TARGETS funzelBlas
+	LIBRARY DESTINATION lib
+	RUNTIME DESTINATION bin
+)

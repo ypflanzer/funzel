@@ -76,6 +76,16 @@ endif()
 add_subdirectory(swig)
 add_subdirectory(backends)
 add_subdirectory(tests)
-add_subdirectory(benchmarks)
+#add_subdirectory(benchmarks)
 
-install(TARGETS funzel DESTINATION lib)
+if(WIN32)
+	install(DIRECTORY
+		$<TARGET_FILE_DIR:funzel>/ DESTINATION bin
+		FILES_MATCHING PATTERN "*.dll"
+	)
+endif()
+
+install(TARGETS funzel
+	LIBRARY DESTINATION lib
+	RUNTIME DESTINATION bin
+)

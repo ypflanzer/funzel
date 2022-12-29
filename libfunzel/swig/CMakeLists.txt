@@ -20,6 +20,9 @@ if(LUA_FOUND)
 	else()
 		target_link_libraries(LuaFunzel PUBLIC funzel funzelBlas ${LUA_LIBRARIES})
 	endif()
+
+	install(TARGETS LuaFunzel DESTINATION bin)
+
 else()
 	message("-- Could not find Lua")
 endif()
@@ -50,6 +53,9 @@ if(CSC_EXE)
 	)
 
 	configure_file("${CMAKE_CURRENT_SOURCE_DIR}/../tests/csharp/csharp.csproj.in" "${CMAKE_CURRENT_SOURCE_DIR}/../tests/csharp/csharp.csproj")
+	
+	install(TARGETS CSFunzel DESTINATION bin)
+	install(FILES ${FUNZEL_DLL_FILE} DESTINATION bin)
 endif()
 
 find_package(Python3 REQUIRED COMPONENTS Interpreter Development)
@@ -61,6 +67,9 @@ if(Python3_FOUND)
 	swig_add_library(PyFunzel LANGUAGE python SOURCES PyFunzel.i OUTPUT_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 	target_link_directories(PyFunzel PUBLIC ${Python3_LIBRARY_DIRS})
 	target_link_libraries(PyFunzel PUBLIC funzel funzelBlas ${Python3_LIBRARIES} Python3::Python)
+
+	install(TARGETS PyFunzel DESTINATION bin)
+	install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/PyFunzel.py DESTINATION bin)
 endif()
 
 if(NOT WIN32)
