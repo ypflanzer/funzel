@@ -1,4 +1,4 @@
-namespace FunzelSharp
+namespace funzel
 {
 public partial class Tensor : global::System.IDisposable
 {

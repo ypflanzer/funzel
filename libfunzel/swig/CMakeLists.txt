@@ -38,13 +38,13 @@ if(CSC_EXE)
 	set(FUNZEL_SHARP_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/csfunzel)
 	set(FUNZEL_DLL_FILE ${FUNZEL_SHARP_DIR}/../FunzelSharp.dll)
 
-	set(CMAKE_SWIG_FLAGS "-namespace" "FunzelSharp") # "-debug-tmsearch")
+	#set(CMAKE_SWIG_FLAGS "-namespace" "funzel") # "-debug-tmsearch")
 	swig_add_library(CSFunzel TYPE SHARED LANGUAGE csharp SOURCES CSFunzel.i OUTPUT_DIR ${FUNZEL_SHARP_DIR})
 	target_link_libraries(CSFunzel PUBLIC funzel funzelBlas)
 
 	add_custom_command(
 		TARGET CSFunzel POST_BUILD
-		COMMAND ${CSC_EXE} -out:${FUNZEL_DLL_FILE} -target:library -recurse:${FUNZEL_SHARP_DIR}/*.cs -recurse:${CMAKE_CURRENT_SOURCE_DIR}/*.cs -nologo
+		COMMAND ${CSC_EXE} -out:${FUNZEL_DLL_FILE} -o+ -target:library -recurse:${FUNZEL_SHARP_DIR}/*.cs -recurse:${CMAKE_CURRENT_SOURCE_DIR}/*.cs -nologo
 		MAIN_DEPENDENCY CSFunzel.i
 		COMMENT "Compiling C#..."
 	)
@@ -66,4 +66,5 @@ endif()
 if(NOT WIN32)
 	target_compile_options(PyFunzel PRIVATE -fvisibility=internal)
 	target_compile_options(LuaFunzel PRIVATE -fvisibility=internal)
+	target_compile_options(CSFunzel PRIVATE -fvisibility=internal)
 endif()

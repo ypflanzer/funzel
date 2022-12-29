@@ -11,9 +11,11 @@
 
 %include "arrays_csharp.i"
 
+%nspace;
+
 %define SWIG_TYPEMAP_SMALL_VECTOR(NAME, T)
 %typemap(cscode) funzel::small_vector<T> %{
-public NAME(T[] values) : this(FunzelPINVOKE.new_##NAME##__SWIG_0(), true) {
+public NAME(T[] values) : this(FunzelPINVOKE.new_funzel_##NAME##__SWIG_0(), true) {
 	reserve((uint) values.Length);
 	foreach(T v in values)
 	{
@@ -28,7 +30,7 @@ SWIG_TYPEMAP_SMALL_VECTOR(FloatSmallVector, float)
 SWIG_TYPEMAP_SMALL_VECTOR(DoubleSmallVector, double)
 
 %typemap(cscode) funzel::small_vector<size_t> %{
-  public SizeSmallVector(uint[] values) : this(FunzelPINVOKE.new_SizeSmallVector__SWIG_0(), true) {
+  public SizeSmallVector(uint[] values) : this(FunzelPINVOKE.new_funzel_SizeSmallVector__SWIG_0(), true) {
     reserve((uint) values.Length);
     foreach(uint v in values)
     {
@@ -42,3 +44,5 @@ SWIG_TYPEMAP_SMALL_VECTOR(DoubleSmallVector, double)
 // %rename funzel::Tensor::toString ToString;
 
 %include "funzel.i"
+%include "funzel_nn.i"
+%include "funzel_cv.i"

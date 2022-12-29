@@ -40,3 +40,5 @@ SWIG_TYPEMAP_NUM_CUSTOM(funzel::Shape&, size_t)
 }
 
 %include "funzel.i"
+%include "funzel_nn.i"
+%include "funzel_cv.i"
