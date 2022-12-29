@@ -58,3 +58,8 @@ endif()
 
 add_subdirectory(libfunzel)
 add_subdirectory (docs)
+
+option(NO_EXAMPLES "Disables building examples." OFF)
+if(NOT NO_EXAMPLES)
+	add_subdirectory(examples)
+endif()
