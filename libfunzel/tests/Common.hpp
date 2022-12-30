@@ -425,7 +425,7 @@ TEST(CommonTest, LinearLayer)
 #include <funzel/nn/Sequential.hpp>
 #include <funzel/nn/Sigmoid.hpp>
 
-TEST(CommonTest, DISABLED_SequentialLayer)
+TEST(CommonTest, SequentialLayer)
 {
 	using namespace nn;
 	Sequential seq{
