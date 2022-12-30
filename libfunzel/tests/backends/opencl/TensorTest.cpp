@@ -30,4 +30,5 @@ TEST(CommonTest, Init)
 }
 
 #include "../../Common.hpp"
-
+#include "../../CommonCV.hpp"
+#include "../../CommonNN.hpp"

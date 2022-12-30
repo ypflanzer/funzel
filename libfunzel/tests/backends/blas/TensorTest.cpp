@@ -133,3 +133,5 @@ TEST(CPUTensorTest, TrimDimensions)
 #define CommonTest TensorTest
 #define TestDevice ""
 #include "../../Common.hpp"
+#include "../../CommonCV.hpp"
+#include "../../CommonNN.hpp"
