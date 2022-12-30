@@ -32,7 +32,8 @@ release = '0.1'
 # ones.
 extensions = [
 	"breathe",
-	"myst_parser",
+	#"myst_parser",
+	"sphinx_mdinclude",
 	#"sphinx.ext.imgmath",
 	"sphinx.ext.mathjax",
 	"sphinx.ext.autodoc",
@@ -51,7 +52,6 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
-
 
 # -- Options for HTML output -------------------------------------------------
 

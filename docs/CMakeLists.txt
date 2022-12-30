@@ -57,13 +57,13 @@ macro(add_sphinx_apidoc PYSRC_DIR OUT_DIR)
 	add_custom_command(OUTPUT ${OUT_DIR}/modules.rst
 		COMMAND # TODO Proper find!
 			sphinx-apidoc -f -o ${OUT_DIR} ${PYSRC_DIR}
-		WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+		WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 		MAIN_DEPENDENCY
 			${DOXYGEN_INDEX_FILE}
 		COMMENT "Generating Python documentation with sphinx-apidoc")
 endmacro()
 
-add_sphinx_apidoc(${CMAKE_CURRENT_BINARY_DIR}/../libfunzel/swig/ ${SPHINX_AUTODOC}_py)
+#add_sphinx_apidoc(${CMAKE_BINARY_DIR}/bin/ ${SPHINX_AUTODOC}_py)
 
 add_breathe_apidoc(FunzelCpp ${DOXYGEN_OUTPUT_DIRECTORY}/xml ${SPHINX_AUTODOC}_cpp)
 #add_breathe_apidoc(FunzelLua ${DOXYGEN_OUTPUT_DIRECTORY}/lua_xml ${SPHINX_AUTODOC}_lua)

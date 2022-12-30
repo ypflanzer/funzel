@@ -6,7 +6,7 @@
 Welcome to Funzel's documentation!
 ==================================
 
-.. include:: ../README.md
+.. mdinclude:: ../README.md
 
 .. toctree::
    :maxdepth: 2
@@ -15,7 +15,7 @@ Welcome to Funzel's documentation!
    
    sphinx_autodoc_cpp/*
 
-.. toctree::
+.. .. toctree::
    :maxdepth: 2
    :caption: Python Contents:
 
