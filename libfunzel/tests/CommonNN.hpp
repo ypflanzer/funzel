@@ -77,7 +77,6 @@ TEST(CommonTestNN, SequentialLayer)
 	// TODO Check values!
 }
 
-#if 0
 TEST(CommonTestNN, Pool2D)
 {
 	Tensor a = funzel::linspace(1, 256*256, 256*256).reshape({1, 256, 256}).to(TestDevice);
@@ -97,7 +96,6 @@ TEST(CommonTestNN, Pool2D)
 	a.getBackendAs<nn::NNBackendTensor>()->pool2d(a, b, MEAN_POOLING, kernelSize, stride, padding, dilation);
 	std::cout << b.cpu() << std::endl;
 }
-#endif
 
 TEST(CommonTestNN, ReLU)
 {
