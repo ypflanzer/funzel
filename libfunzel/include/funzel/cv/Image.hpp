@@ -21,18 +21,21 @@
 
 namespace funzel
 {
-namespace image
+class FUNZEL_API image
 {
+public:
+	image() = delete;
+
 	enum CHANNEL_ORDER
 	{
 		HWC,
 		CHW
 	};
 
-	FUNZEL_API Tensor load(const std::string& file, CHANNEL_ORDER order = HWC, DTYPE dtype = NONE, const std::string& device = std::string());
-	FUNZEL_API void save(const Tensor& tensor, const std::string& file);
+	FUNZEL_API static Tensor load(const std::string& file, CHANNEL_ORDER order = HWC, DTYPE dtype = NONE, const std::string& device = std::string());
+	FUNZEL_API static void save(const Tensor& tensor, const std::string& file);
 
-	inline Tensor toOrder(const Tensor& t, CHANNEL_ORDER order)
+	static inline Tensor toOrder(const Tensor& t, CHANNEL_ORDER order)
 	{
 		if(order == HWC)
 			return t.permute({1, 2, 0});
@@ -40,15 +43,15 @@ namespace image
 		return t.permute({2, 0, 1});
 	}
 
-	FUNZEL_API void imshow(const Tensor& t, const std::string& title = "", bool waitkey = false);
+	FUNZEL_API static void imshow(const Tensor& t, const std::string& title = "", bool waitkey = false);
 
-	FUNZEL_API void drawCircle(Tensor tgt, const Vec2& pos, float r, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
-	FUNZEL_API void drawCircles(Tensor tgt, Tensor circlesXYR, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
+	FUNZEL_API static void drawCircle(Tensor tgt, const Vec2& pos, float r, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
+	FUNZEL_API static void drawCircles(Tensor tgt, Tensor circlesXYR, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
 
-	FUNZEL_API Tensor gaussianBlur(Tensor input, unsigned int kernelSize, double sigma);
-	FUNZEL_API Tensor& gaussianBlur(Tensor input, Tensor& tgt, unsigned int kernelSize, double sigma);
+	FUNZEL_API static Tensor gaussianBlur(Tensor input, unsigned int kernelSize, double sigma);
+	FUNZEL_API static Tensor& gaussianBlur(Tensor input, Tensor& tgt, unsigned int kernelSize, double sigma);
 
-	FUNZEL_API Tensor sobelDerivative(Tensor input, bool horizontal);
-	FUNZEL_API Tensor& sobelDerivative(Tensor input, Tensor& tgt, bool horizontal);
-}
+	FUNZEL_API static Tensor sobelDerivative(Tensor input, bool horizontal);
+	FUNZEL_API static Tensor& sobelDerivative(Tensor input, Tensor& tgt, bool horizontal);
+};
 }

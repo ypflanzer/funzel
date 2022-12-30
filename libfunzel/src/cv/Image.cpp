@@ -29,7 +29,6 @@
 #endif
 
 using namespace funzel;
-using namespace image;
 
 Tensor funzel::image::load(const std::string& file, CHANNEL_ORDER order, DTYPE dtype, const std::string& device)
 {
