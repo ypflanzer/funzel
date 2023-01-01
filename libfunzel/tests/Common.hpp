@@ -205,6 +205,25 @@ TEST(CommonTest, AddMatrix)
 			}
 }
 
+TEST(CommonTest, AddMatrixStrided)
+{
+	const auto ones = Tensor::ones({3, 3}).to(TestDevice);
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).transpose();
+	v[1].add_(ones);
+	v = v.transpose();
+	v = v.cpu();
+
+	std::cout << v << std::endl;
+
+	return;
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_EQ((v[{p, q, r}].item<float>()), 2);
+			}
+}
+
 #define EXPECT_TENSOR_EQ(t1, t2) \
 ASSERT_EQ((t1).shape, (t2).shape); \
 ASSERT_EQ((t1).dtype, (t2).dtype); \

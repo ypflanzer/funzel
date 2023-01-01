@@ -351,17 +351,18 @@ void BlasTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 
 	const void* src = self.data(self.offset);
 	void* dest = tgt.data(tgt.offset);
+	size_t destStride = tgt.strides.back();
 	size_t stride = self.strides.back();
 
 	switch(dtype)
 	{
 		case DFLOAT32: {
 			return cblas_saxpy(self.size(), alpha, reinterpret_cast<const float*>(src),
-								stride/sizeof(float), reinterpret_cast<float*>(dest), stride/sizeof(float));
+								stride/sizeof(float), reinterpret_cast<float*>(dest), destStride/sizeof(float));
 		}
 		case DFLOAT64: {
 			return cblas_daxpy(self.size(), alpha, reinterpret_cast<const double*>(src), stride/sizeof(double), 
-								reinterpret_cast<double*>(dest), stride/sizeof(double));
+								reinterpret_cast<double*>(dest), destStride/sizeof(double));
 		}
 		default: ThrowError("Unsupported dtype!");
 	}
