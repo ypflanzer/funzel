@@ -213,14 +213,11 @@ TEST(CommonTest, AddMatrixStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	std::cout << v << std::endl;
-
-	return;
 	for(size_t p = 0; p < 3; p++)
 		for(size_t q = 0; q < 3; q++)
 			for(size_t r = 0; r < 3; r++)
 			{
-				EXPECT_EQ((v[{p, q, r}].item<float>()), 2);
+				EXPECT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 2 : 1));
 			}
 }
 
