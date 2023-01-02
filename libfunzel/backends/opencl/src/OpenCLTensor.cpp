@@ -296,7 +296,7 @@ void OpenCLTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 
 	// We can handle contiguous memory at once, without subdividing further.
 	//if(self.shape.size() > 1 && self.shape[1] > 1)
-	if(!(self.flags & C_CONTIGUOUS) && self.shape.size() > 1)
+	if(!((self.flags & C_CONTIGUOUS) && (tgt.flags & C_CONTIGUOUS)) && self.shape.size() > 1)
 	{
 		for(int i = 0; i < self.shape[0]; i++)
 		{
@@ -308,20 +308,19 @@ void OpenCLTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 
 	::cl::Buffer abuf = m_buffer;
 	::cl::Buffer bbuf = tgtBackend->m_buffer;
-	size_t stride = self.strides.back();
 
 	clblast::StatusCode err;
 	switch(dtype)
 	{
 		case DFLOAT32: {
-			err = clblast::Axpy<float>(self.size(), float(alpha), abuf(), self.offset/sizeof(float), stride/sizeof(float),
-										bbuf(), tgt.offset/sizeof(float), stride/sizeof(float),
+			err = clblast::Axpy<float>(self.size(), float(alpha), abuf(), self.offset/sizeof(float), self.strides.back()/sizeof(float),
+										bbuf(), tgt.offset/sizeof(float), tgt.strides.back()/sizeof(float),
 										&tgtBackend->m_device.queue(), &tgtBackend->m_currentEvent());
 		} break;
 
 		case DFLOAT64: {
-			err = clblast::Axpy<double>(self.size(), double(alpha), abuf(), self.offset/sizeof(double), stride/sizeof(double),
-										bbuf(), tgt.offset/sizeof(double), stride/sizeof(double),
+			err = clblast::Axpy<double>(self.size(), double(alpha), abuf(), self.offset/sizeof(double), self.strides.back()/sizeof(double),
+										bbuf(), tgt.offset/sizeof(double), tgt.strides.back()/sizeof(double),
 										&tgtBackend->m_device.queue(), &tgtBackend->m_currentEvent());
 		} break;
 		default: ThrowError("Unsupported dtype!");
