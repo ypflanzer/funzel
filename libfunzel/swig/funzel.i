@@ -13,6 +13,8 @@ using namespace std;
 
 %feature("autodoc", "3");
 
+%include "funzel/Funzel.hpp"
+
 %rename(copy) *::operator=;
 %rename(add) *::operator+;
 %rename(sub) *::operator-;
