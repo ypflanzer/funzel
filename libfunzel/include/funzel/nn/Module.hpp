@@ -28,6 +28,7 @@ typedef std::vector<Tensor> Parameters;
 class FUNZEL_API Module
 {
 public:
+	virtual ~Module() = default;
 	virtual Tensor forward(const Tensor& input) = 0;
 	virtual Tensor backward(const Tensor& input) = 0;
 
