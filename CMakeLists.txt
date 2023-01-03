@@ -4,7 +4,7 @@ if(EXISTS ${CMAKE_SOURCE_DIR}/vcpkg AND "${VCPKG_ROOT}" STREQUAL "")
 	set(VCPKG_ROOT ${CMAKE_SOURCE_DIR}/vcpkg)
 endif()
 
-if(NOT VCPKG_ROOT STREQUAL "")
+if(NOT "${VCPKG_ROOT}" STREQUAL "")
 	if(WIN32)
 		set(VCPKG_TARGET_TRIPLET "x64-windows" CACHE STRING "The VCPKG target triplet to use.")
 	else()
