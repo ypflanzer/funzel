@@ -70,6 +70,21 @@ TEST(CommonTest, Abs)
 			}
 }
 
+TEST(CommonTest, AbsStrided)
+{
+	auto v = Tensor::ones({3, 3, 3}).mul(-1).to(TestDevice).transpose();
+	v[1].abs_();
+	v = v.transpose();
+	v = v.cpu();
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 1 : -1));
+			}
+}
+
 TEST(CommonTest, MulScalar)
 {
 	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
@@ -81,6 +96,24 @@ TEST(CommonTest, MulScalar)
 			for(size_t r = 0; r < 3; r++)
 			{
 				EXPECT_EQ((v[{p, q, r}].item<float>()), 32);
+			}
+}
+
+TEST(CommonTest, MulScalarStrided)
+{
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).transpose();
+	v[1].mul_(32);
+	v = v.transpose();
+	v = v.cpu();
+
+	std::cout << v << std::endl;
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				const auto value = v[{p, q, r}].item<float>();
+				EXPECT_FLOAT_EQ((value), (r == 1 ? 32 : 1));
 			}
 }
 
@@ -99,6 +132,22 @@ TEST(CommonTest, Exp)
 			}
 }
 
+TEST(CommonTest, ExpStrided)
+{
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).mul_(2).transpose();
+	v[1].exp_();
+	v = v.transpose();
+	v = v.cpu();
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				const auto value = v[{p, q, r}].item<float>();
+				EXPECT_FLOAT_EQ(value, (r == 1 ? std::exp(2) : 2));
+			}
+}
+
 TEST(CommonTest, Sqrt)
 {
 	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
@@ -111,6 +160,21 @@ TEST(CommonTest, Sqrt)
 			for(size_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), std::sqrt(2));
+			}
+}
+
+TEST(CommonTest, SqrtStrided)
+{
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).mul_(2).transpose();
+	v[1].sqrt_();
+	v = v.transpose();
+	v = v.cpu();
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::sqrt(2) : 2));
 			}
 }
 
@@ -129,6 +193,21 @@ TEST(CommonTest, Sin)
 			}
 }
 
+TEST(CommonTest, SinStrided)
+{
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).mul_(2).transpose();
+	v[1].sin_();
+	v = v.transpose();
+	v = v.cpu();
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::sin(2) : 2));
+			}
+}
+
 TEST(CommonTest, Cos)
 {
 	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
@@ -141,6 +220,21 @@ TEST(CommonTest, Cos)
 			for(size_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), std::cos(2));
+			}
+}
+
+TEST(CommonTest, CosStrided)
+{
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).mul_(2).transpose();
+	v[1].cos_();
+	v = v.transpose();
+	v = v.cpu();
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::cos(2) : 2));
 			}
 }
 
@@ -176,6 +270,21 @@ TEST(CommonTest, Tan)
 			}
 }
 
+TEST(CommonTest, TanStrided)
+{
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).mul_(2).transpose();
+	v[1].tan_();
+	v = v.transpose();
+	v = v.cpu();
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::tan(2) : 2));
+			}
+}
+
 TEST(CommonTest, Tanh)
 {
 	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
@@ -188,6 +297,21 @@ TEST(CommonTest, Tanh)
 			for(size_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), std::tanh(2));
+			}
+}
+
+TEST(CommonTest, TanhStrided)
+{
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).mul_(2).transpose();
+	v[1].tanh_();
+	v = v.transpose();
+	v = v.cpu();
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::tanh(2) : 2));
 			}
 }
 
