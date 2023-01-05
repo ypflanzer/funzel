@@ -106,8 +106,6 @@ TEST(CommonTest, MulScalarStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	std::cout << v << std::endl;
-
 	for(size_t p = 0; p < 3; p++)
 		for(size_t q = 0; q < 3; q++)
 			for(size_t r = 0; r < 3; r++)

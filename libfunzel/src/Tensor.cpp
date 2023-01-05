@@ -161,7 +161,7 @@ Tensor Tensor::empty(const Shape& shape, DTYPE dtype, const std::string& backend
 Tensor Tensor::empty_like(const Tensor& t)
 {
 	auto nt = empty(t.shape, t.dtype, t.device);
-	nt.strides = t.strides;
+	// nt.strides = t.strides;
 	return nt;
 }
 
@@ -175,7 +175,7 @@ Tensor Tensor::ones(const Shape& shape, DTYPE dtype, const std::string& backend)
 Tensor Tensor::ones_like(const Tensor& t)
 {
 	auto nt = ones(t.shape, t.dtype, t.device);
-	nt.strides = t.strides;
+	// nt.strides = t.strides;
 	return nt;
 }
 
@@ -189,7 +189,7 @@ Tensor Tensor::zeros(const Shape& shape, DTYPE dtype, const std::string& backend
 Tensor Tensor::zeros_like(const Tensor& t)
 {
 	auto nt = zeros(t.shape, t.dtype, t.device);
-	nt.strides = t.strides;
+	//nt.strides = t.strides;
 	return nt;
 }
 
@@ -595,16 +595,13 @@ Tensor Tensor::add(double alpha) const
 
 Tensor& Tensor::mul_(double alpha)
 {
-	Tensor t = Tensor::zeros_like(*this);
-	m_backend->mulAdd(*this, t, alpha);
-
-	*this = std::move(t);
+	m_backend->mul(*this, alpha);
 	return *this;
 }
 
 Tensor Tensor::mul(double alpha) const
 {
-	Tensor t = *this;
+	Tensor t(*this);
 	t.mul_(alpha);
 	return t;
 }

@@ -390,6 +390,7 @@ public:
 
 	virtual void fill(const Tensor& self, double scalar) = 0;
 	virtual void mulAdd(const Tensor& self, Tensor tgt, double alpha) { ThrowError("Operation is not supported!"); }
+	virtual void mul(Tensor self, double alpha) { ThrowError("Operation is not supported!"); }
 	virtual void matmul(const Tensor& self, Tensor b, Tensor tgt) { ThrowError("Operation is not supported!"); }
 	virtual void div(const Tensor& self, const Tensor& b, Tensor tgt) { ThrowError("Operation is not supported!"); }
 

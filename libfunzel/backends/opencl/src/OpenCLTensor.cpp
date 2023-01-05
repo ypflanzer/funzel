@@ -329,6 +329,48 @@ void OpenCLTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 	AssertExcept(err == clblast::StatusCode::kSuccess, "CLBlast error: " + std::to_string((int) err));
 }
 
+void OpenCLTensor::mul(Tensor self, double alpha)
+{
+	if(self.shape.empty())
+		return;
+
+	assert(self.getBackendAs<OpenCLTensor>() == this);
+	wait();
+
+	// We can handle contiguous memory at once, without subdividing further.
+	//if(self.shape.size() > 1 && self.shape[1] > 1)
+	if(!(self.flags & C_CONTIGUOUS) && self.shape.size() > 1)
+	{
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			mul(self[i], alpha);
+		}
+
+		return;
+	}
+
+	::cl::Buffer abuf = m_buffer;
+
+	clblast::StatusCode err;
+	switch(dtype)
+	{
+		case DFLOAT32: {
+			err = clblast::Scal<float>(self.size(), alpha,
+					abuf(), self.offset/sizeof(float), self.strides.back()/sizeof(float),
+					&m_device.queue(), &m_currentEvent());
+		} break;
+
+		case DFLOAT64: {
+			err = clblast::Scal<double>(self.size(), alpha,
+					abuf(), self.offset/sizeof(double), self.strides.back()/sizeof(double),
+					&m_device.queue(), &m_currentEvent());
+		} break;
+		default: ThrowError("Unsupported dtype!");
+	}
+
+	AssertExcept(err == clblast::StatusCode::kSuccess, "CLBlast error: " + std::to_string((int) err));
+}
+
 void OpenCLTensor::sub(const Tensor& self, const Tensor& b, double alpha)
 {
 

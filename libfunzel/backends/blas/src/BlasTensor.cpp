@@ -357,13 +357,44 @@ void BlasTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 	switch(dtype)
 	{
 		case DFLOAT32: {
-			return cblas_saxpy(self.size(), alpha, reinterpret_cast<const float*>(src),
+			cblas_saxpy(self.size(), alpha, reinterpret_cast<const float*>(src),
 								stride/sizeof(float), reinterpret_cast<float*>(dest), destStride/sizeof(float));
-		}
+		} break;
 		case DFLOAT64: {
-			return cblas_daxpy(self.size(), alpha, reinterpret_cast<const double*>(src), stride/sizeof(double), 
+			cblas_daxpy(self.size(), alpha, reinterpret_cast<const double*>(src), stride/sizeof(double), 
 								reinterpret_cast<double*>(dest), destStride/sizeof(double));
+		} break;
+		default: ThrowError("Unsupported dtype!");
+	}
+}
+
+void BlasTensor::mul(Tensor self, double alpha)
+{
+	if(self.shape.empty())
+		return;
+	
+	if(self.shape.size() > 1 && self.shape[1] > 1)
+	{
+		//#pragma omp parallel for
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			mul(self[i], alpha);
 		}
+
+		return;
+	}
+
+	void* src = self.data(self.offset);
+	size_t stride = self.strides.back();
+
+	switch(dtype)
+	{
+		case DFLOAT32: {
+			cblas_sscal(self.size(), alpha, reinterpret_cast<float*>(src), stride/sizeof(float));
+		} break;
+		case DFLOAT64: {
+			cblas_sscal(self.size(), alpha, reinterpret_cast<float*>(src), stride/sizeof(double));
+		} break;
 		default: ThrowError("Unsupported dtype!");
 	}
 }
