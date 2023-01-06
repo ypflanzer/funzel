@@ -50,6 +50,7 @@ volatile static StaticInitializer##type s_initializer;
 namespace funzel
 {
 
+#ifndef SWIG
 const std::string EmptyStr;
 [[noreturn]] inline void ThrowError(const std::string& msg)
 {
@@ -57,6 +58,7 @@ const std::string EmptyStr;
 }
 
 #define AssertExcept(v, msg) if(!(v)) { std::stringstream msgss; msgss << msg; funzel::ThrowError(msgss.str()); }
+#endif
 
 class BackendTensor;
 struct ITensorFactory
