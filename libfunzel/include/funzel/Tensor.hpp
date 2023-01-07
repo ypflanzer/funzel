@@ -135,31 +135,123 @@ enum TensorFlags
 class BackendTensor;
 
 /**
- * @brief 
+ * @brief Implements a tensor with basic operations like creation and arithmetic.
+ * 
+ * A Tensor wraps around a BackendTensor to abstract away device specific
+ * implementation details.
+ * 
+ * As a convention, all methods ending with '_' will change the object
+ * they were called on in-place, while all other methods will return
+ * a new Tensor object which may for some operations share the same backend as the
+ * original object. Use 'clone' if you need to write to the memory while preserving
+ * the original data.
+ * 
+ * In the documentation, 'x' will be used as a signifier of 'this' in mathematical
+ * equations to make them more readable.
  * 
  */
 class FUNZEL_API Tensor
 {
 public:
+	/**
+	 * @brief Creates a new tensor containing all 1's
+	 * 
+	 * @param count The number of elements.
+	 * @param dtype (optional) The type of each element.
+	 * @param backend (optional) The device string.
+	 * @return Tensor A new Tensor of shape (count).
+	 */
 	static Tensor ones(size_t count, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
+
+	/**
+	 * @brief Creates a new tensor containing all 0's
+	 * 
+	 * @param count The number of elements.
+	 * @param dtype (optional) The type of each element.
+	 * @param backend (optional) The device string.
+	 * @return Tensor A new Tensor of shape (count).
+	 */
 	static Tensor zeros(size_t count, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
 	
+	/**
+	 * @brief Creates a new empty tensor.
+	 * 
+	 * @param shape The shape of the new tensor.
+	 * @param data (optional) A pointer to data that should be used for initialization.
+	 * @param dtype (optional) The type of each element.
+	 * @param backend (optional) The device string.
+	 * @return Tensor A new Tensor of given shape.
+	 */
 	static Tensor empty(const Shape& shape, const std::shared_ptr<char>& data, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
+
+	/**
+	 * @brief Creates a new empty tensor.
+	 * 
+	 * @param shape The shape of the new tensor.
+	 * @param data (optional) A pointer to data that should be used for initialization.
+	 * @param dtype (optional) The type of each element.
+	 * @param backend (optional) The device string.
+	 * @return Tensor A new Tensor of given shape.
+	 */
 	static Tensor empty(const Shape& shape, const void* data, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
+
+	/**
+	 * @brief Creates a new empty tensor with uninitialized memory.
+	 * 
+	 * @param shape The shape of the new tensor.
+	 * @param dtype (optional) The type of each element.
+	 * @param backend (optional) The device string.
+	 * @return Tensor A new Tensor of given shape.
+	 */
 	static Tensor empty(const Shape& shape, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
+
+	/**
+	 * @brief Creates a new empty tensor with the same shape, type and device as the template tensor.
+	 * 
+	 * @param t The tensor to use as a template.
+	 * @return Tensor A new Tensor.
+	 */
 	static Tensor empty_like(const Tensor& t);
 	
+	/**
+	 * @brief Creates a new tensor of 1's.
+	 * 
+	 * @param shape The shape of the new tensor.
+	 * @param dtype (optional) The type of each element.
+	 * @param backend (optional) The device string.
+	 * @return Tensor A new Tensor of given shape.
+	 */
 	static Tensor ones(const Shape& shape, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
+	
+	/**
+	 * @brief Creates a new tensor of 1's with the same shape, type and device as the template tensor.
+	 * 
+	 * @param t The tensor to use as a template.
+	 * @return Tensor A new Tensor.
+	 */
 	static Tensor ones_like(const Tensor& t);
 
+	/**
+	 * @brief Creates a new tensor of 0's.
+	 * 
+	 * @param shape The shape of the new tensor.
+	 * @param dtype (optional) The type of each element.
+	 * @param backend (optional) The device string.
+	 * @return Tensor A new Tensor of given shape.
+	 */
 	static Tensor zeros(const Shape& shape, DTYPE dtype = DFLOAT32, const std::string& backend = EmptyStr);
+
+	/**
+	 * @brief Creates a new tensor of 0's with the same shape, type and device as the template tensor.
+	 * 
+	 * @param t The tensor to use as a template.
+	 * @return Tensor A new Tensor.
+	 */
 	static Tensor zeros_like(const Tensor& t);
 
 	Tensor() = default;
 	explicit Tensor(const Shape& shape, const float data[], unsigned long long sz, const std::string& device = EmptyStr);
 	explicit Tensor(const Shape& shape, const double data[], unsigned long long sz, const std::string& device = EmptyStr);
-
-	//explicit Tensor(const Shape& shape, const std::vector<double>& data, const std::string& device = EmptyStr);
 
 #ifndef SWIG
 	explicit Tensor(const Shape& shape, std::initializer_list<float> data, const std::string& device = EmptyStr);
@@ -183,10 +275,46 @@ public:
 
 	std::string toString() const;
 
+	/**
+	 * @brief Checks, if a backend is currently set.
+	 * @return true 
+	 * @return false 
+	 */
 	bool empty() const { return m_backend == nullptr; }
+
+	/**
+	 * @brief Determines the number of elements of type dtype contained in the Tensor.
+	 * 
+	 * This basically multiplies all entries of shape together.
+	 * 
+	 * @return size_t The number of elements contained in the Tensor.
+	 */
 	size_t size() const;
+
+	/**
+	 * @brief Fetches the data from the given index.
+	 * 
+	 * The index is an array for up to shape.size() dimensions.
+	 * 
+	 * @param idx The index to fetch from.
+	 * @return Tensor A reference to the data at the given index.
+	 */
 	Tensor get(const Index& idx) const;
+
+	/**
+	 * @brief Fetches the data from the given index.
+	 * 
+	 * @param idx The index to fetch from.
+	 * @return Tensor A reference to the data at the given index.
+	 */
 	Tensor get(size_t idx) const;
+
+	/**
+	 * @brief Retrieves a pointer to the data at the given offset into the Tensor.
+	 * 
+	 * @param offset An offset in bytes.
+	 * @return void* A pointer to the data.
+	 */
 	void* data(size_t offset = 0);
 
 #ifndef SWIG
@@ -205,17 +333,45 @@ public:
 		return *reinterpret_cast<T*>(data(offset*sizeof(T)));
 	}
 
+	/**
+	 * @brief Converts the Tensor data to another DTYPE.
+	 * 
+	 * @param type The new DTYPE.
+	 * @return Tensor A new Tensor containing the data with the new DTYPE.
+	 */
 	Tensor astype(DTYPE type) const;
 
+	/**
+	 * @brief Converts the Tensor data to another DTYPE.
+	 * 
+	 * @tparam T The type to convert to. Needs to be supported by funzel::dtype
+	 * @return Tensor A new Tensor containing the data with the new DTYPE.
+	 */
 	template<typename T>
 	Tensor astype() const
 	{
 		return astype(funzel::dtype<T>());
 	}
 
+	/**
+	 * @see get
+	 */
 	Tensor operator[](size_t idx) const { return get(idx); }
+
+	/**
+	 * @see get
+	 */
 	Tensor operator[](const Index& idx) const { return get(idx); }
 
+	/**
+	 * @brief Sets the content of the tensor to the given value.
+	 * 
+	 * This performs implicit type conversion from T to dtype.
+	 * Only works for tensors which contain one element.
+	 * 
+	 * @tparam T The type of the value to set.
+	 * @param t The value to set.
+	 */
 	template<typename T>
 	void set(T t)
 	{
@@ -235,11 +391,36 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Copies given tensor.
+	 * 
+	 * Shapes of the tensors must match.
+	 * 
+	 * @param t The tensor to copy.
+	 */
 	void set(const Tensor& t);
 	
+	/**
+	 * @brief Copies the given tensor.
+	 * 
+	 * @see set(const Tensor& t)
+	 * @see set(T t)
+	 * 
+	 * @tparam T The type of the value to copy.
+	 * @param v The value to copy.
+	 * @return Tensor& A reference to this.
+	 */
 	template<typename T>
 	Tensor& operator=(T v) { set(v); return *this; }
 
+	/**
+	 * @brief Fetches the content of the tensor.
+	 * 
+	 * This performs implicit type conversion from dtype to T.
+	 * Only works for tensors which contain one element.
+	 * 
+	 * @tparam T The desired type of the value to fetch.
+	 */
 	template<typename T>
 	T item() const
 	{
@@ -261,6 +442,15 @@ public:
 		}
 	}
 
+	/**
+	 * @brief Fetches a reference to the content of the tensor.
+	 * 
+	 * Only works for tensors which contain one element.
+	 * @attention Type T and dtype have to match or else an invalid memory access may occur!
+	 * 
+	 * @tparam T The desired type of the reference.
+	 * @return T& The reference to the data.
+	 */
 	template<typename T>
 	T& ritem()
 	{
@@ -269,20 +459,98 @@ public:
 		return *reinterpret_cast<T*>(data);
 	}
 
+	/**
+	 * @brief Removes unitary dimensions from the Tensor.
+	 * 
+	 */
 	void trimDimensions();
 
 	// Operations
+	/**
+	 * @brief Reshapes the tensor.
+	 * 
+	 * Applies the new shape to this Tensor and recalculates all strides.
+	 * The number of elements implied by both shapes need to be equal.
+	 * 
+	 * @param shape The new shape.
+	 * @return Tensor The Tensor with the new shape.
+	 */
 	Tensor reshape(const Shape& shape);
+
+	/**
+	 * @brief Reshapes the tensor in-place.
+	 *
+	 * Applies the new shape to this Tensor and recalculates all strides.
+	 * The number of elements implied by both shapes need to be equal.
+	 * 
+	 * @param shape The new shape.
+	 */
 	void reshape_(const Shape& shape);
 
+	/**
+	 * @brief Permutes the dimensions of the Tensor.
+	 * 
+	 * The number of dimensions in the given array and the Tensor shape
+	 * need to be equal.
+	 * 
+	 * For example, swapping the first and second dimension of a Tensor may
+	 * use the following permuation array: (1, 0, 2)
+	 * 
+	 * @param shape An array containing the new dimension order.
+	 * @return Tensor A Tensor with the permuted shape.
+	 */
 	Tensor permute(const Shape& shape) const;
+
+	/**
+	 * @brief Permutes the dimensions of the Tensor in-place.
+	 * @see permute
+	 * @param shape An array containing the new dimension order.
+	 */
 	void permute_(const Shape& shape);
 
+	/**
+	 * @brief Retrieves the Tensor such that it is available on the host CPU.
+	 * 
+	 * If an accelerator with inaccessible memory is used, like a GPU, memory
+	 * needs to be copied back to the host before it can be accessed directly.
+	 * For accessible memory, no copy takes place.
+	 * 
+	 * @see to
+	 * @return Tensor The host accessible Tensor.
+	 */
 	Tensor cpu() const;
+
+	/**
+	 * @brief Moves the Tensor to a specific device.
+	 *
+	 * If an accelerator with inaccessible memory is used, like a GPU, memory
+	 * needs to be copied to the device before it can be used there.
+	 * If the device is equal to the current device, no copy will be performed.
+	 * 
+	 * @param device The device to move the data to.
+	 * @return Tensor A Tensor on the given device.
+	 */
 	Tensor to(const std::string& device) const;
 
+	/**
+	 * @brief Creates a new Tensor with the same shape, dtype, device and data.
+	 * 
+	 * @return Tensor The new Tensor.
+	 */
 	Tensor clone() const;
+
+	/**
+	 * @brief Re-orders the elements in memory so they are contiguous.
+	 * 
+	 * @return Tensor A new Tensor with re-ordered elements.
+	 */
 	Tensor unravel() const;
+
+	/**
+	 * @brief Transposes the Tensor.
+	 * 
+	 * @return Tensor A Tensor with all axes transposed.
+	 */
 	Tensor transpose() const;
 
 #ifndef SWIG
@@ -298,58 +566,137 @@ public:
 	Tensor operator-() const { return mul(-1.0); }
 #endif
 
+	/**
+	 * @brief Fills the Tensor with the given value, converted to dtype.
+	 * 
+	 * @param value A value to fill the Tensor with.
+	 * @return Tensor& A reference to this.
+	 */
 	Tensor& fill(double value);
 
+	/**
+	 * @brief Multiplies the Tensor with a scalar.
+	 * \f$ mul(x, alpha) = x \cdot alpha \f$
+	 * @return Tensor 
+	 */
 	Tensor mul(double alpha) const;
 	Tensor& mul_(double alpha);
 
+	/**
+	 * @brief Divides the Tensor element wise by another Tensor.
+	 * 
+	 * Performs broadcasting.
+	 * 
+	 * \f$ x = \{x_0, ..., x_n\},
+	 * b = \{b_0, ..., b_n\},
+	 * 0 \leq i \leq n: 
+	 * div(x, b) = \frac{x_i}{b_i} \f$
+	 * @return Tensor 
+	 */
 	Tensor div(const Tensor& b) const;
 	Tensor& div_(const Tensor& b);
 
+	/**
+	 * @brief Performs matrix multiplication with another Tensor.
+	 * 
+	 * Performs broadcasting.
+	 * 
+	 * @return Tensor 
+	 */
 	Tensor matmul(const Tensor& b) const;
 
-	Tensor& add_(const Tensor& b, double alpha = 1.0);
+	/**
+	 * @brief Implements a multiply add of two tensors.
+	 * 
+	 * Performs broadcasting.
+	 * 
+	 * \f$ add(x, b, alpha) = alpha \cdot x + b \f$
+	 * @return Tensor 
+	 */
 	Tensor add(const Tensor& b, double alpha = 1.0) const;
+	Tensor& add_(const Tensor& b, double alpha = 1.0);
 
+	/**
+	 * @brief Adds a scalar to the Tensor.
+	 * \f$ add(x, alpha) = x + alpha \f$
+	 * @return Tensor 
+	 */
 	Tensor add(double alpha) const;
 	Tensor& add_(double alpha);
 
-	Tensor& sub_(const Tensor& b, double alpha = 1.0);
+	/**
+	 * @brief Subtracts a scalar from the Tensor.
+	 * \f$ sub(x, alpha) = x - alpha \f$
+	 * @return Tensor 
+	 */
 	Tensor sub(const Tensor& b, double alpha = 1.0) const;
+	Tensor& sub_(const Tensor& b, double alpha = 1.0);
 
 	/**
-	 * @brief 
-	 * \f$ |x| \f$
+	 * @brief Determines the absolute values of the given Tensor.
+	 * \f$ abs(x) = |x| \f$
 	 * @return Tensor 
 	 */
 	Tensor abs() const;
 	Tensor& abs_();
 
 	/**
-	 * @brief 
-	 * \f$ e^x \f$
+	 * @brief Calculates the exponential function of the Tensor.
+	 * \f$ exp(x) = e^x \f$
 	 * @return Tensor 
 	 */
 	Tensor exp() const;
 	Tensor& exp_();
 
+	/**
+	 * @brief Calculates the square root of the Tensor.
+	 * \f$ sqrt(x) = \sqrt{x} \f$
+	 * @return Tensor 
+	 */
 	Tensor sqrt() const;
 	Tensor& sqrt_();
 
+	/**
+	 * @brief Calculates the sine of the Tensor.
+	 * @return Tensor 
+	 */
 	Tensor sin() const;
 	Tensor& sin_();
 
+	/**
+	 * @brief Calculates the cosine of the Tensor.
+	 * @return Tensor 
+	 */
 	Tensor cos() const;
 	Tensor& cos_();
 
+	/**
+	 * @brief Calculates the tan of the Tensor.
+	 * @return Tensor 
+	 */
 	Tensor tan() const;
 	Tensor& tan_();
 
+	/**
+	 * @brief Calculates the hyperbolic tan of the Tensor.
+	 * @return Tensor 
+	 */
 	Tensor tanh() const;
 	Tensor& tanh_();
 
+	/**
+	 * @brief Calculates the sum of all elements in the Tensor.
+	 * \f$ x = \{x_0, ..., x_n\}: sum(x) = \sum_{i=0}^{n} x_i \f$
+	 * @return double The sum.
+	 */
 	double sum();
 
+	/**
+	 * @brief Checks if the Tensor is C_CONTIGUOUS.
+	 * 
+	 * @return true 
+	 * @return false 
+	 */
 	bool isContiguous() const { return flags & C_CONTIGUOUS; }
 
 	DTYPE dtype;
@@ -372,12 +719,26 @@ enum POOLING_MODE
 	MAX_POOLING
 };
 
+/**
+ * @brief Defines the interface for a device specific tensor implementation.
+ * 
+ * This class provides the interface for many basic operations on a tensor,
+ * including memory allocation and basic arithmetic.
+ * 
+ * A device specific implementation needs to inherit from BackendTensor and
+ * may inherit other extensions like CVBackendTensor or NNBackendTensor as well
+ * for more specialized functionality.
+ * 
+ */
 class FUNZEL_API BackendTensor
 {
 public:
 	virtual ~BackendTensor() {}
 
-	// Placeholder to be overridden!
+	/**
+	 * @brief This method is called once when the backend is loaded.
+	 * Each child class may define its own version of this method.
+	 */
 	static void initializeBackend() {}
 
 	virtual void empty(std::shared_ptr<char> buffer, size_t sz, const Shape& shape, DTYPE dtype = DFLOAT32) = 0;
@@ -412,6 +773,12 @@ public:
 private:
 };
 
+/**
+ * @brief Calculates the number of elements defined by a given shape.
+ * 
+ * @param shape The shape to evaluate.
+ * @return size_t The number of elements in a Tensor of given shape.
+ */
 inline size_t size(const Shape& shape)
 {
 	if(shape.empty())
