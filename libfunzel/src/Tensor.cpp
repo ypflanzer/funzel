@@ -127,7 +127,7 @@ Tensor Tensor::empty(const Shape& shape, const std::shared_ptr<char>& data, DTYP
 	t.shape = shape;
 	t.device = backend;
 
-	t->empty(data, ::size(shape), shape, dtype);
+	t->empty(data, ::size(shape), dtype);
 
 	// Reshape to set the strides
 	t.reshape_(shape);
@@ -146,7 +146,7 @@ Tensor Tensor::empty(const Shape& shape, const void* data, DTYPE dtype, const st
 	t.shape = shape;
 	t.device = backend;
 
-	t->empty(data, ::size(shape), shape, dtype);
+	t->empty(data, ::size(shape), dtype);
 
 	// Reshape to set the strides
 	t.reshape_(shape);
@@ -328,7 +328,7 @@ Tensor Tensor::to(const std::string& device) const
 	t.offset = offset;
 	t.strides = strides;
 	
-	t->empty(m_backend->buffer(), m_backend->size, shape, dtype);
+	t->empty(m_backend->buffer(), m_backend->size, dtype);
 
 	// Reshape to set the strides
 	t.reshape_(shape);
