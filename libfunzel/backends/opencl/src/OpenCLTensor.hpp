@@ -37,8 +37,8 @@ public:
 	OpenCLTensor(const std::string& args);
 
 	void fill(const Tensor& self, double scalar) override;
-	void empty(std::shared_ptr<char> buffer, size_t sz, const Shape& shape, DTYPE dtype = DFLOAT32) override;
-	void empty(const void* buffer, size_t sz, const Shape& shape, DTYPE dtype = DFLOAT32) override;
+	void empty(std::shared_ptr<char> buffer, size_t sz, DTYPE dtype = DFLOAT32) override;
+	void empty(const void* buffer, size_t sz, DTYPE dtype = DFLOAT32) override;
 	void* data(size_t offset = 0) override;
 	std::shared_ptr<char> buffer() override;
 	std::shared_ptr<BackendTensor> clone() const override;

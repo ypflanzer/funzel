@@ -56,7 +56,7 @@ void* BlasTensor::data(size_t offset)
 	return m_data.get() + offset;
 }
 
-void BlasTensor::empty(std::shared_ptr<char> buffer, size_t sz, const Shape& shape, DTYPE dtype)
+void BlasTensor::empty(std::shared_ptr<char> buffer, size_t sz, DTYPE dtype)
 {
 	this->size = sz;
 	this->dtype = dtype;
@@ -72,7 +72,7 @@ void BlasTensor::empty(std::shared_ptr<char> buffer, size_t sz, const Shape& sha
 	}
 }
 
-void BlasTensor::empty(const void* buffer, size_t sz, const Shape& shape, DTYPE dtype)
+void BlasTensor::empty(const void* buffer, size_t sz, DTYPE dtype)
 {
 	this->size = sz;
 	this->dtype = dtype;
@@ -93,7 +93,7 @@ std::shared_ptr<BackendTensor> BlasTensor::clone() const
 
 	memcpy(data.get(), m_data.get(), sz);
 
-	t->empty(data, sz, {size}, dtype);
+	t->empty(data, sz, dtype);
 	return std::shared_ptr<BackendTensor>(t);
 }
 

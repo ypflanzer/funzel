@@ -120,7 +120,7 @@ std::shared_ptr<char> OpenCLTensor::buffer()
 	return dest;
 }
 
-void OpenCLTensor::empty(const void* buffer, size_t sz, const Shape& shape, DTYPE dtype)
+void OpenCLTensor::empty(const void* buffer, size_t sz, DTYPE dtype)
 {
 	this->dtype = dtype;
 	this->size = sz;
@@ -137,9 +137,9 @@ void OpenCLTensor::empty(const void* buffer, size_t sz, const Shape& shape, DTYP
 	}
 }
 
-void OpenCLTensor::empty(std::shared_ptr<char> buffer, size_t sz, const Shape& shape, DTYPE dtype)
+void OpenCLTensor::empty(std::shared_ptr<char> buffer, size_t sz, DTYPE dtype)
 {
-	empty((const void*) buffer.get(), sz, shape, dtype);
+	empty((const void*) buffer.get(), sz, dtype);
 }
 
 std::shared_ptr<BackendTensor> OpenCLTensor::clone() const
@@ -147,7 +147,7 @@ std::shared_ptr<BackendTensor> OpenCLTensor::clone() const
 	OpenCLTensor* t = new OpenCLTensor(m_clArgs);
 	size_t sz = size*dtypeSizeof(dtype);
 
-	t->empty(nullptr, sz, {size}, dtype);
+	t->empty(nullptr, sz, dtype);
 
 	t->wait();
 	t->m_device.queue.enqueueCopyBuffer(m_buffer, t->m_buffer, 0, 0, sz, nullptr, &t->m_currentEvent);	
