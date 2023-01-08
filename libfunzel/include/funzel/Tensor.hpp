@@ -28,6 +28,9 @@
 namespace funzel
 {
 
+/**
+ * @brief Defines a set of element types which may be used when defining tensors.
+ */
 enum DTYPE
 {
 	DINT16 = 0,
@@ -77,6 +80,12 @@ inline constexpr size_t dtypeSizeof(const DTYPE dtype)
 	}
 }
 
+/**
+ * @brief Converts the given DTYPE to a name string.
+ * 
+ * @param dtype The DTYPE.
+ * @return std::string A string containing the name.
+ */
 inline std::string dtypeToNativeString(const DTYPE dtype)
 {
 	switch(dtype)
@@ -101,6 +110,12 @@ inline std::string dtypeToNativeString(const DTYPE dtype)
 }
 
 #ifndef SWIG
+/**
+ * @brief Converts the given type T into a DTYPE.
+ * 
+ * @tparam T The type to convert.
+ * @return DTYPE The DTYPE equivalent to T.
+ */
 template<typename T>
 DTYPE dtype()
 {
@@ -117,6 +132,13 @@ DTYPE dtype()
 	return NONE;
 }
 
+/**
+ * @brief Determines the DTYPE of a given object.
+ * 
+ * @tparam T The type of the given object.
+ * @return DTYPE The DTYPE equivalent to T.
+ * @see dtype()
+ */
 template<typename T>
 DTYPE dtypeOf(const T&) { return dtype<T>(); }
 #endif
@@ -741,30 +763,185 @@ public:
 	 */
 	static void initializeBackend() {}
 
-	virtual void empty(std::shared_ptr<char> buffer, size_t sz, const Shape& shape, DTYPE dtype = DFLOAT32) = 0;
-	virtual void empty(const void* buffer, size_t sz, const Shape& shape, DTYPE dtype = DFLOAT32) = 0;
+	/**
+	 * @brief Allocates a new empty tensor.
+	 * 
+	 * @param buffer Data used for initialization. May be nullptr.
+	 * @param sz The size of the buffer in bytes.
+	 * @param dtype The DTYPE of each element.
+	 */
+	virtual void empty(std::shared_ptr<char> buffer, size_t sz, DTYPE dtype = DFLOAT32) = 0;
 
+	/**
+	 * @brief Allocates a new empty tensor.
+	 * 
+	 * The buffer will be copied and needs to be free'd by the caller.
+	 * 
+	 * @param buffer Data used for initialization. May be nullptr.
+	 * @param sz The size of the buffer in bytes.
+	 * @param dtype The DTYPE of each element.
+	 */
+	virtual void empty(const void* buffer, size_t sz, DTYPE dtype = DFLOAT32) = 0;
+
+	/**
+	 * @brief Retrieves a pointer to the data at the given offset into the tensor.
+	 * 
+	 * @param offset An offset in bytes.
+	 * @return void* A pointer to the data.
+	 */
 	virtual void* data(size_t offset = 0) = 0;
 	virtual std::shared_ptr<char> buffer() = 0;
+
+	/**
+	 * @brief Clones the BackendTensor into a new object.
+	 * 
+	 * This is used to duplicate device specific memory.
+	 * 
+	 * @return std::shared_ptr<BackendTensor> The new BackendTensor.
+	 */
 	virtual std::shared_ptr<BackendTensor> clone() const = 0;
+
+	/**
+	 * @brief Provides a name for the backend class.
+	 * 
+	 * This will be used to refer to this backend, also when referring to devices
+	 * supported by the backend.
+	 * 
+	 * @return const char* A name of the backend.
+	 */
 	virtual const char* backendName() const = 0;
 
+	/**
+	 * @brief Fills the memory with a scalar value.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param scalar A scalar value which will be converted to the correct type.
+	 */
 	virtual void fill(const Tensor& self, double scalar) = 0;
+
+	/**
+	 * @brief Calculates a multiply-add.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param tgt The target tensor results will be stored to.
+	 * @param alpha A multiplier.
+	 * @see Tensor::mul(const Tensor&, double)
+	 */
 	virtual void mulAdd(const Tensor& self, Tensor tgt, double alpha) { ThrowError("Operation is not supported!"); }
+	
+	/**
+	 * @brief Multiplies elements with a scalar.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param scalar A scalar value which will be converted to the correct type.
+	 * @see Tensor::mul
+	 */
 	virtual void mul(Tensor self, double alpha) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Implements matrix-matrix multiplication.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param b Another matrix which will be multiplied from the right.
+	 * @param tgt The target tensor results will be stored to.
+	 */
 	virtual void matmul(const Tensor& self, Tensor b, Tensor tgt) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Divides the tensor element wise.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param b A Tensor of the same shape as self.
+	 * @param tgt The target tensor results will be stored to.
+	 */
 	virtual void div(const Tensor& self, const Tensor& b, Tensor tgt) { ThrowError("Operation is not supported!"); }
 
 	virtual void sub(const Tensor& self, const Tensor& b, double alpha = 1.0) { ThrowError("Operation is not supported!"); }
+	
+	/**
+	 * @brief Calculates the absolute value of elements.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param tgt The target tensor results will be stored to.
+	 */
 	virtual void abs(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Calculates the exponential function of elements.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param tgt The target tensor results will be stored to.
+	 * @see Tensor::exp
+	 */
 	virtual void exp(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Calculates the square root of elements.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param tgt The target tensor results will be stored to.
+	 * @see Tensor::sqrt
+	 */
 	virtual void sqrt(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Calculates the sine of elements.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param tgt The target tensor results will be stored to.
+	 * @see Tensor::sin
+	 */
 	virtual void sin(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Calculates the cosine of elements.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param tgt The target tensor results will be stored to.
+	 * @see Tensor::cos
+	 */
 	virtual void cos(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Calculates the tangens of elements.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param tgt The target tensor results will be stored to.
+	 * @see Tensor::tan
+	 */
 	virtual void tan(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Calculates the hyperbolic tangens of elements.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @param tgt The target tensor results will be stored to.
+	 * @see Tensor::tanh
+	 */
 	virtual void tanh(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Calculates the sum of elements.
+	 * 
+	 * @param self A Tensor defining which exact elements to use.
+	 * @return double The sum of values contained in Tensor self.
+	 */
 	virtual double sum(const Tensor& self) { ThrowError("Operation is not supported!"); return 0; }
+
+	/**
+	 * @brief Copies elements from another tensor.
+	 * 
+	 * @param self A Tensor defining which exact elements to overwrite.
+	 * @param src A Tensor defining which exact elements to read.
+	 */
 	virtual void set(Tensor& self, const Tensor& src) { ThrowError("Operation is not supported!"); }
+
+	/**
+	 * @brief Makes a tensor contiguous in memory.
+	 * 
+	 * @param self A Tensor defining which exact elements to read.
+	 * @param tgt The target tensor results will be stored to.
+	 */
 	virtual void unravel(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
 
 	DTYPE dtype;
@@ -791,21 +968,90 @@ inline size_t size(const Shape& shape)
 	return sz;
 }
 
+/**
+ * @brief Generates a set of evenly distributed values between start and stop.
+ * 
+ * @param start A start value, the smallest value in the set.
+ * @param stop An end value, the maximal possible value in the set (if endPoint is /b true).
+ * @param num The number of values to generate.
+ * @param endPoint /b true if the end point should be included in the set, /b false otherwise.
+ * @param dtype The DTYPE of all elements.
+ * @return Tensor A new Tensor containing the generated values.
+ */
 FUNZEL_API Tensor linspace(double start, double stop, size_t num, bool endPoint = true, DTYPE dtype = DFLOAT32);
+
+/**
+ * @brief Generates a set of evenly distributed values between start and stop.
+ * 
+ * This is the tensor version of this method, the only difference to the scalar version
+ * is the dimensionality of the output.
+ * 
+ * @param start A start value, the smallest value in the set.
+ * @param stop An end value, the maximal possible value in the set (if endPoint is /b true).
+ * @param num The number of values to generate.
+ * @param endPoint /b true if the end point should be included in the set, /b false otherwise.
+ * @param dtype The DTYPE of all elements.
+ * @return Tensor A new Tensor containing the generated values.
+ */
 FUNZEL_API Tensor linspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, DTYPE dtype = DFLOAT32);
+
+/**
+ * @brief Generates am evenly distributed set of values between start and stop on a log scale.
+ * 
+ * The values start at \f$ base^{start} \f$ and end with \f$ base^{stop} \f$.
+ * 
+ * @param start A start value, the smallest value in the set.
+ * @param stop An end value, the maximal possible value in the set (if endPoint is /b true).
+ * @param num The number of values to generate.
+ * @param endPoint /b true if the end point should be included in the set, /b false otherwise.
+ * @param base The base of the log space.
+ * @param dtype The DTYPE of all elements.
+ * @return Tensor A new Tensor containing the generated values.
+ */
 FUNZEL_API Tensor logspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint = true, double base = 10.0, DTYPE dtype = DFLOAT32);
+
+/**
+ * @brief Generates a set of values between start and stop with a distance of step.
+ * 
+ * @param start A start value, the smallest value in the set.
+ * @param stop An end value, the maximal possible value in the set.
+ * @param step The step size between values.
+ * @param dtype The DTYPE of all elements.
+ * @return Tensor A new Tensor containing the generated values.
+ */
 FUNZEL_API Tensor arange(double start, double stop, double step, DTYPE dtype = DFLOAT32);
 
+/**
+ * @brief Defines the interface of a general RNG.
+ */
 struct IRandomGenerator
 {
 	virtual ~IRandomGenerator() {}
+
+	/**
+	 * @brief Gets a new, implementation defined, random number.
+	 * 
+	 * @return double A random number.
+	 */
 	virtual double get() = 0;
 };
 
+/**
+ * @brief A random number generator which can be used with STL distributions.
+ * 
+ * @tparam Dist A random number distribution type like std::uniform_distribution.
+ */
 template<typename Dist>
 struct RandomGenerator : public IRandomGenerator
 {
 	RandomGenerator() = default;
+
+	/**
+	 * @brief Construct a new RandomGenerator object.
+	 * 
+	 * @param d A distribution object.
+	 * @param seed A seed value.
+	 */
 	RandomGenerator(const Dist& d, uint64_t seed = std::mt19937::default_seed):
 		distribution(d),
 		gen(seed) {}
@@ -819,7 +1065,21 @@ struct RandomGenerator : public IRandomGenerator
 	std::mt19937 gen;
 };
 
+/**
+ * @brief Generates a set of random values to fill a Tensor with.
+ * 
+ * @param out The Tensor object to fill with random values.
+ * @param generator A random number generator object.
+ * @return Tensor& The out parameter for chaining operations.
+ */
 FUNZEL_API Tensor& randn(Tensor& out, IRandomGenerator& generator);
+
+/**
+ * @brief Generates a set of random values to fill a Tensor with.
+ * 
+ * @param out The Tensor object to fill with random values.
+ * @return Tensor& The out parameter for chaining operations.
+ */
 FUNZEL_API Tensor& randn(Tensor& out);
 
 #ifndef SWIG
