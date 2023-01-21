@@ -26,15 +26,46 @@ class FUNZEL_API image
 public:
 	image() = delete;
 
+	/**
+	 * @brief Defines different channels orders of color images.
+	 */
 	enum CHANNEL_ORDER
 	{
-		HWC,
-		CHW
+		HWC, ///< height x width x channels
+		CHW ///< channels x height x width
 	};
 
+	/**
+	 * @brief Loads an image file into a Tensor.
+	 * 
+	 * A channel order and type conversion and will be performed automatically if
+	 * required by the arguments.
+	 * 
+	 * @param file The path to the image file.
+	 * @param order The channel order of the new Tensor.
+	 * @param dtype The DTYPE of the new Tensor.
+	 * @param device The device on which the new Tensor will be created.
+	 * @return Tensor A new Tensor of type "dtype" on device "device" with channel order "order".
+	 */
 	FUNZEL_API static Tensor load(const std::string& file, CHANNEL_ORDER order = HWC, DTYPE dtype = NONE, const std::string& device = std::string());
+
+	/**
+	 * @brief Save an image to a file.
+	 * 
+	 * @attention The image Tensor needs a HWC channel order!
+	 * 
+	 * @param tensor The Tensor containing the image.
+	 * @param file The file to save to.
+	 */
 	FUNZEL_API static void save(const Tensor& tensor, const std::string& file);
 
+	/**
+	 * @brief Converts an image Tensor to the required channel order.
+	 * @attention This will always permute the channels, make sure the source channel order is correct!
+	 * @param t The image Tensor.
+	 * @param order The new channel order.
+	 * @return Tensor A new Tensor where the channels have been permuted according the the requested channel order.
+	 */
 	static inline Tensor toOrder(const Tensor& t, CHANNEL_ORDER order)
 	{
 		if(order == HWC)
@@ -43,6 +74,16 @@ public:
 		return t.permute({2, 0, 1});
 	}
 
+	/**
+	 * @brief Shows the contents of an image Tensor.
+	 * 
+	 * Creates a new window showing the given image Tensor.
+	 * Requires a HWC Tensor of DTYPE DUBYTE.
+	 * 
+	 * @param t The image Tensor with order HWC.
+	 * @param title The window title to show.
+	 * @param waitkey Wait for the window to close before returning.
+	 */
 	FUNZEL_API static void imshow(const Tensor& t, const std::string& title = "", bool waitkey = false);
 
 	FUNZEL_API static void drawCircle(Tensor tgt, const Vec2& pos, float r, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
