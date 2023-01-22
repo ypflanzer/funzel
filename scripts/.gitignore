@@ -1,0 +1,10 @@
+pipbuild
+dist
+build
+funzel.egg-info
+funzel/__pycache__
+funzel/lib/*.so*
+funzel/lib/*.dll
+funzel/lib/*.dylib
+funzel/lib/PyFunzel.py
+*.pyc
