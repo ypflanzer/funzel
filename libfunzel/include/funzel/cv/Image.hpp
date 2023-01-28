@@ -47,7 +47,7 @@ public:
 	 * @param device The device on which the new Tensor will be created.
 	 * @return Tensor A new Tensor of type "dtype" on device "device" with channel order "order".
 	 */
-	FUNZEL_API static Tensor load(const std::string& file, CHANNEL_ORDER order = HWC, DTYPE dtype = NONE, const std::string& device = std::string());
+	static Tensor load(const std::string& file, CHANNEL_ORDER order = HWC, DTYPE dtype = NONE, const std::string& device = std::string());
 
 	/**
 	 * @brief Save an image to a file.
@@ -57,7 +57,7 @@ public:
 	 * @param tensor The Tensor containing the image.
 	 * @param file The file to save to.
 	 */
-	FUNZEL_API static void save(const Tensor& tensor, const std::string& file);
+	static void save(const Tensor& tensor, const std::string& file);
 
 	/**
 	 * @brief Converts an image Tensor to the required channel order.
@@ -84,15 +84,15 @@ public:
 	 * @param title The window title to show.
 	 * @param waitkey Wait for the window to close before returning.
 	 */
-	FUNZEL_API static void imshow(const Tensor& t, const std::string& title = "", bool waitkey = false);
+	static void imshow(const Tensor& t, const std::string& title = "", bool waitkey = false);
 
-	FUNZEL_API static void drawCircle(Tensor tgt, const Vec2& pos, float r, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
-	FUNZEL_API static void drawCircles(Tensor tgt, Tensor circlesXYR, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
+	static void drawCircle(Tensor tgt, const Vec2& pos, float r, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
+	static void drawCircles(Tensor tgt, Tensor circlesXYR, float thickness = 5, const Vec3& color = Vec3(255, 255, 255));
 
-	FUNZEL_API static Tensor gaussianBlur(Tensor input, unsigned int kernelSize, double sigma);
-	FUNZEL_API static Tensor& gaussianBlur(Tensor input, Tensor& tgt, unsigned int kernelSize, double sigma);
+	static Tensor gaussianBlur(Tensor input, unsigned int kernelSize, double sigma);
+	static Tensor& gaussianBlur(Tensor input, Tensor& tgt, unsigned int kernelSize, double sigma);
 
-	FUNZEL_API static Tensor sobelDerivative(Tensor input, bool horizontal);
-	FUNZEL_API static Tensor& sobelDerivative(Tensor input, Tensor& tgt, bool horizontal);
+	static Tensor sobelDerivative(Tensor input, bool horizontal);
+	static Tensor& sobelDerivative(Tensor input, Tensor& tgt, bool horizontal);
 };
 }
