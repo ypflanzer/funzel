@@ -97,7 +97,8 @@ if(NOT NO_JAVA AND JNI_FOUND AND Java_FOUND)
 
 	set_source_files_properties(JavaFunzel.i PROPERTIES CPLUSPLUS ON)
 	swig_add_library(JFunzel LANGUAGE java SOURCES JavaFunzel.i OUTPUT_DIR ${FUNZEL_JAVA_DIR})
-	target_link_libraries(JFunzel PUBLIC funzel funzelBlas JNI::JNI)
+	target_link_libraries(JFunzel PUBLIC funzel funzelBlas)
+	target_include_directories(JFunzel PRIVATE ${JAVA_INCLUDE_PATH} ${JAVA_INCLUDE_PATH2})
 
 	add_custom_command(
 		TARGET JFunzel POST_BUILD
