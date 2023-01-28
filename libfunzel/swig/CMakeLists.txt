@@ -88,3 +88,25 @@ if(NOT NO_PYTHON)
 	endif()
 endif()
 
+find_package(JNI)
+find_package(Java)
+
+if(NOT NO_JAVA AND JNI_FOUND AND Java_FOUND)
+	set(CMAKE_SWIG_FLAGS "-package" "JFunzel")
+	set(FUNZEL_JAVA_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/jfunzel/JFunzel)
+
+	set_source_files_properties(JavaFunzel.i PROPERTIES CPLUSPLUS ON)
+	swig_add_library(JFunzel LANGUAGE java SOURCES JavaFunzel.i OUTPUT_DIR ${FUNZEL_JAVA_DIR})
+	target_link_libraries(JFunzel PUBLIC funzel funzelBlas JNI::JNI)
+
+	add_custom_command(
+		TARGET JFunzel POST_BUILD
+		COMMAND ${Java_JAVAC_EXECUTABLE} ${FUNZEL_JAVA_DIR}/*.java
+		COMMAND ${Java_JAR_EXECUTABLE} cf ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/JFunzel.jar ${FUNZEL_JAVA_DIR}/*.class
+		MAIN_DEPENDENCY JavaFunzel.i
+		COMMENT "Compiling Java..."
+	)
+
+	install(TARGETS JFunzel DESTINATION lib)
+	install(FILES ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/JFunzel.jar DESTINATION lib)
+endif()
