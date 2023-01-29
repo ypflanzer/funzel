@@ -593,7 +593,7 @@ void BlasTensor::conv2d(
 		//#pragma omp parallel for
 		for (int i = 0; i < self.shape[0]; i++)
 		{
-			conv2d(self[i], tgt[i], kernel, stride, padding, dilation);
+			conv2d(self[i], tgt[i], kernel[i], stride, padding, dilation);
 		}
 
 		return;

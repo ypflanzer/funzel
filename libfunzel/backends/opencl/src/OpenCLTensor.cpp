@@ -620,24 +620,53 @@ static inline void Conv2DInner(
 	auto& selfBuffer = selfBackend->clbuffer();
 	auto& krnlBuffer = krnlBackend->clbuffer();
 
+#if 0 // All channels at once. Does not work right now, bug in CLBlast?
 	auto status = clblast::Convgemm<T>(clblast::KernelMode::kCrossCorrelation,
-			channels,
-			height, width, // width, height
-			kernel.shape[0], kernel.shape[1], // kernelWidth, kernelHeight,
-			padding[0], padding[1],
-			stride[0], stride[1],
-			dilation[0], dilation[1],
-			1, // 1 kernel only. Maybe that can be more?
-			
-			batch, // Batch size
-			selfBuffer(), self.offset / sizeof(T),
-			krnlBuffer(), kernel.offset / sizeof(T),
-			tgtBuffer(), tgt.offset / sizeof(T),
+				channels,
+				height, width, // width, height
+				kernel.shape[1], kernel.shape[2], // kernelWidth, kernelHeight,
+				padding[0], padding[1],
+				stride[0], stride[1],
+				dilation[0], dilation[1],
+				1, // 1 kernel only. Maybe that can be more?
+				
+				batch, // Batch size
+				selfBuffer(), self.offset / sizeof(T),
+				krnlBuffer(), kernel.offset / sizeof(T),
+				tgtBuffer(), tgt.offset / sizeof(T),
 
-			&tgtBackend->clcmdQueue()(), &tgtBackend->clcurrentEvent()());
+				&tgtBackend->clcmdQueue()(), &tgtBackend->clcurrentEvent()());
 
 
-	AssertExcept(status == clblast::StatusCode::kSuccess, "CLBlast Error: " + std::to_string((int) status));
+		AssertExcept(status == clblast::StatusCode::kSuccess, "CLBlast Error: " + std::to_string((int) status));
+#endif
+
+	// Needs to be done for every channel... Is this a bug in CLBlast?
+	// FIXME Potential bug!
+	for(int i = 0; i < channels; i++)
+	{
+		const auto tmpself = self[i];
+		const auto tmpkernel = kernel[i];
+		const auto tmptgt = tgt[i];
+
+		auto status = clblast::Convgemm<T>(clblast::KernelMode::kCrossCorrelation,
+				1,
+				height, width, // width, height
+				kernel.shape[1], kernel.shape[2], // kernelWidth, kernelHeight,
+				padding[0], padding[1],
+				stride[0], stride[1],
+				dilation[0], dilation[1],
+				1, // 1 kernel only. Maybe that can be more?
+				
+				batch, // Batch size
+				selfBuffer(), tmpself.offset / sizeof(T),
+				krnlBuffer(), tmpkernel.offset / sizeof(T),
+				tgtBuffer(), tmptgt.offset / sizeof(T),
+
+				&tgtBackend->clcmdQueue()(), &tgtBackend->clcurrentEvent()());
+
+		AssertExcept(status == clblast::StatusCode::kSuccess, "CLBlast Error: " + std::to_string((int) status));
+	}
 }
 
 #if 1
@@ -653,6 +682,9 @@ void OpenCLTensor::conv2d(
 
 	AssertExcept(self.shape.size() >= 2,
 		"A 2D convolutions requires a tensor of type BCHW, CHW or HW, the given tensor has only one dimension.");
+
+	AssertExcept(self.isContiguous() && tgt.isContiguous() && kernel.isContiguous(),
+		"The OpenCL convolution does not support strides, all inputs need to be contiguous!");
 
 	size_t finalDimensions = 2;
 	size_t width = 0, height = 0, outWidth = 0, outHeight = 0;
@@ -704,11 +736,11 @@ void OpenCLTensor::conv2d(
 	AssertExcept(self.getBackend() != tgt.getBackend(), "Cannot apply convolution in-place!");
 	assert(self.getBackend() == this && "Wrong tensor given first!");
 
-	const size_t oh = ((height + size_t(2) * padding[0] - dilation[0] * (kernel.shape[0] - 1) - 1) / stride[0]) + 1;
-	const size_t ow = ((width + size_t(2) * padding[1] - dilation[1] * (kernel.shape[1] - 1) - 1) / stride[1]) + 1;
+	const size_t oh = ((height + size_t(2) * padding[0] - dilation[0] * (kernel.shape[1] - 1) - 1) / stride[0]) + 1;
+	const size_t ow = ((width + size_t(2) * padding[1] - dilation[1] * (kernel.shape[2] - 1) - 1) / stride[1]) + 1;
 	AssertExcept(outHeight == oh && outWidth == ow, "Invalid output size: " << outHeight << " != " << oh << " or " << outWidth << " != " << ow);
 
-	AssertExcept((channels == 1 && kernel.shape.size() == 2) || kernel.shape[2] == channels,
+	AssertExcept((channels == 1 && kernel.shape.size() == 2) || kernel.shape[0] == channels,
 					"An image with CHW needs a kernel with HWC, the number of channels must match!");
 
 	// Wait for both tensors to be available
@@ -742,8 +774,7 @@ void OpenCLTensor::conv2d(
 	default: ThrowError("Unsupported dtype!");
 	}
 }
-#endif
-#if 0
+#else
 void OpenCLTensor::conv2d(
 	const Tensor& self, Tensor tgt,
 	const Tensor& kernel,

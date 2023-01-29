@@ -65,7 +65,7 @@ TEST(CommonTestCV, Conv2dColor)
 	auto img = image::load("test.jpg", image::CHW).astype<float>().mul_(1.0 / 255.0).to(TestDevice);
 	auto tgt = Tensor::zeros_like(img);
 	
-	auto kernel = Tensor::ones({ 5, 5, 3 }, DFLOAT32, TestDevice);
+	auto kernel = Tensor::ones({ 3, 5, 5 }, DFLOAT32, TestDevice);
 	kernel.mul_(1.0 / (5.0*5.0));
 	img.getBackendAs<cv::CVBackendTensor>()->conv2d(img, tgt, kernel, { 1, 1 }, { 2, 2 }, { 1, 1 });
 
