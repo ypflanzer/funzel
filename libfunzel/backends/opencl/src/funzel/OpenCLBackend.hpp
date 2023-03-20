@@ -55,9 +55,7 @@ class OpenCLBackend
 {
 public:
 	static OpenCLBackend& the();
-	static void initialize();
-
-	OpenCLBackend() { initCL(); }
+	OpenCLBackend() { }
 
 	void initCL();
 

@@ -13,18 +13,14 @@ FUNZEL_REGISTER_BACKEND("OCL", OpenCLTensor)
 static OpenCLBackend s_backend;
 static bool s_initialized = false;
 
+extern "C" EXPORT void FunzelInit()
+{
+	s_backend.initCL();
+}
+
 OpenCLBackend& OpenCLBackend::the()
 {
 	return s_backend;
-}
-
-void OpenCLBackend::initialize()
-{
-	if(s_initialized)
-		return;
-
-	s_backend.initCL();
-	s_initialized = true;
 }
 
 void OpenCLBackend::initCL()

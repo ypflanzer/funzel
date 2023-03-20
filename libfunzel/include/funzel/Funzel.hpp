@@ -40,6 +40,11 @@
 #endif
 
 /**
+ * @brief Defines the function signature of a DLL init function.
+ */
+typedef void (*FunzelInitFuncType)();
+
+/**
  * @function FUNZEL_REGISTER_BACKEND(name, type)
  * @brief Registers a backend class.
  * @param name The name of the backend.

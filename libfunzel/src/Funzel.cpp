@@ -4,6 +4,7 @@
 #include <unordered_map>
 #include <string>
 
+#include <cmath>
 #include <iostream>
 #include <spdlog/spdlog.h>
 
@@ -69,7 +70,6 @@ std::vector<DeviceProperties> funzel::GetDevices()
 	return s_devices;
 }
 
-#include <cmath>
 void funzel::PrintDevices()
 {
 	std::cout << "Found " << s_devices.size() << " device" << (s_devices.size() > 1 ? "s" : "") << ".\n";
@@ -114,6 +114,11 @@ void funzel::backend::LoadBackend(const std::string& name)
 #ifdef WIN32
 	auto backend = LoadLibrary(("funzel" + name + ".dll").c_str());
 	AssertExcept(backend != NULL, "Could not load backend: " << name);
+
+	auto InitFunc = (FunzelInitFuncType) GetProcAddress(backend, "FunzelInit");
+	if(InitFunc != NULL)
+		InitFunc();
+
 #elif defined(__unix__) || defined(__APPLE__)
 	#ifdef __APPLE__
 	const char* ext = ".dylib";
@@ -123,6 +128,10 @@ void funzel::backend::LoadBackend(const std::string& name)
 
 	auto backend = dlopen(("libfunzel" + name + ext).c_str(), RTLD_LAZY);
 	AssertExcept(backend != NULL, "Could not load backend: " << name);
+
+	auto InitFunc = (FunzelInitFuncType) dlsym(backend, "FunzelInit");
+	if(InitFunc != NULL)
+		InitFunc();
 #else
 	#warning "No implementation for loading backends at runtime was found!"
 	AssertExcept(false, "Could not load backend: " << name);
