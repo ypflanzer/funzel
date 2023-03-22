@@ -11,7 +11,11 @@ get_target_property(PUBLIC_HEADER_DIR funzel INTERFACE_INCLUDE_DIRECTORIES)
 file(GLOB_RECURSE PUBLIC_HEADERS ${PUBLIC_HEADER_DIR}/*.h*)
 
 ## Set all doxygen parameters for generating XML
-set(DOXYGEN_INPUT_DIR ${PROJECT_SOURCE_DIR}/libfunzel/include/funzel)
+set(DOXYGEN_INPUT_DIR
+	${PROJECT_SOURCE_DIR}/libfunzel/include/funzel
+	${PROJECT_SOURCE_DIR}/libfunzel/backends/blas/src
+	${PROJECT_SOURCE_DIR}/libfunzel/backends/opencl/src
+)
 
 set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doxygen)
 set(DOXYGEN_INDEX_FILE ${DOXYGEN_OUTPUT_DIRECTORY}/xml/index.xml)
@@ -23,6 +27,7 @@ set(DOXYGEN_USE_MATHJAX YES)
 file(MAKE_DIRECTORY ${DOXYGEN_OUTPUT_DIRECTORY}/xml/)
 file(TOUCH ${DOXYGEN_INDEX_FILE})
 
+set(DOXYGEN_EXCLUDE_PATTERNS opencl.hpp)
 doxygen_add_docs(
 	doxygen
 	${DOXYGEN_INPUT_DIR}
