@@ -283,16 +283,25 @@ public:
 	BackendTensor* getBackend() { return m_backend.get(); }
 	
 #ifndef SWIG
-	const BackendTensor* getBackend() const { return m_backend.get(); }
+	inline const BackendTensor* getBackend() const { return m_backend.get(); }
 
-	BackendTensor* operator->() { return m_backend.get(); }
-	BackendTensor* operator->() const { return m_backend.get(); }
-
-	template<typename T>
-	T* getBackendAs() { return dynamic_cast<T*>(m_backend.get()); }
+	inline BackendTensor* operator->() { return m_backend.get(); }
+	inline BackendTensor* operator->() const { return m_backend.get(); }
 
 	template<typename T>
-	T* getBackendAs() const { return dynamic_cast<T*>(m_backend.get()); }
+	inline T* getBackendAs() { return dynamic_cast<T*>(m_backend.get()); }
+
+	template<typename T>
+	inline T* getBackendAs() const { return dynamic_cast<T*>(m_backend.get()); }
+
+	/**
+	 * @brief Casts the backend to the desired type if supported. Throws an error otherwise.
+	 * @see funzel::cv::CVBackendTensor funzel::linalg::LinalgBackendTensor funzel::nn::NNBackendTensor
+	 * @tparam T The desired backend type.
+	 * @return T& The backend as the desired type.
+	 */
+	template<typename T>
+	inline T& ensureBackend() const;
 #endif
 
 	std::string toString() const;
@@ -827,7 +836,7 @@ public:
 	 * @param alpha A multiplier.
 	 * @see Tensor::mul(const Tensor&, double)
 	 */
-	virtual void mulAdd(const Tensor& self, Tensor tgt, double alpha) { ThrowError("Operation is not supported!"); }
+	virtual void mulAdd(const Tensor& self, Tensor tgt, double alpha) { UnsupportedOperationError; }
 	
 	/**
 	 * @brief Multiplies elements with a scalar.
@@ -836,7 +845,7 @@ public:
 	 * @param scalar A scalar value which will be converted to the correct type.
 	 * @see Tensor::mul
 	 */
-	virtual void mul(Tensor self, double alpha) { ThrowError("Operation is not supported!"); }
+	virtual void mul(Tensor self, double alpha) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Implements matrix-matrix multiplication.
@@ -845,7 +854,7 @@ public:
 	 * @param b Another matrix which will be multiplied from the right.
 	 * @param tgt The target tensor results will be stored to.
 	 */
-	virtual void matmul(const Tensor& self, Tensor b, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void matmul(const Tensor& self, Tensor b, Tensor tgt) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Divides the tensor element wise.
@@ -854,9 +863,9 @@ public:
 	 * @param b A Tensor of the same shape as self.
 	 * @param tgt The target tensor results will be stored to.
 	 */
-	virtual void div(const Tensor& self, const Tensor& b, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void div(const Tensor& self, const Tensor& b, Tensor tgt) { UnsupportedOperationError; }
 
-	virtual void sub(const Tensor& self, const Tensor& b, double alpha = 1.0) { ThrowError("Operation is not supported!"); }
+	virtual void sub(const Tensor& self, const Tensor& b, double alpha = 1.0) { UnsupportedOperationError; }
 	
 	/**
 	 * @brief Calculates the absolute value of elements.
@@ -864,7 +873,7 @@ public:
 	 * @param self A Tensor defining which exact elements to use.
 	 * @param tgt The target tensor results will be stored to.
 	 */
-	virtual void abs(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void abs(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Calculates the exponential function of elements.
@@ -873,7 +882,7 @@ public:
 	 * @param tgt The target tensor results will be stored to.
 	 * @see Tensor::exp
 	 */
-	virtual void exp(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void exp(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Calculates the square root of elements.
@@ -882,7 +891,7 @@ public:
 	 * @param tgt The target tensor results will be stored to.
 	 * @see Tensor::sqrt
 	 */
-	virtual void sqrt(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void sqrt(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Calculates the sine of elements.
@@ -891,7 +900,7 @@ public:
 	 * @param tgt The target tensor results will be stored to.
 	 * @see Tensor::sin
 	 */
-	virtual void sin(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void sin(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Calculates the cosine of elements.
@@ -900,7 +909,7 @@ public:
 	 * @param tgt The target tensor results will be stored to.
 	 * @see Tensor::cos
 	 */
-	virtual void cos(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void cos(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Calculates the tangens of elements.
@@ -909,7 +918,7 @@ public:
 	 * @param tgt The target tensor results will be stored to.
 	 * @see Tensor::tan
 	 */
-	virtual void tan(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void tan(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Calculates the hyperbolic tangens of elements.
@@ -918,7 +927,7 @@ public:
 	 * @param tgt The target tensor results will be stored to.
 	 * @see Tensor::tanh
 	 */
-	virtual void tanh(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void tanh(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Calculates the sum of elements.
@@ -926,7 +935,7 @@ public:
 	 * @param self A Tensor defining which exact elements to use.
 	 * @return double The sum of values contained in Tensor self.
 	 */
-	virtual double sum(const Tensor& self) { ThrowError("Operation is not supported!"); return 0; }
+	virtual double sum(const Tensor& self) { UnsupportedOperationError; return 0; }
 
 	/**
 	 * @brief Copies elements from another tensor.
@@ -934,7 +943,7 @@ public:
 	 * @param self A Tensor defining which exact elements to overwrite.
 	 * @param src A Tensor defining which exact elements to read.
 	 */
-	virtual void set(Tensor& self, const Tensor& src) { ThrowError("Operation is not supported!"); }
+	virtual void set(Tensor& self, const Tensor& src) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Makes a tensor contiguous in memory.
@@ -942,7 +951,7 @@ public:
 	 * @param self A Tensor defining which exact elements to read.
 	 * @param tgt The target tensor results will be stored to.
 	 */
-	virtual void unravel(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void unravel(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	DTYPE dtype;
 	size_t size;
@@ -1085,6 +1094,17 @@ FUNZEL_API Tensor& randn(Tensor& out);
 #ifndef SWIG
 FUNZEL_API std::ostream& operator<<(std::ostream& out, const Tensor& s);
 FUNZEL_API std::ostream& operator<<(std::ostream& out, const Shape& s);
+
+
+// Out of line definition to prevent "invalid use of incomplete type" warning.
+template<typename T>
+inline T& Tensor::ensureBackend() const
+{
+	auto* t = dynamic_cast<T*>(m_backend.get());
+	AssertExcept(t, "Expected a type supporting trait '" << T::BackendName() << "' but backend '" << m_backend->backendName() << "' does not.");
+	return *t;
+}
+
 #endif
 
 }

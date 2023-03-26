@@ -19,6 +19,7 @@
 #include <funzel/Tensor.hpp>
 #include <funzel/nn/NNBackendTensor.hpp>
 #include <funzel/cv/CVBackendTensor.hpp>
+#include <funzel/linalg/LinalgBackendTensor.hpp>
 
 namespace funzel
 {
@@ -27,6 +28,7 @@ namespace blas
 
 class EXPORT BlasTensor:
 	public BackendTensor,
+	public linalg::LinalgBackendTensor,
 	public nn::NNBackendTensor,
 	public cv::CVBackendTensor
 {
@@ -61,8 +63,13 @@ public:
 	void tanh(const Tensor& self, Tensor tgt) override;
 	double sum(const Tensor& self) override;
 
-	void relu(const Tensor& self, Tensor& tgt, double negativeSlope = 0.0) override;
+	// linalg
+	//void det(const Tensor& self, Tensor tgt) override;
+	//void inv(const Tensor& self, Tensor tgt) override;
+	//void trace(const Tensor& self, Tensor tgt) override;
 
+	// nn
+	void relu(const Tensor& self, Tensor& tgt, double negativeSlope = 0.0) override;
 	void pool2d(
 			const Tensor& self, Tensor tgt,
 			POOLING_MODE mode,
@@ -71,6 +78,10 @@ public:
 			const UVec2& padding,
 			const UVec2& dilation) override;
 
+	void set(Tensor& self, const Tensor& src) override;
+	void unravel(const Tensor& self, Tensor tgt) override;
+
+	// cv
 	void conv2d(
 			const Tensor& self, Tensor tgt,
 			const Tensor& kernel,
@@ -78,10 +89,6 @@ public:
 			const UVec2& padding,
 			const UVec2& dilation) override;
 
-	void set(Tensor& self, const Tensor& src) override;
-	void unravel(const Tensor& self, Tensor tgt) override;
-
-	// cv backend
 	void convertGrayscale(const Tensor& self, Tensor tgt) override;
 
 private:

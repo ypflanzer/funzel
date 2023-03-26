@@ -73,6 +73,11 @@ const std::string EmptyStr; ///< An empty string.
 	throw std::runtime_error(msg);
 }
 
+#define STRINGIZE_IMPL(x) #x
+#define STRINGIZE(x) STRINGIZE_IMPL(x)
+
+#define UnsupportedOperationError ThrowError("Operation '" + std::string(__func__) + "' is not supported at " __FILE__ ":" STRINGIZE(__LINE__))
+
 /**
  * @function AssertExcept(v, msg)
  * @brief Thros an exception if the given predicate is false.
