@@ -7,9 +7,10 @@ endif()
 
 set(BLA_VENDOR "OpenBLAS" CACHE STRING "The BLAS implementation to be used.")
 find_package(BLAS REQUIRED)
+find_package(LAPACK REQUIRED)
 
 add_library(funzelBlas SHARED ${SRC} ${HEADERS})
-target_link_libraries(funzelBlas PUBLIC funzel PRIVATE BLAS::BLAS)
+target_link_libraries(funzelBlas PUBLIC funzel PRIVATE BLAS::BLAS ${LAPACK_LIBRARIES})
 
 if(BLA_VENDOR STREQUAL "OpenBLAS")
 	add_compile_definitions(funzelBlas PUBLIC BLAS_VENDOR_OPENBLAS)

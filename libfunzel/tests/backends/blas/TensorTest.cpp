@@ -135,3 +135,4 @@ TEST(CPUTensorTest, TrimDimensions)
 #include "../../Common.hpp"
 #include "../../CommonCV.hpp"
 #include "../../CommonNN.hpp"
+#include "../../CommonLinalg.hpp"

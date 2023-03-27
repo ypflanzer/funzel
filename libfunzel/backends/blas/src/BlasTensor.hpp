@@ -64,7 +64,7 @@ public:
 	double sum(const Tensor& self) override;
 
 	// linalg
-	//void det(const Tensor& self, Tensor tgt) override;
+	void det(const Tensor& self, Tensor tgt) override;
 	//void inv(const Tensor& self, Tensor tgt) override;
 	//void trace(const Tensor& self, Tensor tgt) override;
 
