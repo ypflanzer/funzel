@@ -129,3 +129,44 @@ void BlasTensor::inv(const Tensor& self, Tensor tgt)
 		default: ThrowError("Unsupported dtype!");
 	}
 }
+
+template<typename T>
+inline static void DoTrace(const Tensor& self, Tensor& tgt)
+{
+	T traceval = 0;
+	for(size_t i = 0; i < self.shape[0]; i++)
+	{
+		traceval += self[{i, i}].item<T>();
+	}
+	tgt.set(traceval);
+}
+
+void BlasTensor::trace(const Tensor& self, Tensor tgt)
+{
+	if(self.shape.empty())
+		return;
+	
+	if(self.shape.size() > 2)
+	{
+		//#pragma omp parallel for
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			trace(self[i], tgt[i]);
+		}
+
+		return;
+	}
+
+	AssertExcept(self.shape[0] == self.shape[1], "Calculating the trace requires a square matrix.");
+
+	switch(dtype)
+	{
+		case DFLOAT32: {
+			DoTrace<float>(self, tgt);
+		} break;
+		case DFLOAT64: {
+			DoTrace<double>(self, tgt);
+		} break;
+		default: ThrowError("Unsupported dtype!");
+	}
+}

@@ -120,5 +120,46 @@ TEST(CommonTestLinalg, InvBroadcast)
 	EXPECT_TENSOR_EQ(tgt.cpu(), expectedResult);
 }
 
+TEST(CommonTestLinalg, Trace)
+{
+	Tensor a({3, 3},
+	{
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f
+	}, TestDevice);
+
+	const auto tgt = linalg::trace(a);
+	const Tensor expectedResult({1}, { 9.0f });
+
+	EXPECT_TENSOR_EQ(tgt.cpu(), expectedResult);
+}
+
+TEST(CommonTestLinalg, TraceBroadcast)
+{
+	Tensor a({4, 3, 3},
+	{
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f,
+
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f,
+
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f,
+	}, TestDevice);
+
+	const auto tgt = linalg::trace(a);
+	const Tensor expectedResult({4}, { 3.0f, 9.0f, 9.0f, 9.0f });
+
+	EXPECT_TENSOR_EQ(tgt.cpu(), expectedResult);
+}
 
 #undef CommonTestLinalg

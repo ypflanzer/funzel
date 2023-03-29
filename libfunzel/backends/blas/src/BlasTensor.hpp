@@ -66,7 +66,7 @@ public:
 	// linalg
 	void det(const Tensor& self, Tensor tgt) override;
 	void inv(const Tensor& self, Tensor tgt) override;
-	//void trace(const Tensor& self, Tensor tgt) override;
+	void trace(const Tensor& self, Tensor tgt) override;
 
 	// nn
 	void relu(const Tensor& self, Tensor& tgt, double negativeSlope = 0.0) override;

@@ -49,7 +49,17 @@ Tensor funzel::linalg::inv(Tensor input)
 	return tgt;
 }
 
-Tensor funzel::linalg::trace(Tensor input, Tensor* result)
+Tensor& funzel::linalg::trace(Tensor input, Tensor& result)
 {
+	input.ensureBackend<LinalgBackendTensor>().trace(input, result);
+	return result;
+}
 
+Tensor funzel::linalg::trace(Tensor input)
+{
+	const auto outsize = std::accumulate(input.shape.begin(), input.shape.end()-2, size_t(1), [](auto a, auto b) { return a*b; });
+	auto tgt = Tensor::empty({outsize}, input.dtype, input.device);
+
+	input.ensureBackend<LinalgBackendTensor>().trace(input, tgt);
+	return tgt;
 }
