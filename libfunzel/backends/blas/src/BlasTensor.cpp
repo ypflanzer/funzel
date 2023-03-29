@@ -3,11 +3,12 @@
 #include "BlasTensor.hpp"
 
 #include <iostream>
-#include <cblas.h>
 #include <cstring>
 #include <cmath>
 #include <functional>
 #include <spdlog/spdlog.h>
+
+#include <cblas.h>
 
 #ifdef WIN32
 #include <windows.h>
@@ -679,82 +680,6 @@ void BlasTensor::convertGrayscale(const Tensor& self, Tensor tgt)
 		} break;
 		case DFLOAT64: {
 			ConvertRGBToGrayCHW<double>(self, tgt);
-		} break;
-		default: ThrowError("Unsupported dtype!");
-	}
-}
-
-#include <lapacke.h>
-
-template<typename T>
-inline static void DoDet(Tensor& luMat, Tensor& tgt)
-{
-	const void* src = luMat.data(luMat.offset);
-
-	int n = luMat.shape[0], m = luMat.shape[1], stride = luMat.strides.back() / sizeof(T);
-	int info = 1;
-
-	// FIXME: Maybe for smaller data we can use the stack? See alloca and malloca
-	const auto numPivots = std::min(m, n);
-	auto pivots = std::make_unique<int[]>(numPivots);
-
-	if constexpr(std::is_same_v<T, float>)
-	{
-		sgetrf_(&m, &n, (float*) src, &m, pivots.get(), &info);
-	}
-	else if constexpr(std::is_same_v<T, float>)
-	{
-		dgetrf_(&m, &n, (double*) src, &m, pivots.get(), &info);
-	}
-	else
-	{
-
-	}
-
-	// If the matrix is singular.
-	if(info != 0)
-	{
-		tgt.set(0);
-		return;
-	}
-
-	T detval = 1;
-	for(size_t i = 0; i < numPivots; i++)
-	{
-		if(pivots[i] != i)
-			detval *= T(-1);
-
-		detval *= luMat[{i, i}].item<T>();
-	}
-
-	tgt.set(detval);
-}
-
-void BlasTensor::det(const Tensor& self, Tensor tgt)
-{
-	if(self.shape.empty())
-		return;
-	
-	if(self.shape.size() > 2)
-	{
-		//#pragma omp parallel for
-		for(int i = 0; i < self.shape[0]; i++)
-		{
-			det(self[i], tgt[i]);
-		}
-
-		return;
-	}
-
-	auto luMat = self.clone();
-
-	switch(dtype)
-	{
-		case DFLOAT32: {
-			DoDet<float>(luMat, tgt);
-		} break;
-		case DFLOAT64: {
-			DoDet<double>(luMat, tgt);
 		} break;
 		default: ThrowError("Unsupported dtype!");
 	}

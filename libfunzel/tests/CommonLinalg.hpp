@@ -58,4 +58,67 @@ TEST(CommonTestLinalg, DetBroadcast)
 	EXPECT_TENSOR_EQ(tgt.cpu(), expectedResult);
 }
 
+TEST(CommonTestLinalg, Inv)
+{
+	Tensor a({3, 3},
+	{
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f
+	}, TestDevice);
+
+	const auto tgt = linalg::inv(a);
+	const Tensor expectedResult({3, 3}, {
+		0.5f, 0.0f, 0.0f,
+		0.0f, 0.2f, 0.0f,
+		0.0f, 0.0f, 0.5f
+	});
+
+	EXPECT_TENSOR_EQ(tgt.cpu(), expectedResult);
+}
+
+TEST(CommonTestLinalg, InvBroadcast)
+{
+	Tensor a({4, 3, 3},
+	{
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f,
+
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f,
+
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f,
+	}, TestDevice);
+
+	const auto tgt = linalg::inv(a);
+	const Tensor expectedResult({4, 3, 3}, {
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+
+		0.5f, 0.0f, 0.0f,
+		0.0f, 0.2f, 0.0f,
+		0.0f, 0.0f, 0.5f,
+
+		0.5f, 0.0f, 0.0f,
+		0.0f, 0.2f, 0.0f,
+		0.0f, 0.0f, 0.5f,
+
+		0.5f, 0.0f, 0.0f,
+		0.0f, 0.2f, 0.0f,
+		0.0f, 0.0f, 0.5f
+	});
+
+	EXPECT_TENSOR_EQ(tgt.cpu(), expectedResult);
+}
+
+
 #undef CommonTestLinalg

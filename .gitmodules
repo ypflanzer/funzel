@@ -1,3 +1,6 @@
 [submodule "libfunzel/backends/opencl/CLBlast"]
 	path = libfunzel/backends/opencl/CLBlast
 	url = https://github.com/CNugteren/CLBlast.git
+[submodule "libfunzel/backends/blas/openblas"]
+	path = libfunzel/backends/blas/openblas
+	url = https://github.com/xianyi/OpenBLAS.git

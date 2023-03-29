@@ -1,16 +1,35 @@
 file(GLOB SRC src/*.cpp)
 file(GLOB HEADERS src/*.h*)
 
-if(APPLE)
-	set(CMAKE_PREFIX_PATH "/usr/local/opt/openblas")
+option(USE_INTERNAL_BLAS "Compile OpenBLAS ourselves instead of relying on system packages." ON)
+if(USE_INTERNAL_BLAS)
+
+	set(C_LAPACK TRUE CACHE BOOL "Use C sources, Fortran may not be available." FORCE)
+	set(DYNAMIC_ARCH TRUE CACHE BOOL "Use dynamic arch for flexibility.")
+	set(NO_WARMUP TRUE CACHE BOOL "Prevent expensive warmup.")
+
+	add_subdirectory(openblas EXCLUDE_FROM_ALL)
+	set(FUNZEL_BLAS_LIBRARIES openblas_static)
+	set(FUNZEL_BLAS_INCLUDE_DIRS
+		"openblas"
+		"openblas/lapack-netlib/LAPACKE/include/"
+		"${CMAKE_CURRENT_BINARY_DIR}/openblas")
+
+	set(BLA_VENDOR "OpenBLAS")
+else()
+	if(APPLE)
+		set(CMAKE_PREFIX_PATH "/usr/local/opt/openblas")
+	endif()
+
+	set(BLA_VENDOR "OpenBLAS" CACHE STRING "The BLAS implementation to be used.")
+	find_package(BLAS REQUIRED)
+	find_package(LAPACK REQUIRED)
+
+	set(FUNZEL_BLAS_LIBRARIES BLAS::BLAS ${LAPACK_LIBRARIES})
 endif()
 
-set(BLA_VENDOR "OpenBLAS" CACHE STRING "The BLAS implementation to be used.")
-find_package(BLAS REQUIRED)
-find_package(LAPACK REQUIRED)
-
 add_library(funzelBlas SHARED ${SRC} ${HEADERS})
-target_link_libraries(funzelBlas PUBLIC funzel PRIVATE BLAS::BLAS ${LAPACK_LIBRARIES})
+target_link_libraries(funzelBlas PUBLIC funzel PRIVATE ${FUNZEL_BLAS_LIBRARIES})
 
 if(BLA_VENDOR STREQUAL "OpenBLAS")
 	add_compile_definitions(funzelBlas PUBLIC BLAS_VENDOR_OPENBLAS)
@@ -29,7 +48,7 @@ elseif(WIN32 OR UNIX)
 	message("-- Looking for cblas.h: ${CBLAS_HEADER}")
 endif()
 
-target_include_directories(funzelBlas PRIVATE ${CBLAS_HEADER})
+target_include_directories(funzelBlas PRIVATE ${CBLAS_HEADER} ${LAPACK_INCLUDE_DIRS} ${FUNZEL_BLAS_INCLUDE_DIRS})
 
 install(TARGETS funzelBlas
 	LIBRARY DESTINATION lib

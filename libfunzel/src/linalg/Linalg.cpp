@@ -15,18 +15,38 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 #include <funzel/linalg/Linalg.hpp>
+#include <funzel/linalg/LinalgBackendTensor.hpp>
+#include <funzel/Tensor.hpp>
+#include <numeric>
 
 using namespace funzel;
 using namespace linalg;
 
-Tensor funzel::linalg::det(Tensor input, Tensor* result)
+Tensor& funzel::linalg::det(Tensor input, Tensor& result)
 {
-
+	input.ensureBackend<LinalgBackendTensor>().det(input, result);
+	return result;
 }
 
-Tensor funzel::linalg::inv(Tensor input, Tensor* result)
+Tensor funzel::linalg::det(Tensor input)
 {
+	const auto outsize = std::accumulate(input.shape.begin(), input.shape.end()-2, size_t(1), [](auto a, auto b) { return a*b; });
+	auto tgt = Tensor::empty({outsize}, nullptr, input.dtype, input.device);
+	input.ensureBackend<LinalgBackendTensor>().det(input, tgt);
+	return tgt;
+}
 
+Tensor& funzel::linalg::inv(Tensor input, Tensor& result)
+{
+	input.ensureBackend<LinalgBackendTensor>().inv(input, result);
+	return result;
+}
+
+Tensor funzel::linalg::inv(Tensor input)
+{
+	auto tgt = Tensor::empty_like(input);
+	input.ensureBackend<LinalgBackendTensor>().inv(input, tgt);
+	return tgt;
 }
 
 Tensor funzel::linalg::trace(Tensor input, Tensor* result)

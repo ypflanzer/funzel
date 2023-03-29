@@ -20,7 +20,11 @@
 
 namespace funzel::linalg
 {
-FUNZEL_API Tensor det(Tensor input, Tensor* result = nullptr);
-FUNZEL_API Tensor inv(Tensor input, Tensor* result = nullptr);
+FUNZEL_API Tensor& det(Tensor input, Tensor& result);
+FUNZEL_API Tensor det(Tensor input);
+
+FUNZEL_API Tensor& inv(Tensor input, Tensor& result);
+FUNZEL_API Tensor inv(Tensor input);
+
 FUNZEL_API Tensor trace(Tensor input, Tensor* result = nullptr);
 }
