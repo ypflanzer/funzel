@@ -18,9 +18,11 @@
 #include <funzel/Tensor.hpp>
 #include "BlasTensor.hpp"
 
-#include <lapacke.h>
-
 #include <iostream>
+
+#define LAPACK_COMPLEX_STRUCTURE
+#define HAVE_LAPACK_CONFIG_H
+#include <lapacke.h>
 
 using namespace funzel;
 using namespace blas;
