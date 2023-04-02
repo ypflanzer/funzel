@@ -8,8 +8,10 @@ if(USE_INTERNAL_BLAS)
 	set(DYNAMIC_ARCH TRUE CACHE BOOL "Use dynamic arch for flexibility.")
 	set(NO_WARMUP TRUE CACHE BOOL "Prevent expensive warmup.")
 
-	add_subdirectory(openblas EXCLUDE_FROM_ALL)
+	set(BUILD_STATIC_LIBS TRUE CACHE BOOL "Build static libs." FORCE)
 	set(FUNZEL_BLAS_LIBRARIES openblas_static)
+
+	add_subdirectory(openblas EXCLUDE_FROM_ALL)
 	set(FUNZEL_BLAS_INCLUDE_DIRS
 		"openblas"
 		"openblas/lapack-netlib/LAPACKE/include/"
