@@ -19,6 +19,7 @@
 #include "BlasTensor.hpp"
 
 #include <iostream>
+#include <spdlog/spdlog.h>
 
 #define LAPACK_COMPLEX_STRUCTURE
 #define HAVE_LAPACK_CONFIG_H
@@ -187,4 +188,50 @@ void BlasTensor::trace(const Tensor& self, Tensor tgt)
 		} break;
 		default: ThrowError("Unsupported dtype!");
 	}
+}
+
+void BlasTensor::svd(const Tensor& self, Tensor U, Tensor S, Tensor V)
+{
+	if(self.shape.empty())
+		return;
+	
+	if(self.shape.size() > 2)
+	{
+		//#pragma omp parallel for
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			svd(self[i], U[i], S[i], V[i]);
+		}
+
+		return;
+	}
+
+	//AssertExcept(self.shape[0] == self.shape[1], "Calculating the trace requires a square matrix.");
+	int n = self.shape[0], m = self.shape[1];
+	void* udata = U.data(U.offset);
+	void* sdata = S.data(S.offset);
+	void* vdata = V.data(V.offset);
+	const void* selfdata = self.data(self.offset);
+
+	int errcode = 0;
+	switch(dtype)
+	{
+		case DFLOAT32: {
+			errcode = LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n,
+				(float*) selfdata, m,
+				(float*) sdata,
+				(float*) udata, m, // TODO Strides!
+				(float*) vdata, n);
+		} break;
+		case DFLOAT64: {
+
+		} break;
+		default: ThrowError("Unsupported dtype!");
+	}
+
+	spdlog::info("Errcode: {}", errcode);
+	//SGESDD
+	//sgesdd_();
+
+	//LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n, self.data(), m, s.data(), u.data());
 }

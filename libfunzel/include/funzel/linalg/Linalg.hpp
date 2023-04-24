@@ -28,4 +28,8 @@ FUNZEL_API Tensor inv(Tensor input);
 
 FUNZEL_API Tensor& trace(Tensor input, Tensor& result);
 FUNZEL_API Tensor trace(Tensor input);
+
+FUNZEL_API void svd(Tensor input, Tensor& U, Tensor& S, Tensor& V);
+FUNZEL_API std::tuple<Tensor, Tensor, Tensor> svd(Tensor input);
+FUNZEL_API Tensor svdvals(Tensor input);
 }

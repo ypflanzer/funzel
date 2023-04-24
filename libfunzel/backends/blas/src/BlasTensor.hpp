@@ -67,6 +67,7 @@ public:
 	void det(const Tensor& self, Tensor tgt) override;
 	void inv(const Tensor& self, Tensor tgt) override;
 	void trace(const Tensor& self, Tensor tgt) override;
+	void svd(const Tensor& self, Tensor U, Tensor S, Tensor V) override;
 
 	// nn
 	void relu(const Tensor& self, Tensor& tgt, double negativeSlope = 0.0) override;
