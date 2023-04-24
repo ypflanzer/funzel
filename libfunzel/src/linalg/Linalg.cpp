@@ -63,3 +63,32 @@ Tensor funzel::linalg::trace(Tensor input)
 	input.ensureBackend<LinalgBackendTensor>().trace(input, tgt);
 	return tgt;
 }
+
+void funzel::linalg::svd(Tensor input, Tensor& U, Tensor& S, Tensor& V)
+{
+	input.ensureBackend<LinalgBackendTensor>().svd(input, U, S, V);
+}
+
+std::tuple<Tensor, Tensor, Tensor> funzel::linalg::svd(Tensor input)
+{
+	std::tuple<Tensor, Tensor, Tensor> usv;
+	const auto& [u, s, v] = usv;
+
+	const auto outsize = std::accumulate(input.shape.begin(), input.shape.end()-2, size_t(1), [](auto a, auto b) { return a*b; });
+	
+	//Tensor::empty({std::min(), std::min()})
+
+	svd(input, std::get<0>(usv), std::get<1>(usv), std::get<2>(usv));
+	return usv;
+}
+
+Tensor funzel::linalg::svdvals(Tensor input)
+{
+	const auto ndim = input.shape.size();
+	const auto ndiag = std::min(input.shape[ndim-1], input.shape[ndim-2]);
+
+	const auto outsize = std::accumulate(input.shape.begin(), input.shape.end()-2, size_t(1), [](auto a, auto b) { return a*b; });
+	Tensor s = Tensor::empty({outsize, ndim});
+	
+	return s;
+}
