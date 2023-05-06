@@ -172,9 +172,65 @@ TEST(CommonTestLinalg, Svd)
 	}, TestDevice);
 
 	const auto [U, S, V] = linalg::svd(a);
-	//const Tensor expectedResult({1}, { 9.0f });
 
-	//EXPECT_TENSOR_EQ(tgt.cpu(), expectedResult);
+	const Tensor expectedU({3, 3}, {
+		0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f
+	});
+	
+	const Tensor expectedS({3}, { 5.0f, 2.0f, 2.0f });
+	const Tensor expectedV({3, 3}, {
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f
+	});
+
+	EXPECT_TENSOR_EQ(U.cpu(), expectedU);
+	EXPECT_TENSOR_EQ(S.cpu(), expectedS);
+	EXPECT_TENSOR_EQ(V.cpu(), expectedV);
+}
+
+
+TEST(CommonTestLinalg, SvdBroadcast)
+{
+	Tensor a({2, 3, 3},
+	{
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f,
+
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 0.0f, 2.0f
+	}, TestDevice);
+
+	const auto [U, S, V] = linalg::svd(a);
+
+	const Tensor expectedU({2, 3, 3}, {
+		0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f,
+
+		0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f,
+		0.0f, 1.0f, 0.0f
+	});
+	
+	const Tensor expectedS({2, 3}, { 5.0f, 2.0f, 2.0f, 5.0f, 2.0f, 2.0f });
+	const Tensor expectedV({2, 3, 3}, {
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f,
+
+		0.0f, 1.0f, 0.0f,
+		0.0f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f
+	});
+
+	EXPECT_TENSOR_EQ(U.cpu(), expectedU);
+	EXPECT_TENSOR_EQ(S.cpu(), expectedS);
+	EXPECT_TENSOR_EQ(V.cpu(), expectedV);
 }
 
 #undef CommonTestLinalg

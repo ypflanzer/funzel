@@ -153,6 +153,7 @@ template<typename T>
 inline static void DoTrace(const Tensor& self, Tensor& tgt)
 {
 	T traceval = 0;
+
 	for(size_t i = 0; i < self.shape[0]; i++)
 	{
 		traceval += self[{i, i}].item<T>();
@@ -224,14 +225,14 @@ void BlasTensor::svd(const Tensor& self, Tensor U, Tensor S, Tensor V)
 				(float*) vdata, n);
 		} break;
 		case DFLOAT64: {
-
+			errcode = LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'A', m, n,
+				(double*) selfdata, m,
+				(double*) sdata,
+				(double*) udata, m, // TODO Strides!
+				(double*) vdata, n);
 		} break;
 		default: ThrowError("Unsupported dtype!");
 	}
 
-	spdlog::info("Errcode: {}", errcode);
-	//SGESDD
-	//sgesdd_();
-
-	//LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n, self.data(), m, s.data(), u.data());
+	AssertExcept(errcode == 0, "Error running SVD: " << errcode);
 }

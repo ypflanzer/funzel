@@ -72,13 +72,27 @@ void funzel::linalg::svd(Tensor input, Tensor& U, Tensor& S, Tensor& V)
 std::tuple<Tensor, Tensor, Tensor> funzel::linalg::svd(Tensor input)
 {
 	std::tuple<Tensor, Tensor, Tensor> usv;
-	const auto& [u, s, v] = usv;
+	auto& [u, s, v] = usv;
+
+	const size_t m = input.shape[input.shape.size() - 2];
+	const size_t n = input.shape[input.shape.size() - 1];
 
 	const auto outsize = std::accumulate(input.shape.begin(), input.shape.end()-2, size_t(1), [](auto a, auto b) { return a*b; });
-	
-	//Tensor::empty({std::min(), std::min()})
 
-	svd(input, std::get<0>(usv), std::get<1>(usv), std::get<2>(usv));
+	if(outsize != 1)
+	{
+		s = Tensor::empty({outsize, std::min(m, n)}, input.dtype, input.device);
+		u = Tensor::empty({outsize, m, m}, input.dtype, input.device);
+		v = Tensor::empty({outsize, n, n}, input.dtype, input.device);
+	}
+	else
+	{
+		s = Tensor::empty({std::min(m, n)}, input.dtype, input.device);
+		u = Tensor::empty({m, m}, input.dtype, input.device);
+		v = Tensor::empty({n, n}, input.dtype, input.device);
+	}
+
+	svd(input, u, s, v);
 	return usv;
 }
 
