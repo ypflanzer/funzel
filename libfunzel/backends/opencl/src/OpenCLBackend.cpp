@@ -40,8 +40,15 @@ void OpenCLBackend::initCL()
 			spdlog::debug("Using OpenCL Platform: {}", platform.getInfo<CL_PLATFORM_NAME>());
 			//std::cout << "Using OpenCL Platform: " << platform.getInfo<CL_PLATFORM_NAME>() << std::endl;
 
-			platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
-			
+			try
+			{
+				platform.getDevices(CL_DEVICE_TYPE_GPU | CL_DEVICE_TYPE_CPU, &devices);
+			}
+			catch(const std::exception& e)
+			{
+				// Ignore all platforms throwing -31 (no suitable device type)
+			}
+						
 			if(devices.empty())
 				continue;
 			
