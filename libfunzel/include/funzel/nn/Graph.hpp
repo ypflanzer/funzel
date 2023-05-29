@@ -17,16 +17,68 @@
 #pragma once
 
 #include "Module.hpp"
+#include "Sequential.hpp"
 
 namespace funzel
 {
 namespace nn
 {
 
-template<typename T>
-class FUNZEL_API GraphNode : public T
+class IGraphNode : public Module
 {
 public:
+	virtual void dump(std::ostream& out) = 0;
+};
+
+template<typename T>
+class GraphNode : public IGraphNode
+{
+public:
+	GraphNode() = default;
+	GraphNode(T&& t) : operation(std::move(t)) {}
+	GraphNode(const T& t): operation(t) {}
+
+	~GraphNode() = default;
+
+	void dump(std::ostream& out) override
+	{
+		out << "rectangle \"" << operation.name() << '@' << this <<  "\"\n";
+
+		for(const auto& v : children)
+		{
+			v->dump(out);
+			out << '"' << operation.name() << '@' << this
+				<< "\" -down-> \"" << v->name() << '@' << v.get() << "\"\n";
+		} 
+	}
+
+	Tensor forward(const Tensor& in) override
+	{
+		return {};
+	}
+
+	Tensor backward(const Tensor& in) override
+	{
+		return {};
+	}
+
+	template<typename T, typename... Args>
+	std::shared_ptr<GraphNode<T>> add(Args&&... args)
+	{
+		std::shared_ptr<GraphNode<T>> g(new nn::GraphNode<T>({args...}));
+		children.push_back(g);
+		return g;
+	}
+
+	void add(std::shared_ptr<GraphNode<T>> n)
+	{
+		children.push_back(n);
+	}
+
+	const char* name() const { return operation.name(); }
+
+	T operation;
+	std::vector<std::shared_ptr<IGraphNode>> children;
 };
 
 class FUNZEL_API Graph : public Module
