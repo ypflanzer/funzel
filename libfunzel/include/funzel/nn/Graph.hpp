@@ -62,10 +62,10 @@ public:
 		return {};
 	}
 
-	template<typename T, typename... Args>
-	std::shared_ptr<GraphNode<T>> add(Args&&... args)
+	template<typename S, typename... Args>
+	std::shared_ptr<GraphNode<S>> add(Args&&... args)
 	{
-		std::shared_ptr<GraphNode<T>> g(new nn::GraphNode<T>({args...}));
+		std::shared_ptr<GraphNode<S>> g(new nn::GraphNode<S>({std::forward<Args>(args)...}));
 		children.push_back(g);
 		return g;
 	}
