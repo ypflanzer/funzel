@@ -26,8 +26,10 @@ namespace nn
 class FUNZEL_API Linear : public Module
 {
 public:
-	Linear(size_t in, size_t out, bool bias = true);
+	FUNZEL_MODULE(Linear)
 	
+	Linear(size_t in, size_t out, bool bias = true);
+
 	Tensor forward(const Tensor& input) override;
 	Tensor backward(const Tensor& input) override;
 

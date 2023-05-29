@@ -26,6 +26,8 @@ namespace nn
 class ReLU : public Module
 {
 public:
+	FUNZEL_MODULE(ReLU)
+
 	ReLU() = default;
 	
 	Tensor forward(const Tensor& input) final override

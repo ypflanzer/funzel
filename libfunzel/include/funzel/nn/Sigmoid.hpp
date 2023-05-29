@@ -26,6 +26,8 @@ namespace nn
 class Sigmoid : public Module
 {
 public:
+	FUNZEL_MODULE(Sigmoid)
+
 	Sigmoid() = default;
 	
 	Tensor forward(const Tensor& input) final override

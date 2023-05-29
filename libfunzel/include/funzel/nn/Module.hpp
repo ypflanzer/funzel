@@ -25,9 +25,19 @@ namespace nn
 
 typedef std::vector<Tensor> Parameters;
 
+#define FUNZEL_STRINGIFY(s) FUNZEL_STRINGIFY_IMPL(s)
+#define FUNZEL_STRINGIFY_IMPL(s) #s
+
+#define FUNZEL_MODULE(modname)\
+virtual const char* name() const { return FUNZEL_STRINGIFY(modname); }\
+static const char* Name() { return FUNZEL_STRINGIFY(modname); }
+
 class FUNZEL_API Module
 {
 public:
+
+	FUNZEL_MODULE(Module)
+
 	virtual ~Module() = default;
 	virtual Tensor forward(const Tensor& input) = 0;
 	virtual Tensor backward(const Tensor& input) = 0;

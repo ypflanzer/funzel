@@ -27,6 +27,8 @@ namespace nn
 class FUNZEL_API Pool2D : public Module
 {
 public:
+	FUNZEL_MODULE(Pool2D)
+
 	Pool2D(const UVec2& kernelSize,
 			POOLING_MODE mode,
 			const UVec2& stride,

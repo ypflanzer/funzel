@@ -26,6 +26,8 @@ namespace nn
 class FUNZEL_API Sequential : public Module
 {
 public:
+	FUNZEL_MODULE(Sequential)
+
 	Sequential() = default;
 	Sequential(std::initializer_list<ModuleRef> modules);
 
@@ -33,6 +35,9 @@ public:
 	Tensor backward(const Tensor& input) final override;
 	void to(const std::string& device = EmptyStr) final override;
 	void defaultInitialize() final override;
+
+	std::vector<ModuleRef>& modules() { return m_modules; }
+	const std::vector<ModuleRef>& modules() const { return m_modules; }
 
 private:
 	std::vector<ModuleRef> m_modules;
