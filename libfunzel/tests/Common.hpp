@@ -316,6 +316,30 @@ TEST(CommonTest, TanhStrided)
 TEST(CommonTest, AddMatrix)
 {
 	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
+	auto result = v.add(v);
+
+	v = v.cpu();
+	result = result.cpu();
+
+	// Make sure the original value did not change
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_EQ((v[{p, q, r}].item<float>()), 1);
+			}
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_EQ((result[{p, q, r}].item<float>()), 2);
+			}
+}
+
+TEST(CommonTest, AddMatrixInplace)
+{
+	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
 	v.add_(v);
 	v = v.cpu();
 
@@ -327,7 +351,7 @@ TEST(CommonTest, AddMatrix)
 			}
 }
 
-TEST(CommonTest, AddMatrixStrided)
+TEST(CommonTest, AddMatrixStridedInplace)
 {
 	const auto ones = Tensor::ones({3, 3}).to(TestDevice);
 	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).transpose();

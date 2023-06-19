@@ -558,7 +558,8 @@ Tensor& Tensor::add_(const Tensor& b, double alpha)
 
 Tensor Tensor::add(const Tensor& b, double alpha) const
 {
-	Tensor t(*this);
+	// TODO Run without copy!!!
+	Tensor t = clone();
 	t.add_(b, alpha);
 	return t;
 }
@@ -570,7 +571,8 @@ Tensor& Tensor::sub_(const Tensor& b, double alpha)
 
 Tensor Tensor::sub(const Tensor& b, double alpha) const
 {
-	Tensor t(*this);
+	// TODO Run without copy!!!
+	Tensor t = clone();
 	t.add_(b, -alpha);
 	return t;
 }
@@ -601,14 +603,16 @@ Tensor& Tensor::mul_(double alpha)
 
 Tensor Tensor::mul(double alpha) const
 {
-	Tensor t(*this);
+	// TODO Run without copy!!!
+	Tensor t = clone();
 	t.mul_(alpha);
 	return t;
 }
 
 Tensor Tensor::div(const Tensor& b) const
 {
-	Tensor t(*this);
+	// TODO Run without copy!!!
+	Tensor t = clone();
 	t.div_(b);
 	return t;
 }
