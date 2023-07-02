@@ -19,80 +19,123 @@
 #include "Module.hpp"
 #include "Sequential.hpp"
 
+#include <optional>
+#include <iostream>
+#include <unordered_map>
+
 namespace funzel
 {
 namespace nn
 {
 
-class IGraphNode : public Module
+class IGraphNode
 {
 public:
 	virtual void dump(std::ostream& out) = 0;
-};
+	virtual void execute() = 0;
 
-template<typename T>
-class GraphNode : public IGraphNode
-{
-public:
-	GraphNode() = default;
-	GraphNode(T&& t) : operation(std::move(t)) {}
-	GraphNode(const T& t): operation(t) {}
-
-	~GraphNode() = default;
-
-	void dump(std::ostream& out) override
+	class GraphNodeResult
 	{
-		out << "rectangle \"" << operation.name() << '@' << this <<  "\"\n";
+	public:
+		GraphNodeResult(IGraphNode* node, Tensor* tensor):
+			node(node), tensor(tensor) {}
 
-		for(const auto& v : children)
+		const Tensor& get()
 		{
-			v->dump(out);
-			out << '"' << operation.name() << '@' << this
-				<< "\" -down-> \"" << v->name() << '@' << v.get() << "\"\n";
-		} 
-	}
+			//std::cout << tensor << ": " << *tensor << std::endl;
+			if(tensor->size() == 0)
+				node->execute();
+			return *tensor;
+		}
 
-	Tensor forward(const Tensor& in) override
+	private:
+		IGraphNode* node;
+		Tensor* tensor = nullptr;
+	};
+
+	virtual GraphNodeResult result(size_t idx = 0) = 0;
+
+	typedef std::unordered_map<std::string, GraphNodeResult> ResultSet;
+	virtual ResultSet getResults() { return {{"value", result()}};}
+
+	operator GraphNodeResult()
 	{
-		return {};
+		return result(0);
 	}
-
-	Tensor backward(const Tensor& in) override
-	{
-		return {};
-	}
-
-	template<typename S, typename... Args>
-	std::shared_ptr<GraphNode<S>> add(Args&&... args)
-	{
-		std::shared_ptr<GraphNode<S>> g(new nn::GraphNode<S>({std::forward<Args>(args)...}));
-		children.push_back(g);
-		return g;
-	}
-
-	void add(std::shared_ptr<GraphNode<T>> n)
-	{
-		children.push_back(n);
-	}
-
-	const char* name() const { return operation.name(); }
-
-	T operation;
-	std::vector<std::shared_ptr<IGraphNode>> children;
 };
 
-class FUNZEL_API Graph : public Module
+typedef std::shared_ptr<IGraphNode> IGraphNodeRef;
+
+class ConstantNode : public IGraphNode
 {
 public:
-	Graph() = default;
+	void dump(std::ostream& out) override {}
+	void execute() override {}
 
-	Tensor forward(const Tensor& input) final override;
-	Tensor backward(const Tensor& input) final override;
-	void to(const std::string& device = EmptyStr) final override;
-	void defaultInitialize() final override;
+	Tensor& value() { return m_value; }
+	GraphNodeResult result(size_t idx = 0) override
+	{
+		return GraphNodeResult{this, &m_value};
+	}
 
 private:
+	Tensor m_value;
 };
+
+template<typename Fn>
+class BinaryOpNode : public IGraphNode
+{
+public:
+	BinaryOpNode(const GraphNodeResult& a, const GraphNodeResult& b):
+		a(a), b(b) {}
+
+	void dump(std::ostream& out) override {}
+	void execute() override
+	{
+		m_result = Fn().operator()(a.get(), b.get());
+	}
+
+	GraphNodeResult result(size_t idx = 0) override
+	{
+		return GraphNodeResult{this, &m_result};
+	}
+
+private:
+	GraphNodeResult a, b;
+	Tensor m_result;
+};
+
+typedef BinaryOpNode<decltype([](const Tensor& a, const Tensor& b) { return a - b; })> SubNode;
+typedef BinaryOpNode<decltype([](const Tensor& a, const Tensor& b) { return a + b; })> AddNode;
+typedef BinaryOpNode<decltype([](const Tensor& a, const Tensor& b) { return a * b; })> MulNode;
+typedef BinaryOpNode<decltype([](const Tensor& a, const Tensor& b) { return a / b; })> DivNode;
+
+template<typename Fn>
+class UnaryOpNode : public IGraphNode
+{
+public:
+	UnaryOpNode(const GraphNodeResult& x):
+		x(x) {}
+
+	void dump(std::ostream& out) override {}
+	void execute() override
+	{
+		m_result = Fn().operator()(x.get());
+	}
+
+	GraphNodeResult result(size_t idx = 0) override
+	{
+		return GraphNodeResult{this, &m_result};
+	}
+
+private:
+	GraphNodeResult x;
+	Tensor m_result;
+};
+
+typedef UnaryOpNode<decltype([](const Tensor& x) { return x.sin(); })> SinNode;
+typedef UnaryOpNode<decltype([](const Tensor& x) { return x.cos(); })> CosNode;
+typedef UnaryOpNode<decltype([](const Tensor& x) { return x.tan(); })> TanNode;
 
 }
 }

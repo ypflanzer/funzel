@@ -3,22 +3,25 @@
 #include <funzel/nn/Linear.hpp>
 
 using namespace funzel;
+using namespace nn;
 
 TEST(Graph, Load)
 {
-	nn::Graph graph;
-	nn::GraphNode<nn::Linear> linNode({2, 2, true});
-	linNode.add<nn::Linear>(2ULL, 2ULL);
-	linNode.add<nn::Linear>(2ULL, 2ULL);
-	linNode.add<nn::Linear>(2ULL, 2ULL);
-	
-	auto nnode = linNode.add<nn::Linear>(2ULL, 2ULL);
-	nnode->add<nn::Linear>(2ULL, 2ULL);
-	auto nnode2 = nnode->add<nn::Linear>(2ULL, 2ULL);
-	linNode.add(nnode2);
+	auto a = std::make_shared<ConstantNode>();
+	auto b = std::make_shared<ConstantNode>();
+	auto c = std::make_shared<ConstantNode>();
 
-	linNode.dump(std::cout);
+	a->value() = Tensor::ones({32});
+	b->value() = Tensor::ones({32});
+	c->value() = Tensor::ones({32});
 
-	auto intensor = Tensor::ones({1, 2, 2});
-	linNode.forward(intensor);
+	auto add = std::make_shared<AddNode>(a->result(), b->result());
+	auto add2 = std::make_shared<AddNode>(a->result(), add->result());
+
+	auto result = add2->result();
+}
+
+TEST(Graph, Eval)
+{
+
 }
