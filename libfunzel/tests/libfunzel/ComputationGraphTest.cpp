@@ -2,10 +2,12 @@
 #include <funzel/nn/Graph.hpp>
 #include <funzel/nn/Linear.hpp>
 
+#include "../TestUtils.hpp"
+
 using namespace funzel;
 using namespace nn;
 
-TEST(Graph, Load)
+TEST(Graph, SimpleAddition)
 {
 	auto a = std::make_shared<ConstantNode>();
 	auto b = std::make_shared<ConstantNode>();
@@ -19,9 +21,8 @@ TEST(Graph, Load)
 	auto add2 = std::make_shared<AddNode>(a->result(), add->result());
 
 	auto result = add2->result();
-}
 
-TEST(Graph, Eval)
-{
-
+	// (1 + 1) + 1 = 3
+	auto expected = Tensor::ones({32}) * 3;
+	EXPECT_TENSOR_EQ(Tensor(result), expected);
 }

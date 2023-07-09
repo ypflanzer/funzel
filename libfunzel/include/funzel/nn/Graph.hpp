@@ -22,6 +22,7 @@
 #include <optional>
 #include <iostream>
 #include <unordered_map>
+#include <cassert>
 
 namespace funzel
 {
@@ -46,6 +47,11 @@ public:
 			if(tensor->size() == 0)
 				node->execute();
 			return *tensor;
+		}
+
+		operator Tensor()
+		{
+			return get();
 		}
 
 	private:
