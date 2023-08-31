@@ -33,12 +33,16 @@ class OpenCLTensor :
 	public cv::CVBackendTensor
 {
 public:
+
+	static std::shared_ptr<BackendTensor> Empty(std::shared_ptr<char> data, size_t sz, DTYPE dtype, const std::string& args);
+	static std::shared_ptr<BackendTensor> Empty(const void* data, size_t sz, DTYPE dtype, const std::string& args);
+
 	OpenCLTensor();
 	OpenCLTensor(const std::string& args);
 
 	void fill(const Tensor& self, double scalar) override;
-	void empty(std::shared_ptr<char> buffer, size_t sz, DTYPE dtype = DFLOAT32) override;
-	void empty(const void* buffer, size_t sz, DTYPE dtype = DFLOAT32) override;
+	void empty(std::shared_ptr<char> buffer, size_t sz, DTYPE dtype) override;
+	void empty(const void* buffer, size_t sz, DTYPE dtype) override;
 	void* data(size_t offset = 0) override;
 	std::shared_ptr<char> buffer() override;
 	std::shared_ptr<BackendTensor> clone() const override;

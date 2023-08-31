@@ -191,7 +191,6 @@ TEST(CommonTestLinalg, Svd)
 	EXPECT_TENSOR_EQ(V.cpu(), expectedV);
 }
 
-
 TEST(CommonTestLinalg, SvdBroadcast)
 {
 	Tensor a({2, 3, 3},

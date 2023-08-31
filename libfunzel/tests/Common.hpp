@@ -26,6 +26,20 @@ using namespace funzel;
 #define TestDevice ""
 #endif
 
+TEST(CommonTest, Fill)
+{
+	auto v = Tensor::empty({3, 3, 3}, funzel::DFLOAT32, TestDevice);
+	v.fill(42);
+	v = v.cpu();
+
+	for(size_t p = 0; p < 3; p++)
+		for(size_t q = 0; q < 3; q++)
+			for(size_t r = 0; r < 3; r++)
+			{
+				EXPECT_EQ((v[{p, q, r}].item<float>()), 42);
+			}
+}
+
 TEST(CommonTest, Sum)
 {
 	auto v = Tensor::ones({3, 3, 3});

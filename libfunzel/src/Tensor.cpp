@@ -118,7 +118,8 @@ Tensor Tensor::zeros(size_t count, DTYPE dtype, const std::string& backend)
 Tensor Tensor::empty(const Shape& shape, const std::shared_ptr<char>& data, DTYPE dtype, const std::string& backend)
 {
 	Tensor t;
-	t.m_backend = backend::CreateBackendTensor(backend);
+	const auto count = ::size(shape);
+	t.m_backend = backend::CreateBackendTensor(data, count, dtype, backend);
 
 	if(!t.m_backend)
 		throw std::runtime_error("Could not create tensor with device '" + backend + "'!");
@@ -126,18 +127,18 @@ Tensor Tensor::empty(const Shape& shape, const std::shared_ptr<char>& data, DTYP
 	t.dtype = dtype;
 	t.shape = shape;
 	t.device = backend;
-
-	t->empty(data, ::size(shape), dtype);
-
+	
 	// Reshape to set the strides
 	t.reshape_(shape);
+
 	return t;
 }
 
 Tensor Tensor::empty(const Shape& shape, const void* data, DTYPE dtype, const std::string& backend)
 {
 	Tensor t;
-	t.m_backend = backend::CreateBackendTensor(backend);
+	const auto count = ::size(shape);
+	t.m_backend = backend::CreateBackendTensor(data, count, dtype, backend);
 
 	if(!t.m_backend)
 		throw std::runtime_error("Could not create tensor with device '" + backend + "'!");
@@ -145,8 +146,6 @@ Tensor Tensor::empty(const Shape& shape, const void* data, DTYPE dtype, const st
 	t.dtype = dtype;
 	t.shape = shape;
 	t.device = backend;
-
-	t->empty(data, ::size(shape), dtype);
 
 	// Reshape to set the strides
 	t.reshape_(shape);
@@ -317,7 +316,10 @@ Tensor Tensor::to(const std::string& device) const
 	}
 
 	Tensor t;
-	t.m_backend = backend::CreateBackendTensor(device);
+	const auto count = ::size(shape);
+
+	// TODO Optimize if the backend is the same, e.g. OpenCL
+	t.m_backend = backend::CreateBackendTensor(m_backend->buffer(), count, dtype, device);
 
 	if(!t.m_backend)
 		throw std::runtime_error("Could not create tensor with device '" + device + "'!");
@@ -328,10 +330,9 @@ Tensor Tensor::to(const std::string& device) const
 	t.offset = offset;
 	t.strides = strides;
 	
-	t->empty(m_backend->buffer(), m_backend->size, dtype);
-
+	//t->empty(m_backend->buffer(), m_backend->size, dtype);
 	// Reshape to set the strides
-	t.reshape_(shape);
+	// t.reshape_(shape);
 	return t;
 }
 

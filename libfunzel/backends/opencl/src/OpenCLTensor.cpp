@@ -883,3 +883,15 @@ void OpenCLTensor::relu(const Tensor& self, Tensor& tgt, double negativeSlope)
 
 	m_currentEvent = DoStrided(self, kernel, Relu);
 }
+
+std::shared_ptr<BackendTensor> OpenCLTensor::Empty(std::shared_ptr<char> data, size_t sz, DTYPE dtype, const std::string& args)
+{
+	return Empty(data.get(), sz, dtype, args);
+}
+
+std::shared_ptr<BackendTensor> OpenCLTensor::Empty(const void* data, size_t sz, DTYPE dtype, const std::string& args)
+{
+	OpenCLTensor* tensor = new OpenCLTensor(args);
+	tensor->empty(data, sz, dtype);
+	return std::shared_ptr<BackendTensor>(tensor);
+}

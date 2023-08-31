@@ -25,7 +25,8 @@ void funzel::backend::RegisterTensorBackend(const std::string& name, ITensorFact
 	s_tensorBackends[name] = std::unique_ptr<ITensorFactory>(factory);
 }
 
-std::shared_ptr<BackendTensor> funzel::backend::CreateBackendTensor(const std::string& name)
+template<typename T>
+static inline std::shared_ptr<BackendTensor> CreateBackendTensorT(T data, size_t count, DTYPE dtype, const std::string& name)
 {
  	if(name.empty())
 	{
@@ -33,7 +34,7 @@ std::shared_ptr<BackendTensor> funzel::backend::CreateBackendTensor(const std::s
 		if(iter == s_tensorBackends.end())
 			return nullptr;
 
-		return iter->second->create();
+		return iter->second->create(data, count, dtype);
 	}
 	
 	// Parse options!
@@ -44,7 +45,7 @@ std::shared_ptr<BackendTensor> funzel::backend::CreateBackendTensor(const std::s
 		if(iter == s_tensorBackends.end())
 			return nullptr;
 		
-		return iter->second->create();
+		return iter->second->create(data, count, dtype);
 	}
 
 	std::string device = name.substr(0, splitterIdx);
@@ -56,7 +57,17 @@ std::shared_ptr<BackendTensor> funzel::backend::CreateBackendTensor(const std::s
 	if(iter == s_tensorBackends.end())
 		return nullptr;
 	
-	return iter->second->create(args);
+	return iter->second->create(data, count, dtype, args);
+}
+
+std::shared_ptr<BackendTensor> funzel::backend::CreateBackendTensor(std::shared_ptr<char> data, size_t count, DTYPE dtype, const std::string& name)
+{
+	return CreateBackendTensorT(data, count, dtype, name);
+}
+
+std::shared_ptr<BackendTensor> funzel::backend::CreateBackendTensor(const void* data, size_t count, DTYPE dtype, const std::string& name)
+{
+	return CreateBackendTensorT(data, count, dtype, name);
 }
 
 static std::vector<DeviceProperties> s_devices;

@@ -24,6 +24,8 @@
 #include <functional>
 #include <spdlog/spdlog.h>
 
+#include "BlasTensorImpl.hpp"
+
 #include <cblas.h>
 
 #ifdef WIN32
@@ -61,7 +63,8 @@ void BlasTensor::initializeBackend()
 	backend::RegisterDevice(props);
 
 #ifdef BLAS_VENDOR_OPENBLAS
-	spdlog::debug("OpenBLAS Corename (may not be accurate): {}", openblas_get_corename());
+	char* corename = openblas_get_corename();
+	spdlog::debug("OpenBLAS Corename (may not be accurate): {}", corename);
 #endif
 }
 
@@ -71,6 +74,66 @@ void* BlasTensor::data(size_t offset)
 	const auto sz = size*dtypeSizeof(dtype);
 	AssertExcept(offset < sz, "Out of bounds access: " + std::to_string(offset) + " >= " + std::to_string(sz));
 	return m_data.get() + offset;
+}
+
+static inline BlasTensor* CreateBlasTensor(DTYPE dtype)
+{
+	switch(dtype)
+	{
+		default:
+		case DFLOAT32: return new BlasTensorImpl<float>(); break;
+
+		case DFLOAT64: return new BlasTensorImpl<double>(); break;
+		case DINT8: return new BlasTensorImpl<int8_t>(); break;
+		case DINT16: return new BlasTensorImpl<int16_t>(); break;
+		case DINT32: return new BlasTensorImpl<int32_t>(); break;
+		case DINT64: return new BlasTensorImpl<int64_t>(); break;
+		case DUINT8: return new BlasTensorImpl<uint8_t>(); break;
+		case DUINT16: return new BlasTensorImpl<uint16_t>(); break;
+		case DUINT32: return new BlasTensorImpl<uint32_t>(); break;
+	}
+
+	// Should never happen!
+	return nullptr;
+}
+
+std::shared_ptr<BackendTensor> BlasTensor::Empty(std::shared_ptr<char> data, size_t sz, DTYPE dtype, const std::string& args)
+{
+	BlasTensor* tensor = CreateBlasTensor(dtype);
+	tensor->empty(data, sz);
+	return std::shared_ptr<BackendTensor>(tensor);
+}
+
+std::shared_ptr<BackendTensor> BlasTensor::Empty(const void* data, size_t sz, DTYPE dtype, const std::string& args)
+{
+	BlasTensor* tensor = CreateBlasTensor(dtype);
+	tensor->empty(data, sz);
+	return std::shared_ptr<BackendTensor>(tensor);
+}
+
+void BlasTensor::empty(std::shared_ptr<char> buffer, size_t sz)
+{
+	this->size = sz;
+	if(!buffer)
+	{
+		m_data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
+	}
+	else
+	{
+		m_data = buffer;
+	}
+}
+
+void BlasTensor::empty(const void* buffer, size_t sz)
+{
+	this->size = sz;
+
+	m_data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
+
+	if(buffer)
+	{
+		memcpy(m_data.get(), buffer, this->size*dtypeSizeof(dtype));
+	}
 }
 
 void BlasTensor::empty(std::shared_ptr<char> buffer, size_t sz, DTYPE dtype)
@@ -104,13 +167,13 @@ void BlasTensor::empty(const void* buffer, size_t sz, DTYPE dtype)
 
 std::shared_ptr<BackendTensor> BlasTensor::clone() const
 {
-	BlasTensor* t = new BlasTensor;
+	BlasTensor* t = CreateBlasTensor(dtype);
 	size_t sz = size*dtypeSizeof(dtype);
 	auto data = std::shared_ptr<char>((char*) std::malloc(sz));
 
 	memcpy(data.get(), m_data.get(), sz);
 
-	t->empty(data, sz, dtype);
+	t->empty(data, sz);
 	return std::shared_ptr<BackendTensor>(t);
 }
 
@@ -139,35 +202,6 @@ void BlasTensor::set(Tensor& self, const Tensor& src)
 {
 	CopyTensor(src, self);
 }
-
-template<typename T>
-void Fill(void* data, T value, size_t count)
-{
-	#pragma omp parallel for
-	for(int64_t i = 0; i < count; i++)
-	{
-		reinterpret_cast<T*>(data)[i] = value;
-	}
-}
-
-void BlasTensor::fill(const Tensor& self, double scalar)
-{
-	const auto sz = self.size();
-	switch(self.dtype)
-	{
-		case DINT32: Fill<int32_t>(m_data.get() + self.offset, scalar, sz); break;
-		case DINT64: Fill<int64_t>(m_data.get() + self.offset, scalar, sz); break;
-		case DFLOAT32: Fill<float>(m_data.get() + self.offset, scalar, sz); break;
-		case DFLOAT64: Fill<double>(m_data.get() + self.offset, scalar, sz); break;
-		case DUINT32: Fill<uint32_t>(m_data.get() + self.offset, scalar, sz); break;
-		case DUINT64: Fill<uint64_t>(m_data.get() + self.offset, scalar, sz); break;
-		case DINT8: Fill<char>(m_data.get() + self.offset, scalar, sz); break;
-		case DUINT8: Fill<unsigned char>(m_data.get() + self.offset, scalar, sz); break;
-		default: ThrowError("Uknown dtype!");
-	}
-}
-
-#include <iostream>
 
 double BlasTensor::sum(const Tensor& self)
 {

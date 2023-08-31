@@ -22,6 +22,8 @@
 #include <vector>
 #include <sstream>
 
+#include "Type.hpp"
+
 // Definitions for symbol export
 #ifdef WIN32
 	#define EXPORT __declspec(dllexport)
@@ -101,7 +103,8 @@ struct ITensorFactory
 	 * @param args Some implementation defined configuration string.
 	 * @return std::shared_ptr<BackendTensor> A new BackendTensor.
 	 */
-	virtual std::shared_ptr<BackendTensor> create(const std::string& args = EmptyStr) = 0;
+	virtual std::shared_ptr<BackendTensor> create(std::shared_ptr<char> data, size_t count, DTYPE dtype, const std::string& args = EmptyStr) = 0;
+	virtual std::shared_ptr<BackendTensor> create(const void* data, size_t count, DTYPE dtype, const std::string& args = EmptyStr) = 0;
 };
 
 /**
@@ -111,9 +114,14 @@ struct ITensorFactory
 template<typename Backend>
 struct TensorFactory : public ITensorFactory
 {
-	std::shared_ptr<BackendTensor> create(const std::string& args = EmptyStr) override
+	std::shared_ptr<BackendTensor> create(std::shared_ptr<char> data, size_t count, DTYPE dtype, const std::string& args = EmptyStr) override
 	{
-		return std::make_shared<Backend>(args);
+		return Backend::Empty(data, count, dtype, args);
+	}
+
+	std::shared_ptr<BackendTensor> create(const void* data, size_t count, DTYPE dtype, const std::string& args = EmptyStr) override
+	{
+		return Backend::Empty(data, count, dtype, args);
 	}
 };
 
@@ -154,6 +162,7 @@ namespace backend
  */
 FUNZEL_API void RegisterTensorBackend(const std::string& name, ITensorFactory* factory);
 
+#ifndef SWIG
 /**
  * @brief Creates a new BackendTensor object given a device configuration string.
  * 
@@ -164,7 +173,20 @@ FUNZEL_API void RegisterTensorBackend(const std::string& name, ITensorFactory* f
  * @param name The device name and config string.
  * @return A new BackendTensor object.
  */
-FUNZEL_API std::shared_ptr<BackendTensor> CreateBackendTensor(const std::string& name);
+FUNZEL_API std::shared_ptr<BackendTensor> CreateBackendTensor(std::shared_ptr<char> data, size_t count, DTYPE dtype, const std::string& name);
+#endif
+
+/**
+ * @brief Creates a new BackendTensor object given a device configuration string.
+ * 
+ * The name string is formatted like this: "$DEVICE:$OPTIONS".
+ * For example, the first OpenCL device may be used with "OCL:0".
+ * See the backend documentation for available options.
+ * 
+ * @param name The device name and config string.
+ * @return A new BackendTensor object.
+ */
+FUNZEL_API std::shared_ptr<BackendTensor> CreateBackendTensor(const void* data, size_t count, DTYPE dtype, const std::string& name);
 
 /**
  * @brief Registers a new device with given properties for use.
