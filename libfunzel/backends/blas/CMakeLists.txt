@@ -7,9 +7,15 @@ if(USE_INTERNAL_BLAS)
 	set(C_LAPACK TRUE CACHE BOOL "Use C sources, Fortran may not be available." FORCE)
 	set(DYNAMIC_ARCH TRUE CACHE BOOL "Use dynamic arch for flexibility.")
 	set(NO_WARMUP TRUE CACHE BOOL "Prevent expensive warmup.")
+	set(DYNAMIC_LIST "HASWELL;ZEN;SKYLAKEX" CACHE STRING "List of optimized BLAS arches.")
 
-	set(BUILD_STATIC_LIBS TRUE CACHE BOOL "Build static libs." FORCE)
-	set(FUNZEL_BLAS_LIBRARIES openblas_static)
+	if(WIN32)
+		set(BUILD_STATIC_LIBS FALSE CACHE BOOL "Build static libs." FORCE)
+		set(FUNZEL_BLAS_LIBRARIES openblas_shared)
+	else()
+		set(BUILD_STATIC_LIBS TRUE CACHE BOOL "Build static libs." FORCE)
+		set(FUNZEL_BLAS_LIBRARIES openblas_static)
+	endif()
 
 	add_subdirectory(openblas EXCLUDE_FROM_ALL)
 	set(FUNZEL_BLAS_INCLUDE_DIRS
