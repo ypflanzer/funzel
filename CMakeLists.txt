@@ -16,6 +16,9 @@ if(NOT "${VCPKG_ROOT}" STREQUAL "")
 			CACHE PATH "The VCPKG installation to use.")
 
 	set(USE_VCPKG TRUE)
+
+	message("-- Using VCPKG at: ${VCPKG_ROOT}")
+	message("-- Using target triplet: ${VCPKG_TARGET_TRIPLET}")
 endif()
 
 project(
