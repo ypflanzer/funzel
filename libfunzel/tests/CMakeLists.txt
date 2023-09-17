@@ -1,5 +1,5 @@
 
-find_package(GTest)
+find_package(GTest CONFIG)
 
 if(GTest_FOUND)
 	file(GLOB SRC libfunzel/*.cpp)
@@ -26,4 +26,14 @@ if(GTest_FOUND)
 
 	add_executable(funzelTest Common.hpp ${SRC} ${BLAS_SRC} ${CL_SRC} ${SYCL_SRC} ${HIP_SRC})
 	target_link_libraries(funzelTest PUBLIC GTest::gtest funzel ${BLAS_BACKEND} ${CL_BACKEND} ${SYCL_BACKEND} ${HIP_BACKEND})
+
+	# Copy test data to binary dir
+	add_custom_command(
+		TARGET funzelTest
+		POST_BUILD
+		COMMAND ${CMAKE_COMMAND}
+		ARGS -E copy_directory_if_different ${CMAKE_CURRENT_SOURCE_DIR}/data $<TARGET_FILE_DIR:funzelTest>/data
+		COMMENT "Copying test data..."
+	)
+
 endif()

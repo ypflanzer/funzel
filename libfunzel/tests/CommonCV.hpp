@@ -24,7 +24,7 @@ using namespace funzel;
 
 TEST(CommonTestCV, Conv2d)
 {
-	auto img = image::load("mnist_png/training/8/225.png").astype<float>().to(TestDevice).mul_(1.0 / 255.0);
+	auto img = image::load("data/peppers_gray.png").astype<float>().to(TestDevice).mul_(1.0 / 255.0);
 	img.shape.erase(img.shape.begin() + 2);
 	img.reshape_(img.shape);
 
@@ -62,7 +62,7 @@ TEST(CommonTestCV, Conv2d)
 
 TEST(CommonTestCV, Conv2dColor)
 {
-	auto img = image::load("test.jpg", image::CHW).astype<float>().mul_(1.0 / 255.0).to(TestDevice);
+	auto img = image::load("data/peppers.png", image::CHW).astype<float>().mul_(1.0 / 255.0).to(TestDevice);
 	auto tgt = Tensor::zeros_like(img);
 	
 	auto kernel = Tensor::ones({ 3, 5, 5 }, DFLOAT32, TestDevice);
@@ -83,7 +83,7 @@ TEST(CommonTestCV, Conv2dColor)
 
 TEST(CommonTestCV, ConvertToGrayscale)
 {
-	auto img = image::load("test.jpg", image::CHW).astype<float>().to(TestDevice);
+	auto img = image::load("data/peppers.png", image::CHW).astype<float>().to(TestDevice);
 	auto tgt = Tensor::empty({1, img.shape[1], img.shape[2]}, img.dtype);
 
 	img.getBackendAs<cv::CVBackendTensor>()->convertGrayscale(img, tgt);

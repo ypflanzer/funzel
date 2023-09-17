@@ -11,9 +11,9 @@ TEST(Image, LoadInvalid)
 
 TEST(Image, LoadSave)
 {
-	auto img = image::load("mnist_png/training/8/225.png");
+	auto img = image::load("data/peppers_gray.png");
 	EXPECT_EQ(img.dtype, DUINT8);
-	EXPECT_EQ(img.shape, (Shape{28, 28, 1}));
+	EXPECT_EQ(img.shape, (Shape{512, 512, 1}));
 	
 	img = img.astype<float>();
 	EXPECT_EQ(img.dtype, DFLOAT32);
@@ -21,14 +21,14 @@ TEST(Image, LoadSave)
 	img.mul_(0.5);
 
 	img = img.astype<uint8_t>();
-	image::save(img, "test.png");
+	image::save(img, "Image_LoadSave.png");
 }
 
 TEST(Image, PlotImage)
 {
-	auto img = image::load("mnist_png/training/8/225.png");
+	auto img = image::load("data/peppers_gray.png");
 	EXPECT_EQ(img.dtype, DUINT8);
-	EXPECT_EQ(img.shape, (Shape{28, 28, 1}));
+	EXPECT_EQ(img.shape, (Shape{512, 512, 1}));
 	
 	Plot plt;
 	plt.image(img);
@@ -37,27 +37,27 @@ TEST(Image, PlotImage)
 
 TEST(Image, PlotImageHWC)
 {
-	auto img = image::load("color_image.png");
+	auto img = image::load("data/peppers.png");
 	EXPECT_EQ(img.dtype, DUINT8);
-	EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
+	EXPECT_EQ(img.shape, (Shape{512, 512, 3}));
 	
 	image::save(img, "Image_ImageHWC.png");
 }
 
 TEST(Image, PlotImageCHW)
 {
-	auto img = image::load("color_image.png", image::CHW);
+	auto img = image::load("data/peppers.png", image::CHW);
 	EXPECT_EQ(img.dtype, DUINT8);
-	EXPECT_EQ(img.shape, (Shape{3, 28, 28}));
+	EXPECT_EQ(img.shape, (Shape{3, 512, 512}));
 
 	image::save(image::toOrder(img, image::HWC), "Image_ImageCHW.png");
 }
 
 TEST(Image, DrawCircle)
 {
-	auto img = image::load("color_image.png");
+	auto img = image::load("data/peppers.png");
 	EXPECT_EQ(img.dtype, DUINT8);
-	EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
+	EXPECT_EQ(img.shape, (Shape{512, 512, 3}));
 	
 	image::drawCircle(img, {14, 14}, 10, 4);
 	// image::imshow(img, "", true);
@@ -67,9 +67,9 @@ TEST(Image, DrawCircle)
 
 TEST(Image, DrawCircles)
 {
-	auto img = image::load("color_image.png");
+	auto img = image::load("data/peppers.png");
 	EXPECT_EQ(img.dtype, DUINT8);
-	EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
+	EXPECT_EQ(img.shape, (Shape{512, 512, 3}));
 	
 	Tensor circles({3, 3}, {
 		5.0f, 5.0f, 4.0f,
@@ -85,7 +85,7 @@ TEST(Image, DrawCircles)
 
 TEST(Image, GaussBlur)
 {
-	auto img = image::load("test.jpg").astype<float>();
+	auto img = image::load("data/peppers.png").astype<float>();
 	EXPECT_EQ(img.dtype, DFLOAT32);
 	//EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
 	
@@ -101,7 +101,7 @@ TEST(Image, GaussBlur)
 
 TEST(Image, Sobel)
 {
-	auto img = image::load("graytest.jpg").astype<float>();
+	auto img = image::load("data/peppers_gray.png").astype<float>();
 	EXPECT_EQ(img.dtype, DFLOAT32);
 	//EXPECT_EQ(img.shape, (Shape{28, 28, 3}));
 	
