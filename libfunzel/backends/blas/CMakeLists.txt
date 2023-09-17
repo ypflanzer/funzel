@@ -5,15 +5,21 @@ option(USE_INTERNAL_BLAS "Compile OpenBLAS ourselves instead of relying on syste
 if(USE_INTERNAL_BLAS)
 
 	set(C_LAPACK TRUE CACHE BOOL "Use C sources, Fortran may not be available." FORCE)
-	set(DYNAMIC_ARCH TRUE CACHE BOOL "Use dynamic arch for flexibility.")
+
+	if(MSVC)
+		set(DYNAMIC_ARCH FALSE CACHE BOOL "Use dynamic arch for flexibility.")
+	else()
+		set(DYNAMIC_ARCH TRUE CACHE BOOL "Use dynamic arch for flexibility.")
+	endif()
+
 	set(NO_WARMUP TRUE CACHE BOOL "Prevent expensive warmup.")
 	set(DYNAMIC_LIST "HASWELL;ZEN;SKYLAKEX" CACHE STRING "List of optimized BLAS arches.")
 
-	if(WIN32)
-		set(BUILD_STATIC_LIBS FALSE CACHE BOOL "Build static libs." FORCE)
+	if(WIN32 AND NOT MSVC)
+		set(BUILD_STATIC_LIBS FALSE)
 		set(FUNZEL_BLAS_LIBRARIES openblas_shared)
 	else()
-		set(BUILD_STATIC_LIBS TRUE CACHE BOOL "Build static libs." FORCE)
+		set(BUILD_STATIC_LIBS TRUE)
 		set(FUNZEL_BLAS_LIBRARIES openblas_static)
 	endif()
 
