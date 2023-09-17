@@ -52,50 +52,8 @@ public:
 
 	const char* backendName() const override { return "BLAS"; }
 
-	// Operations
-	void matmul(const Tensor& self, Tensor b, Tensor tgt) override;
-	void mulAdd(const Tensor& self, Tensor tgt, double alpha) override;
-	void mul(Tensor self, double alpha) override;
-	void sub(const Tensor& self, const Tensor& b, double alpha = 1.0) override;
-	void div(const Tensor& self, const Tensor& b, Tensor tgt) override;
-
-	void abs(const Tensor& self, Tensor tgt) override;
-	void exp(const Tensor& self, Tensor tgt) override;
-	void sqrt(const Tensor& self, Tensor tgt) override;
-	void sin(const Tensor& self, Tensor tgt) override;
-	void cos(const Tensor& self, Tensor tgt) override;
-	void tan(const Tensor& self, Tensor tgt) override;
-	void tanh(const Tensor& self, Tensor tgt) override;
-	double sum(const Tensor& self) override;
-
-	// linalg
-	void det(const Tensor& self, Tensor tgt) override;
-	void inv(const Tensor& self, Tensor tgt) override;
-	void trace(const Tensor& self, Tensor tgt) override;
-	void svd(const Tensor& self, Tensor U, Tensor S, Tensor V) override;
-
-	// nn
-	void relu(const Tensor& self, Tensor& tgt, double negativeSlope = 0.0) override;
-	void pool2d(
-			const Tensor& self, Tensor tgt,
-			POOLING_MODE mode,
-			const UVec2& kernelSize,
-			const UVec2& stride,
-			const UVec2& padding,
-			const UVec2& dilation) override;
-
 	void set(Tensor& self, const Tensor& src) override;
 	void unravel(const Tensor& self, Tensor tgt) override;
-
-	// cv
-	void conv2d(
-			const Tensor& self, Tensor tgt,
-			const Tensor& kernel,
-			const UVec2& stride,
-			const UVec2& padding,
-			const UVec2& dilation) override;
-
-	void convertGrayscale(const Tensor& self, Tensor tgt) override;
 
 private:
 	std::shared_ptr<char> m_data;

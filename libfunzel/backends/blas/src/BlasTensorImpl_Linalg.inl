@@ -1,6 +1,6 @@
 /* 
  * This file is part of Funzel.
- * Copyright (c) 2022 Yannick Pflanzer.
+ * Copyright (c) 2022-2023 Yannick Pflanzer.
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License as published by
@@ -14,19 +14,16 @@
  * You should have received a copy of the GNU Lesser General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-#define NOMINMAX
-#include <funzel/Tensor.hpp>
-#include "BlasTensor.hpp"
-
-#include <iostream>
-#include <spdlog/spdlog.h>
+#pragma once
 
 #define LAPACK_COMPLEX_STRUCTURE
 #define HAVE_LAPACK_CONFIG_H
 #include <lapacke.h>
 
-using namespace funzel;
-using namespace blas;
+namespace funzel
+{
+namespace blas
+{
 
 template<typename T>
 inline static void DoDet(Tensor& luMat, Tensor& tgt)
@@ -71,7 +68,8 @@ inline static void DoDet(Tensor& luMat, Tensor& tgt)
 	tgt.set(detval);
 }
 
-void BlasTensor::det(const Tensor& self, Tensor tgt)
+template<typename T>
+void BlasTensorImpl<T>::det(const Tensor& self, Tensor tgt)
 {
 	if(self.shape.empty())
 		return;
@@ -88,20 +86,11 @@ void BlasTensor::det(const Tensor& self, Tensor tgt)
 	}
 
 	auto luMat = self.clone();
-
-	switch(dtype)
-	{
-		case DFLOAT32: {
-			DoDet<float>(luMat, tgt);
-		} break;
-		case DFLOAT64: {
-			DoDet<double>(luMat, tgt);
-		} break;
-		default: ThrowError("Unsupported dtype!");
-	}
+	DoDet<T>(luMat, tgt);
 }
 
-void BlasTensor::inv(const Tensor& self, Tensor tgt)
+template<typename T>
+void BlasTensorImpl<T>::inv(const Tensor& self, Tensor tgt)
 {
 	if(self.shape.empty())
 		return;
@@ -127,25 +116,27 @@ void BlasTensor::inv(const Tensor& self, Tensor tgt)
 	const auto numPivots = std::min(m, n);
 	auto pivots = std::make_unique<int[]>(numPivots);
 
-	switch(dtype)
+	if constexpr (std::is_same_v<T, float>)
 	{
-		case DFLOAT32: {
-			sgetrf_(&m, &n, (float*) src, &m, pivots.get(), &info);
-			AssertExcept(info == 0, "Could not get LU decomposition: " << info);
+		sgetrf_(&m, &n, (float*) src, &m, pivots.get(), &info);
+		AssertExcept(info == 0, "Could not get LU decomposition: " << info);
 
-			auto work = std::make_unique<float>(lwork);
-			sgetri_(&n, (float*) src, &m, pivots.get(), work.get(), &lwork, &info);
-			AssertExcept(info == 0, "Could not invert matrix: " << info);
-		} break;
-		case DFLOAT64: {
-			dgetrf_(&m, &n, (double*) src, &m, pivots.get(), &info);
-			AssertExcept(info == 0, "Could not get LU decomposition: " << info);
+		auto work = std::make_unique<float>(lwork);
+		sgetri_(&n, (float*) src, &m, pivots.get(), work.get(), &lwork, &info);
+		AssertExcept(info == 0, "Could not invert matrix: " << info);
+	}
+	else if constexpr (std::is_same_v<T, double>)
+	{
+		dgetrf_(&m, &n, (double*) src, &m, pivots.get(), &info);
+		AssertExcept(info == 0, "Could not get LU decomposition: " << info);
 
-			auto work = std::make_unique<double>(lwork);
-			dgetri_(&n, (double*) src, &m, pivots.get(), work.get(), &lwork, &info);
-			AssertExcept(info == 0, "Could not invert matrix: " << info);
-		} break;
-		default: ThrowError("Unsupported dtype!");
+		auto work = std::make_unique<double>(lwork);
+		dgetri_(&n, (double*) src, &m, pivots.get(), work.get(), &lwork, &info);
+		AssertExcept(info == 0, "Could not invert matrix: " << info);
+	}
+	else
+	{
+		ThrowError("Unsupported dtype!");
 	}
 }
 
@@ -161,7 +152,8 @@ inline static void DoTrace(const Tensor& self, Tensor& tgt)
 	tgt.set(traceval);
 }
 
-void BlasTensor::trace(const Tensor& self, Tensor tgt)
+template<typename T>
+void BlasTensorImpl<T>::trace(const Tensor& self, Tensor tgt)
 {
 	if(self.shape.empty())
 		return;
@@ -178,20 +170,11 @@ void BlasTensor::trace(const Tensor& self, Tensor tgt)
 	}
 
 	AssertExcept(self.shape[0] == self.shape[1], "Calculating the trace requires a square matrix.");
-
-	switch(dtype)
-	{
-		case DFLOAT32: {
-			DoTrace<float>(self, tgt);
-		} break;
-		case DFLOAT64: {
-			DoTrace<double>(self, tgt);
-		} break;
-		default: ThrowError("Unsupported dtype!");
-	}
+	DoTrace<T>(self, tgt);
 }
 
-void BlasTensor::svd(const Tensor& self, Tensor U, Tensor S, Tensor V)
+template<typename T>
+void BlasTensorImpl<T>::svd(const Tensor& self, Tensor U, Tensor S, Tensor V)
 {
 	if(self.shape.empty())
 		return;
@@ -215,24 +198,29 @@ void BlasTensor::svd(const Tensor& self, Tensor U, Tensor S, Tensor V)
 	const void* selfdata = self.data(self.offset);
 
 	int errcode = 0;
-	switch(dtype)
+	if constexpr (std::is_same_v<T, float>)
 	{
-		case DFLOAT32: {
-			errcode = LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n,
+		errcode = LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n,
 				(float*) selfdata, m,
 				(float*) sdata,
 				(float*) udata, m, // TODO Strides!
 				(float*) vdata, n);
-		} break;
-		case DFLOAT64: {
-			errcode = LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'A', m, n,
+	}
+	else if constexpr (std::is_same_v<T, double>)
+	{
+		errcode = LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'A', m, n,
 				(double*) selfdata, m,
 				(double*) sdata,
 				(double*) udata, m, // TODO Strides!
 				(double*) vdata, n);
-		} break;
-		default: ThrowError("Unsupported dtype!");
 	}
-
+	else
+	{
+		ThrowError("Unsupported dtype!");
+	}
+	
 	AssertExcept(errcode == 0, "Error running SVD: " << errcode);
+}
+
+}
 }
