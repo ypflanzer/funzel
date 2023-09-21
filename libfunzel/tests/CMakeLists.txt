@@ -36,4 +36,11 @@ if(GTest_FOUND)
 		COMMENT "Copying test data..."
 	)
 
+	if(NOT WIN32)
+		add_custom_target(coverage
+			COMMAND rm -rf ${CMAKE_BINARY_DIR}/kcov && kcov --include-pattern=funzel --exclude-pattern=CLBlast,tests,vcpkg,stb_image,openblas ${CMAKE_BINARY_DIR}/kcov $<TARGET_FILE:funzelTest>
+			WORKING_DIRECTORY $<TARGET_FILE_DIR:funzelTest>
+			DEPENDS funzelTest
+		)
+	endif()
 endif()
