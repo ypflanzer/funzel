@@ -3,29 +3,39 @@ find_package(GTest CONFIG)
 
 if(GTest_FOUND)
 	file(GLOB SRC libfunzel/*.cpp)
-
+	set(BACKENDS "\n")
 	if(ENABLE_BLAS_BACKEND)
 		file(GLOB BLAS_SRC backends/blas/*.cpp)
 		set(BLAS_BACKEND funzelBlas)
+		STRING(APPEND BACKENDS "\tfunzel::backend::LoadBackend(\"Blas\");\n")
 	endif()
 
 	if(ENABLE_OPENCL_BACKEND)
 		file(GLOB CL_SRC backends/opencl/*.cpp)
 		set(CL_BACKEND funzelOpenCL)
+		STRING(APPEND BACKENDS "\tfunzel::backend::LoadBackend(\"OpenCL\");\n")
 	endif()
 
 	if(ENABLE_SYCL_BACKEND)
 		file(GLOB SYCL_SRC backends/sycl/*.cpp)
 		set(SYCL_BACKEND funzelSYCL)
+
+		STRING(APPEND BACKENDS "\tfunzel::backend::LoadBackend(\"SYCL\");\n")
 	endif()
 
 	if(ENABLE_HIP_BACKEND)
 		file(GLOB HIP_SRC backends/hip/*.cpp)
 		set(HIP_BACKEND funzelHIP)
+
+		STRING(APPEND BACKENDS "\tfunzel::backend::LoadBackend(\"HIP\");\n")
 	endif()
 
+	configure_file(LoadBackends.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/LoadBackends.hpp @ONLY)
+
 	add_executable(funzelTest Common.hpp ${SRC} ${BLAS_SRC} ${CL_SRC} ${SYCL_SRC} ${HIP_SRC})
-	target_link_libraries(funzelTest PUBLIC GTest::gtest funzel ${BLAS_BACKEND} ${CL_BACKEND} ${SYCL_BACKEND} ${HIP_BACKEND})
+	target_link_libraries(funzelTest PUBLIC GTest::gtest funzel)
+	target_include_directories(funzelTest PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+	add_dependencies(funzelTest ${BLAS_BACKEND} ${CL_BACKEND} ${SYCL_BACKEND} ${HIP_BACKEND})
 
 	# Copy test data to binary dir
 	add_custom_command(

@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 #include <funzel/Tensor.hpp>
-#include <funzel/OpenCLBackend.hpp>
 
 using namespace funzel;
 
