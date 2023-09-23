@@ -341,7 +341,6 @@ Tensor Tensor::cpu() const
 	return to("");
 }
 
-#include <iostream>
 void Tensor::set(const Tensor& t)
 {
 	AssertExcept(shape == t.shape, "Cannot copy tensor to target with different shape: " << t.shape << " vs " << shape);
