@@ -42,9 +42,6 @@ public:
 
 	virtual void empty(std::shared_ptr<char> buffer, size_t sz);
 	virtual void empty(const void* buffer, size_t sz);
-	
-	[[deprecated]] void empty(std::shared_ptr<char> buffer, size_t sz, DTYPE dtype) override;
-	[[deprecated]] void empty(const void* buffer, size_t sz, DTYPE dtype) override;
 
 	void* data(size_t offset = 0) override;
 	std::shared_ptr<char> buffer() override { return m_data; }

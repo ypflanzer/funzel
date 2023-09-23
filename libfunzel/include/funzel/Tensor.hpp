@@ -659,28 +659,6 @@ public:
 	 */
 	static void initializeBackend() {}
 
-#ifndef SWIG
-	/**
-	 * @brief Allocates a new empty tensor.
-	 * 
-	 * @param buffer Data used for initialization. May be nullptr.
-	 * @param sz The size of the buffer in bytes.
-	 * @param dtype The DTYPE of each element.
-	 */
-	[[deprecated]] virtual void empty(std::shared_ptr<char> buffer, size_t sz, DTYPE dtype = DFLOAT32) = 0;
-#endif
-
-	/**
-	 * @brief Allocates a new empty tensor.
-	 * 
-	 * The buffer will be copied and needs to be free'd by the caller.
-	 * 
-	 * @param buffer Data used for initialization. May be nullptr.
-	 * @param sz The size of the buffer in bytes.
-	 * @param dtype The DTYPE of each element.
-	 */
-	[[deprecated]] virtual void empty(const void* buffer, size_t sz, DTYPE dtype = DFLOAT32) = 0;
-
 	/**
 	 * @brief Retrieves a pointer to the data at the given offset into the tensor.
 	 * 
