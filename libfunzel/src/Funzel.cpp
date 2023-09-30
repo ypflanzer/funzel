@@ -29,6 +29,13 @@ void funzel::backend::RegisterTensorBackend(const std::string& name, ITensorFact
 template<typename T>
 static inline std::shared_ptr<BackendTensor> CreateBackendTensorT(T data, size_t count, DTYPE dtype, const std::string& name)
 {
+	// If no backend is available, try loading the default backends before
+	// continuing.
+	if(s_tensorBackends.empty())
+	{
+		backend::LoadDefaultBackends();
+	}
+
  	if(name.empty())
 	{
 		auto iter = s_tensorBackends.find(s_defaultBackend);

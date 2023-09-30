@@ -8,8 +8,6 @@ using namespace funzel;
 
 int main(int argc, char** argv)
 {
-	funzel::backend::LoadBackend("Blas");
-
 	auto A = Tensor({3, 3}, {
 		4.0f, 3.0f, 2.0f,
 		-2.0f, 2.0f, 3.0f,
