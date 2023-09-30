@@ -6,6 +6,7 @@
 
 #include <cmath>
 #include <iostream>
+#include <filesystem>
 #include <spdlog/spdlog.h>
 
 using namespace funzel;
@@ -122,6 +123,7 @@ void funzel::PrintDevices()
 
 void funzel::backend::LoadBackend(const std::string& name)
 {
+	spdlog::debug("Loading backend: {}", name);
 #ifdef WIN32
 	auto backend = LoadLibrary(("funzel" + name + ".dll").c_str());
 	AssertExcept(backend != NULL, "Could not load backend: " << name);
@@ -147,6 +149,64 @@ void funzel::backend::LoadBackend(const std::string& name)
 	#warning "No implementation for loading backends at runtime was found!"
 	AssertExcept(false, "Could not load backend: " << name);
 #endif
+}
+
+void funzel::backend::LoadDefaultBackends()
+{
+	char* backendsEnv = getenv("FUNZEL_BACKENDS");
+	if(backendsEnv)
+	{
+		spdlog::debug("Loading backends from environment variable.");
+		std::stringstream backends(backendsEnv);
+		std::string entry;
+		while(std::getline(backends, entry, ':'))
+		{
+			LoadBackend(entry);
+		}
+	}
+	else
+	{
+		spdlog::debug("Loading backends from installation directory.");
+		std::filesystem::path soPath;
+		#ifndef WIN32
+		#ifdef __APPLE__
+			constexpr const char* ext = ".dylib";
+		#else
+			constexpr const char* ext = ".so";
+		#endif
+			constexpr const char* backendPrefix = "libfunzel";
+
+			Dl_info info;
+			if(!dladdr((void*) funzel::backend::LoadDefaultBackends, &info))
+				throw std::runtime_error("Could not query installed backends!");
+
+			soPath = std::filesystem::path(info.dli_fname).replace_filename("");
+		#else
+			constexpr const char* ext = ".dll";
+			constexpr const char* backendPrefix = "funzel";
+		#endif
+
+		spdlog::debug("Searching for backends in: {}", soPath.string());
+		for(const auto& e : std::filesystem::directory_iterator(soPath))
+		{
+			if(!e.is_regular_file())
+				continue;
+
+			auto path = e.path();
+			if(path.extension() != ext)
+				continue;
+
+			path.replace_extension("");
+
+			auto filename = path.filename().string();
+			if(filename.find(backendPrefix) != 0)
+				continue;
+			
+			const std::string backend = filename.substr(sizeof(backendPrefix) + 1);
+			if(!backend.empty())
+				LoadBackend(backend);
+		}
+	}
 }
 
 namespace

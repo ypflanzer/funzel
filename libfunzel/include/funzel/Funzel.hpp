@@ -203,6 +203,16 @@ FUNZEL_API void RegisterDevice(const DeviceProperties& props);
  * @param name The name of the library.
  */
 FUNZEL_API void LoadBackend(const std::string& name);
+
+/**
+ * @brief Loads a set of default backends.
+ * 
+ * Uses the FUNZEL_BACKENDS environment variable if it is set
+ * as a list of backends delimited by ':' and loads each backend contained
+ * therein. Otherwise it scans the directory of the Funzel shared object
+ * to find all installed backends.
+ */
+FUNZEL_API void LoadDefaultBackends();
 }
 
 }
