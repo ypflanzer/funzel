@@ -9,6 +9,11 @@
 #include <filesystem>
 #include <spdlog/spdlog.h>
 
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#endif
+
 using namespace funzel;
 
 static std::unordered_map<std::string, std::unique_ptr<ITensorFactory>> s_tensorBackends;
@@ -175,7 +180,7 @@ void funzel::backend::LoadDefaultBackends()
 	{
 		spdlog::debug("Loading backends from installation directory.");
 		std::filesystem::path soPath;
-		#ifndef WIN32
+		#ifndef _WIN32
 		#ifdef __APPLE__
 			constexpr const char* ext = ".dylib";
 		#else
@@ -191,6 +196,13 @@ void funzel::backend::LoadDefaultBackends()
 		#else
 			constexpr const char* ext = ".dll";
 			constexpr const char* backendPrefix = "funzel";
+
+			TCHAR moduleFileName[MAX_PATH];
+			if(!GetModuleFileName(NULL, moduleFileName, MAX_PATH))
+				throw std::runtime_error("Could not query installed backends!");
+			
+			soPath = moduleFileName;
+			soPath.replace_filename("");
 		#endif
 
 		spdlog::debug("Searching for backends in: {}", soPath.string());
@@ -209,7 +221,11 @@ void funzel::backend::LoadDefaultBackends()
 			if(filename.find(backendPrefix) != 0)
 				continue;
 			
-			const std::string backend = filename.substr(sizeof(backendPrefix) + 1);
+			const auto prefixSize = strlen(backendPrefix);
+			if (prefixSize > filename.size())
+				continue;
+
+			const std::string backend = (prefixSize > 1 ? filename.substr(prefixSize) : filename);
 			if(!backend.empty())
 				LoadBackend(backend);
 		}
