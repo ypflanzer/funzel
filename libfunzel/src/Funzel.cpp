@@ -133,11 +133,11 @@ void funzel::PrintDevices()
 #include <dlfcn.h>
 #endif
 
-void funzel::backend::LoadBackend(const std::string& name)
+void LoadBackendFile(const std::string& filename)
 {
-	spdlog::debug("Loading backend: {}", name);
-#ifdef WIN32
-	auto backend = LoadLibrary(("funzel" + name + ".dll").c_str());
+	spdlog::debug("Loading backend: {}", filename);
+#ifdef _WIN32
+	auto backend = LoadLibrary(filename.c_str());
 	AssertExcept(backend != NULL, "Could not load backend: " << name);
 
 	auto InitFunc = (FunzelInitFuncType) GetProcAddress(backend, "FunzelInit");
@@ -145,14 +145,8 @@ void funzel::backend::LoadBackend(const std::string& name)
 		InitFunc();
 
 #elif defined(__unix__) || defined(__APPLE__)
-	#ifdef __APPLE__
-	const char* ext = ".dylib";
-	#else
-	const char* ext = ".so";
-	#endif
-
-	auto backend = dlopen(("libfunzel" + name + ext).c_str(), RTLD_LAZY);
-	AssertExcept(backend != NULL, "Could not load backend: " << name);
+	auto backend = dlopen(filename.c_str(), RTLD_LAZY);
+	AssertExcept(backend != NULL, "Could not load backend '" << filename << "': " << dlerror());
 
 	auto InitFunc = (FunzelInitFuncType) dlsym(backend, "FunzelInit");
 	if(InitFunc != NULL)
@@ -161,6 +155,21 @@ void funzel::backend::LoadBackend(const std::string& name)
 	#warning "No implementation for loading backends at runtime was found!"
 	AssertExcept(false, "Could not load backend: " << name);
 #endif
+}
+
+void funzel::backend::LoadBackend(const std::string& name)
+{
+	#ifdef _WIN32
+		LoadBackendFile("funzel" + name + ".dll");
+	#else
+		#ifdef __APPLE__
+		const char* ext = ".dylib";
+		#else
+		const char* ext = ".so";
+		#endif
+
+		LoadBackendFile("libfunzel" + name + ext);
+	#endif
 }
 
 void funzel::backend::LoadDefaultBackends()
@@ -215,19 +224,13 @@ void funzel::backend::LoadDefaultBackends()
 			if(path.extension() != ext)
 				continue;
 
-			path.replace_extension("");
+			//path.replace_extension("");
 
 			auto filename = path.filename().string();
 			if(filename.find(backendPrefix) != 0)
 				continue;
 			
-			const auto prefixSize = strlen(backendPrefix);
-			if (prefixSize > filename.size())
-				continue;
-
-			const std::string backend = (prefixSize > 1 ? filename.substr(prefixSize) : filename);
-			if(!backend.empty())
-				LoadBackend(backend);
+			LoadBackendFile(path.string());
 		}
 	}
 }
