@@ -52,7 +52,7 @@ TEST(CommonTestCV, Conv2d)
 	tgt = tgt.cpu().mul_(255.0).astype<uint8_t>();
 	image::save(tgt, STRINGIFY(CommonTestCV) "_Conv2d.png");
 
-#if 1
+#if 0
 	Plot plt;
 	//plt.image(img.mul(255.0).cpu().astype<uint8_t>());
 	plt.image(tgt, "Result");
@@ -73,7 +73,7 @@ TEST(CommonTestCV, Conv2dColor)
 	tgt = image::toOrder(tgt, image::HWC);
 	image::save(tgt, STRINGIFY(CommonTestCV) "_Conv2d.png");
 
-#if 1
+#if 0
 	Plot plt;
 	//plt.image(img.mul(255.0).cpu().astype<uint8_t>());
 	plt.image(tgt, "Result");
@@ -91,7 +91,7 @@ TEST(CommonTestCV, ConvertToGrayscale)
 	tgt = tgt.cpu().astype<uint8_t>();
 	tgt = image::toOrder(tgt, image::HWC);
 	image::save(tgt, STRINGIFY(CommonTestCV) "_Grayscale.png");
-	image::imshow(tgt, "Grayscale", true);
+	//image::imshow(tgt, "Grayscale", true);
 }
 
 #undef CommonTestCV

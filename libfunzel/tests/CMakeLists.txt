@@ -47,10 +47,34 @@ if(GTest_FOUND)
 	)
 
 	if(NOT WIN32)
-		add_custom_target(coverage
+		add_custom_target(kcov
 			COMMAND rm -rf ${CMAKE_BINARY_DIR}/kcov && kcov --include-pattern=funzel --exclude-pattern=CLBlast,tests,vcpkg,stb_image,openblas ${CMAKE_BINARY_DIR}/kcov $<TARGET_FILE:funzelTest>
+			
 			WORKING_DIRECTORY $<TARGET_FILE_DIR:funzelTest>
 			DEPENDS funzelTest
 		)
+
+		if(ENABLE_GCOV)
+			find_program(LCOV lcov REQUIRED)
+			find_program(GENHTML genhtml REQUIRED)
+
+			add_custom_target(lcov
+				COMMAND ${LCOV}
+					--include "libfunzel"
+					--directory ${CMAKE_BINARY_DIR}
+					--base-directory ${CMAKE_SOURCE_DIR}
+					--capture --parallel 8
+					--branch-coverage
+					--keep-going
+					--quiet
+					--output-file ${CMAKE_BINARY_DIR}/coverage.info
+					--ignore-errors gcov,mismatch
+				COMMAND ${LCOV} --remove ${CMAKE_BINARY_DIR}/coverage.info -o ${CMAKE_BINARY_DIR}/coverage.info "*CLBlast*" "*tests*" "*stb_*" --ignore-errors unused
+				COMMAND ${GENHTML} --demangle-cpp -o ${CMAKE_BINARY_DIR}/coverage ${CMAKE_BINARY_DIR}/coverage.info
+
+				WORKING_DIRECTORY $<TARGET_FILE_DIR:funzelTest>
+				DEPENDS funzelTest
+			)
+		endif()
 	endif()
 endif()

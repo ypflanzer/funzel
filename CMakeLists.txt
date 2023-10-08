@@ -65,6 +65,13 @@ option(ENABLE_SANITIZERS "Enable Clang sanitizers." OFF)
 if(WIN32)
 	include(DownloadSwig)
 endif()
+# TODO: MinGW support?
+if(NOT WIN32)
+	option(ENABLE_GCOV "Enable GCOV coverage." OFF)
+	if(ENABLE_GCOV)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 --coverage")
+	endif()
+endif()
 
 add_subdirectory(libfunzel)
 add_subdirectory (docs)
