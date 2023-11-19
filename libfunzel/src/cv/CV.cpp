@@ -27,3 +27,20 @@ Tensor funzel::cv::conv2d(
 	input.getBackendAs<cv::CVBackendTensor>()->conv2d(input, result, kernel, stride, padding, dilation);
 	return result;
 }
+
+FUNZEL_API Tensor funzel::cv::grayscale(Tensor input, image::CHANNEL_ORDER order)
+{
+	if(order != image::CHW)
+		input = image::toOrder(input, image::CHW);
+
+	Tensor result = Tensor::empty({1, input.shape[1], input.shape[2]}, input.dtype, input.device);
+	input.getBackendAs<cv::CVBackendTensor>()->convertGrayscale(input, result);
+
+	if(order == image::HWC)
+	{
+		result = image::toOrder(result, image::HWC);
+		result.flags |= C_CONTIGUOUS;
+	}
+
+	return result;
+}

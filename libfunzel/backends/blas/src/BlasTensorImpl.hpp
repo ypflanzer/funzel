@@ -316,7 +316,7 @@ public:
 		const UVec2& padding,
 		const UVec2& dilation);
 
-	void convertGrayscale(const Tensor& self, Tensor tgt);
+	void convertGrayscale(const Tensor& self, Tensor tgt) override;
 
 	// LinalgBackendTensor
 	void det(const Tensor& self, Tensor tgt) override;

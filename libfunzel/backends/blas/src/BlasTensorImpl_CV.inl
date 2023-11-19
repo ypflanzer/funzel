@@ -65,7 +65,7 @@ void BlasTensorImpl<T>::conv2d(
 template<typename V>
 static void ConvertRGBToGrayCHW(const Tensor& self, Tensor& tgt)
 {
-	#pragma omp parallel for
+	//#pragma omp parallel for
 	for(int64_t y = 0; y < self.shape[1]; y++)
 	{
 		const size_t yoffIn = (y*self.strides[1])/sizeof(V);
@@ -80,11 +80,11 @@ static void ConvertRGBToGrayCHW(const Tensor& self, Tensor& tgt)
 			for(int c = 0; c < self.shape[0]; c++)
 			{
 				const size_t inOff = (yoffIn + xoffIn + (c*self.strides[0]/sizeof(V)));
-				accum += self.dataAs<V>(inOff);
+				accum += self.dataAs<V>(inOff) / self.shape[0];
 			}
 
 			const size_t outOff = xoffOut + yoffOut;
-			tgt.dataAs<V>(outOff) = accum / self.shape[0];
+			tgt.dataAs<V>(outOff) = accum;
 		}
 	}
 }

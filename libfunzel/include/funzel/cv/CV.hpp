@@ -17,6 +17,7 @@
 #pragma once
 
 #include <funzel/Tensor.hpp>
+#include "Image.hpp"
 
 namespace funzel::cv
 {
@@ -34,4 +35,6 @@ FUNZEL_API Tensor conv2d(
 	const UVec2& stride,
 	const UVec2& padding,
 	const UVec2& dilation);
+
+FUNZEL_API Tensor grayscale(Tensor input, image::CHANNEL_ORDER order = image::HWC);
 }

@@ -17,6 +17,7 @@
 #pragma once
 
 #include <funzel/Tensor.hpp>
+#include "Image.hpp"
 
 namespace funzel::cv
 {
@@ -34,7 +35,7 @@ public:
 	 * @param self The source Tensor.
 	 * @param tgt The target Tensor.
 	 */
-	virtual void convertGrayscale(const Tensor& self, Tensor tgt) { ThrowError("Operation is not supported!"); }
+	virtual void convertGrayscale(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Applies a 2D convolution to an image Tensor.
@@ -51,7 +52,7 @@ public:
 			const Tensor& kernel,
 			const UVec2& stride,
 			const UVec2& padding,
-			const UVec2& dilation) { ThrowError("Operation is not supported!"); }
+			const UVec2& dilation) { UnsupportedOperationError; }
 
 };
 
