@@ -7,4 +7,5 @@ foreach(SPATH ${SOURCES})
 
 	add_executable(${S}_example "${SPATH}")
 	target_link_libraries(${S}_example funzel)
+	add_dependencies(${S}_example funzelBlas)
 endforeach()
