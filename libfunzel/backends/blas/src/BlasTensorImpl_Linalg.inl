@@ -18,6 +18,7 @@
 
 #define LAPACK_COMPLEX_STRUCTURE
 #define HAVE_LAPACK_CONFIG_H
+#define NOCHANGE
 #include <lapacke.h>
 
 namespace funzel
@@ -30,20 +31,20 @@ inline static void DoDet(Tensor& luMat, Tensor& tgt)
 {
 	const void* src = luMat.data(luMat.offset);
 
-	int n = luMat.shape[0], m = luMat.shape[1];
-	int info = 1;
+	lapack_int n = luMat.shape[0], m = luMat.shape[1];
+	lapack_int info = 1;
 
 	// FIXME: Maybe for smaller data we can use the stack? See alloca and malloca
 	const auto numPivots = std::min(m, n);
-	auto pivots = std::make_unique<int[]>(numPivots);
+	auto pivots = std::make_unique<lapack_int[]>(numPivots);
 
 	if constexpr(std::is_same_v<T, float>)
 	{
-		sgetrf_(&m, &n, (float*) src, &m, pivots.get(), &info);
+		sgetrf(&m, &n, (float*) src, &m, pivots.get(), &info);
 	}
 	else if constexpr(std::is_same_v<T, float>)
 	{
-		dgetrf_(&m, &n, (double*) src, &m, pivots.get(), &info);
+		dgetrf(&m, &n, (double*) src, &m, pivots.get(), &info);
 	}
 	else
 	{
@@ -109,29 +110,29 @@ void BlasTensorImpl<T>::inv(const Tensor& self, Tensor tgt)
 	tgt.set(self);
 
 	const void* src = tgt.data(tgt.offset);
-	int n = tgt.shape[0], m = tgt.shape[1], lwork = n*n;
-	int info = 1;
+	lapack_int n = tgt.shape[0], m = tgt.shape[1], lwork = n*n;
+	lapack_int info = 1;
 
 	// FIXME: Maybe for smaller data we can use the stack? See alloca and malloca
 	const auto numPivots = std::min(m, n);
-	auto pivots = std::make_unique<int[]>(numPivots);
+	auto pivots = std::make_unique<lapack_int[]>(numPivots);
 
 	if constexpr (std::is_same_v<T, float>)
 	{
-		sgetrf_(&m, &n, (float*) src, &m, pivots.get(), &info);
+		sgetrf(&m, &n, (float*) src, &m, pivots.get(), &info);
 		AssertExcept(info == 0, "Could not get LU decomposition: " << info);
 
 		auto work = std::make_unique<float>(lwork);
-		sgetri_(&n, (float*) src, &m, pivots.get(), work.get(), &lwork, &info);
+		sgetri(&n, (float*) src, &m, pivots.get(), work.get(), &lwork, &info);
 		AssertExcept(info == 0, "Could not invert matrix: " << info);
 	}
 	else if constexpr (std::is_same_v<T, double>)
 	{
-		dgetrf_(&m, &n, (double*) src, &m, pivots.get(), &info);
+		dgetrf(&m, &n, (double*) src, &m, pivots.get(), &info);
 		AssertExcept(info == 0, "Could not get LU decomposition: " << info);
 
 		auto work = std::make_unique<double>(lwork);
-		dgetri_(&n, (double*) src, &m, pivots.get(), work.get(), &lwork, &info);
+		dgetri(&n, (double*) src, &m, pivots.get(), work.get(), &lwork, &info);
 		AssertExcept(info == 0, "Could not invert matrix: " << info);
 	}
 	else
@@ -190,17 +191,18 @@ void BlasTensorImpl<T>::svd(const Tensor& self, Tensor U, Tensor S, Tensor V)
 		return;
 	}
 
-	//AssertExcept(self.shape[0] == self.shape[1], "Calculating the trace requires a square matrix.");
-	int n = self.shape[0], m = self.shape[1];
+	lapack_int m = self.shape[0], n = self.shape[1];
 	void* udata = U.data(U.offset);
 	void* sdata = S.data(S.offset);
 	void* vdata = V.data(V.offset);
 	const void* selfdata = self.data(self.offset);
 
+	const int mode = LAPACK_COL_MAJOR; //(self.isContiguous() ? LAPACK_ROW_MAJOR : LAPACK_COL_MAJOR);
+
 	int errcode = 0;
 	if constexpr (std::is_same_v<T, float>)
 	{
-		errcode = LAPACKE_sgesdd(LAPACK_ROW_MAJOR, 'A', m, n,
+		errcode = LAPACKE_sgesdd(mode, 'A', m, n,
 				(float*) selfdata, m,
 				(float*) sdata,
 				(float*) udata, m, // TODO Strides!
@@ -208,7 +210,7 @@ void BlasTensorImpl<T>::svd(const Tensor& self, Tensor U, Tensor S, Tensor V)
 	}
 	else if constexpr (std::is_same_v<T, double>)
 	{
-		errcode = LAPACKE_dgesdd(LAPACK_ROW_MAJOR, 'A', m, n,
+		errcode = LAPACKE_dgesdd(mode, 'A', m, n,
 				(double*) selfdata, m,
 				(double*) sdata,
 				(double*) udata, m, // TODO Strides!
