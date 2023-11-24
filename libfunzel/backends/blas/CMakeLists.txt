@@ -4,8 +4,12 @@ file(GLOB HEADERS src/*.h*)
 option(USE_INTERNAL_BLAS "Compile OpenBLAS ourselves instead of relying on system packages." ON)
 if(USE_INTERNAL_BLAS)
 
+	add_compile_definitions(-DLAPACK_DISABLE_NAN_CHECK=1 -DLAPACK_ILP64=1 -DUSE64BITINT=1)
 	set(C_LAPACK TRUE CACHE BOOL "Use C sources, Fortran may not be available." FORCE)
 
+	option(USE_OPENMP "Use OpenMP with OpenBLAS" TRUE)
+	option(USE_THREAD "Use multithreading with OpenBLAS" TRUE)
+	
 	if(MSVC)
 		set(DYNAMIC_ARCH FALSE CACHE BOOL "Use dynamic arch for flexibility.")
 	else()
@@ -40,6 +44,14 @@ else()
 	find_package(LAPACK REQUIRED)
 
 	set(FUNZEL_BLAS_LIBRARIES BLAS::BLAS ${LAPACK_LIBRARIES})
+
+	if(APPLE)
+		find_path(CBLAS_HEADER cblas.h)
+	elseif(WIN32 OR UNIX)
+		# FIXME May produce errors when using Intel MKL or any other BLAS
+		find_path(CBLAS_HEADER cblas.h PATH_SUFFIXES openblas)
+		message("-- Looking for cblas.h: ${CBLAS_HEADER}")
+	endif()
 endif()
 
 add_library(funzelBlas SHARED ${SRC} ${HEADERS})
@@ -52,14 +64,6 @@ endif()
 find_package(OpenMP)
 if(OpenMP_CXX_FOUND)
 	target_link_libraries(funzelBlas PUBLIC OpenMP::OpenMP_CXX)
-endif()
-
-if(APPLE)
-	find_path(CBLAS_HEADER cblas.h)
-elseif(WIN32 OR UNIX)
-	# FIXME May produce errors when using Intel MKL or any other BLAS
-	find_path(CBLAS_HEADER cblas.h PATH_SUFFIXES openblas)
-	message("-- Looking for cblas.h: ${CBLAS_HEADER}")
 endif()
 
 target_include_directories(funzelBlas PRIVATE ${CBLAS_HEADER} ${LAPACK_INCLUDE_DIRS} ${FUNZEL_BLAS_INCLUDE_DIRS})
