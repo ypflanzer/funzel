@@ -1,8 +1,9 @@
 file(GLOB SRC src/*.cpp)
 file(GLOB HEADERS src/*.h*)
 
-option(USE_INTERNAL_BLAS "Compile OpenBLAS ourselves instead of relying on system packages." ON)
-if(USE_INTERNAL_BLAS)
+option(FUNZEL_NO_SIMD "Compile CPU code without SIMD optimizations." OFF)
+option(FUNZEL_USE_INTERNAL_BLAS "Compile OpenBLAS ourselves instead of relying on system packages." ON)
+if(FUNZEL_USE_INTERNAL_BLAS)
 
 	add_compile_definitions(-DLAPACK_DISABLE_NAN_CHECK=1 -DLAPACK_ILP64=1 -DUSE64BITINT=1)
 	set(C_LAPACK TRUE CACHE BOOL "Use C sources, Fortran may not be available." FORCE)
@@ -55,7 +56,11 @@ else()
 endif()
 
 add_library(funzelBlas SHARED ${SRC} ${HEADERS})
-target_link_libraries(funzelBlas PUBLIC funzel PRIVATE ${FUNZEL_BLAS_LIBRARIES})
+target_link_libraries(funzelBlas PUBLIC funzel ${FUNZEL_BLAS_LIBRARIES})
+
+if(FUNZEL_NO_SIMD)
+	target_compile_definitions(-DFUNZEL_NO_SIMD=1)
+endif()
 
 if(BLA_VENDOR STREQUAL "OpenBLAS")
 	add_compile_definitions(funzelBlas PUBLIC BLAS_VENDOR_OPENBLAS)
@@ -66,7 +71,7 @@ if(OpenMP_CXX_FOUND)
 	target_link_libraries(funzelBlas PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-target_include_directories(funzelBlas PRIVATE ${CBLAS_HEADER} ${LAPACK_INCLUDE_DIRS} ${FUNZEL_BLAS_INCLUDE_DIRS})
+target_include_directories(funzelBlas PUBLIC ${CBLAS_HEADER} ${LAPACK_INCLUDE_DIRS} ${FUNZEL_BLAS_INCLUDE_DIRS} src)
 
 install(TARGETS funzelBlas
 	LIBRARY DESTINATION lib

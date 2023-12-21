@@ -42,7 +42,6 @@ find_package(spdlog CONFIG REQUIRED)
 find_package(FLTK REQUIRED)
 
 add_library(funzel SHARED ${SRC} ${HEADERS})
-message("-- FLTK: ${FLTK_INCLUDE_DIR}")
 target_include_directories(funzel
 	PUBLIC
 		$<INSTALL_INTERFACE:include>
@@ -72,15 +71,17 @@ if(OpenMP_CXX_FOUND)
 	target_link_libraries(funzel PUBLIC OpenMP::OpenMP_CXX)
 endif()
 
-if(ENABLE_SANITIZERS)
-	target_compile_options(funzel PUBLIC -fsanitize=address)
-	target_link_options(funzel PUBLIC -fsanitize=address)
+if(FUNZEL_ENABLE_SANITIZERS)
+	#target_compile_options(funzel PUBLIC -fsanitize=address,undefined,leak)
+	#target_link_options(funzel PUBLIC -fsanitize=address,undefined,leak)
+	add_compile_options(-fsanitize=address,undefined,leak)
+	add_link_options(-fsanitize=address,undefined,leak)
 endif()
 
 add_subdirectory(swig)
 add_subdirectory(backends)
 add_subdirectory(tests)
-#add_subdirectory(benchmarks)
+add_subdirectory(benchmarks)
 
 if(WIN32)
 	install(DIRECTORY

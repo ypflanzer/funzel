@@ -4,26 +4,26 @@ find_package(GTest CONFIG)
 if(GTest_FOUND)
 	file(GLOB SRC libfunzel/*.cpp)
 	set(BACKENDS "\n")
-	if(ENABLE_BLAS_BACKEND)
+	if(FUNZEL_ENABLE_BLAS_BACKEND)
 		file(GLOB BLAS_SRC backends/blas/*.cpp)
 		set(BLAS_BACKEND funzelBlas)
 		STRING(APPEND BACKENDS "\tfunzel::backend::LoadBackend(\"Blas\");\n")
 	endif()
 
-	if(ENABLE_OPENCL_BACKEND)
+	if(FUNZEL_ENABLE_OPENCL_BACKEND)
 		file(GLOB CL_SRC backends/opencl/*.cpp)
 		set(CL_BACKEND funzelOpenCL)
 		STRING(APPEND BACKENDS "\tfunzel::backend::LoadBackend(\"OpenCL\");\n")
 	endif()
 
-	if(ENABLE_SYCL_BACKEND)
+	if(FUNZEL_ENABLE_SYCL_BACKEND)
 		file(GLOB SYCL_SRC backends/sycl/*.cpp)
 		set(SYCL_BACKEND funzelSYCL)
 
 		STRING(APPEND BACKENDS "\tfunzel::backend::LoadBackend(\"SYCL\");\n")
 	endif()
 
-	if(ENABLE_HIP_BACKEND)
+	if(FUNZEL_ENABLE_HIP_BACKEND)
 		file(GLOB HIP_SRC backends/hip/*.cpp)
 		set(HIP_BACKEND funzelHIP)
 
@@ -54,11 +54,33 @@ if(GTest_FOUND)
 			DEPENDS funzelTest
 		)
 
+		find_program(PERF perf REQUIRED)
+		if(PERF_FOUND)
+			add_custom_target(perf
+				COMMAND ${PERF} record -F 99 -g $<TARGET_FILE:funzelTest>
+				WORKING_DIRECTORY $<TARGET_FILE_DIR:funzelTest>
+				DEPENDS funzelTest
+			)
+		endif()
+
+		if(ENABLE_PROFILING)
+			find_program(GPROF gprof REQUIRED)
+			add_custom_target(gprof
+				COMMAND $<TARGET_FILE:funzelTest> || exit 0
+				COMMAND ${GPROF} --demangle $<TARGET_FILE:funzelTest> > ${CMAKE_BINARY_DIR}/gprof_report.txt
+				WORKING_DIRECTORY $<TARGET_FILE_DIR:funzelTest>
+				DEPENDS funzelTest
+			)
+		else()
+			set(GPROF "")
+		endif()
+
 		if(ENABLE_GCOV)
 			find_program(LCOV lcov REQUIRED)
 			find_program(GENHTML genhtml REQUIRED)
 
 			add_custom_target(lcov
+				COMMAND $<TARGET_FILE:funzelTest> || exit 0
 				COMMAND ${LCOV}
 					--include "libfunzel"
 					--directory ${CMAKE_BINARY_DIR}

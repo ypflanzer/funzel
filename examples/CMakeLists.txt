@@ -1,7 +1,7 @@
 
 add_subdirectory(funzel-ls)
 
-option(NO_EXAMPLES "Disable building all examples." FALSE)
-if(NOT NO_EXAMPLES)
+option(FUNZEL_NO_EXAMPLES "Disable building all examples." FALSE)
+if(NOT FUNZEL_NO_EXAMPLES)
 	add_subdirectory(cpp)
 endif()

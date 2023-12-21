@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-if(EXISTS ${CMAKE_SOURCE_DIR}/vcpkg AND "${VCPKG_ROOT}" STREQUAL "")
+if(NOT FUNZEL_NO_VCPKG AND EXISTS ${CMAKE_SOURCE_DIR}/vcpkg AND "${VCPKG_ROOT}" STREQUAL "")
 	set(VCPKG_ROOT ${CMAKE_SOURCE_DIR}/vcpkg)
 endif()
 
@@ -41,8 +41,8 @@ if(USE_RELATIVE_RPATH AND NOT APPLE)
 	set(CMAKE_INSTALL_RPATH "$ORIGIN" "$ORIGIN/../lib")
 endif()
 
-option(USE_LIBCPP "Use LLVM libc++ instead of libstdc++." OFF)
-if (USE_LIBCPP AND CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT ANDROID)
+option(FUNZEL_USE_LIBCPP "Use LLVM libc++ instead of libstdc++." OFF)
+if (FUNZEL_USE_LIBCPP AND CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT ANDROID)
 	add_compile_options(-stdlib=libc++)
 	add_link_options(-stdlib=libc++)
 endif()
@@ -57,26 +57,39 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU"
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2") # "-march=native")
 endif()
 
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3 -funroll-loops -mavx2 -march=native")
+set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -funroll-loops -mavx2 -march=native")
+
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-option(ENABLE_SANITIZERS "Enable Clang sanitizers." OFF)
+option(FUNZEL_ENABLE_SANITIZERS "Enable Clang sanitizers." OFF)
 
 if(WIN32)
 	include(DownloadSwig)
 endif()
+
 # TODO: MinGW support?
 if(NOT WIN32)
 	option(ENABLE_GCOV "Enable GCOV coverage." OFF)
 	if(ENABLE_GCOV)
+		message("-- Enabled GCOV.")
 		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 --coverage")
+	endif()
+
+	option(ENABLE_PROFILING "Enable profiling." OFF)
+	if(ENABLE_PROFILING)
+		message("-- Enabled profiling.")
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -pg")
 	endif()
 endif()
 
 add_subdirectory(libfunzel)
 add_subdirectory (docs)
 
-option(NO_EXAMPLES "Disables building examples." OFF)
-if(NOT NO_EXAMPLES)
+option(FUNZEL_NO_EXAMPLES "Disables building examples." OFF)
+if(NOT FUNZEL_NO_EXAMPLES)
 	add_subdirectory(examples)
 endif()
