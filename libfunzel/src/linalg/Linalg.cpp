@@ -93,6 +93,16 @@ std::tuple<Tensor, Tensor, Tensor> funzel::linalg::svd(Tensor input)
 	}
 
 	svd(input, u, s, v);
+
+	// Get last indices so the last entries can be transposed.
+	// s and v are created as their transpose in col major mode by default.
+	const size_t shapeSize = u.shape.size();
+	std::swap(u.shape[shapeSize - 2], u.shape[shapeSize - 1]);
+	std::swap(v.shape[shapeSize - 2], v.shape[shapeSize - 1]);
+
+	std::swap(u.strides[shapeSize - 2], u.strides[shapeSize - 1]);
+	std::swap(v.strides[shapeSize - 2], v.strides[shapeSize - 1]);
+
 	return usv;
 }
 
