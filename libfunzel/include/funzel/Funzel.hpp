@@ -41,6 +41,16 @@
 	#endif
 #endif
 
+#define FUNZEL_INLINE inline
+
+#ifdef _MSC_VER
+#define FUNZEL_NOINLINE
+#define FUNZEL_RESTRICT __restrict
+#else
+#define FUNZEL_NOINLINE __attribute__((noinline))
+#define FUNZEL_RESTRICT __restrict__
+#endif
+
 /**
  * @brief Defines the function signature of a DLL init function.
  */
