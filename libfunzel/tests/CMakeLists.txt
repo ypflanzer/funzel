@@ -33,7 +33,7 @@ if(GTest_FOUND)
 	configure_file(LoadBackends.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/LoadBackends.hpp @ONLY)
 
 	add_executable(funzelTest Common.hpp ${SRC} ${BLAS_SRC} ${CL_SRC} ${SYCL_SRC} ${HIP_SRC})
-	target_link_libraries(funzelTest PUBLIC GTest::gtest funzel)
+	target_link_libraries(funzelTest PUBLIC GTest::gtest funzel ${BLAS_BACKEND} ${CL_BACKEND} ${SYCL_BACKEND} ${HIP_BACKEND})
 	target_include_directories(funzelTest PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 	add_dependencies(funzelTest ${BLAS_BACKEND} ${CL_BACKEND} ${SYCL_BACKEND} ${HIP_BACKEND})
 
