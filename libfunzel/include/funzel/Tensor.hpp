@@ -170,7 +170,7 @@ public:
 	BackendTensor* getBackend() { return m_backend.get(); }
 	
 #ifndef SWIG
-	inline const BackendTensor* getBackend() const { return m_backend.get(); }
+	inline BackendTensor* getBackend() const { return m_backend.get(); }
 
 	inline BackendTensor* operator->() { return m_backend.get(); }
 	inline BackendTensor* operator->() const { return m_backend.get(); }
@@ -342,7 +342,7 @@ public:
 	template<typename T>
 	T item() const
 	{
-		AssertExcept(shape.empty() || (shape.size() == 1 && shape[0] == 1), "Can only take the item of a one-element tensor!");
+		AssertExcept(!shape.empty() || (shape.size() == 1 && shape[0] == 1), "Can only take the item of a one-element tensor!");
 		const void* data = this->data(offset);
 
 		switch(dtype)
@@ -820,6 +820,20 @@ public:
 	 */
 	virtual void unravel(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
+	/**
+	 * @brief Calculates the arithmetic mean along the given axis.
+	 * 
+	 * If the axis is empty or the only entry is -1, the mean is calculated over the flattened array.
+	 * 
+	 * @param self The input Tensor.
+	 * @param tgt The target tensor results will be stored to.
+	 * @param axis The axis to calculate the mean along.
+	 * @param dtype The type to use for the calculation.
+	 * @param keepdims Keeps the number of dimensions such that the result can be broadcast over the input.
+	 */
+	virtual void mean(const Tensor& self, Tensor& tgt, const small_vector<int>& axis, DTYPE dtype, bool keepdims)
+		{ UnsupportedOperationError; }
+
 	DTYPE dtype;
 	size_t size;
 
@@ -896,6 +910,35 @@ FUNZEL_API Tensor logspace(const Tensor& start, const Tensor& stop, size_t num, 
  * @return Tensor A new Tensor containing the generated values.
  */
 FUNZEL_API Tensor arange(double start, double stop, double step, DTYPE dtype = DFLOAT32);
+
+/**
+ * @brief Calculates the arithmetic mean along the given axis.
+ * 
+ * If the axis is empty or the only entry is -1, the mean is calculated over the flattened array.
+ * 
+ * @param t The input Tensor.
+ * @param axis The axis to calculate the mean along.
+ * @param dtype (optional) The type to use for the calculation.
+ * @param keepdims (optional) Keeps the number of dimensions such that the result can be broadcast over the input.
+ * @return The mean Tensor.
+ */
+FUNZEL_API Tensor mean(const Tensor& t, const small_vector<int>& axis, DTYPE dtype = DFLOAT32, bool keepdims = false);
+
+/**
+ * @brief Calculates the arithmetic mean along the given axis.
+ * 
+ * If the axis is -1, the mean is calculated over the flattened array.
+ * 
+ * @param t The input Tensor.
+ * @param axis (optional) The axis to calculate the mean along.
+ * @param dtype (optional) The type to use for the calculation.
+ * @param keepdims (optional) Keeps the number of dimensions such that the result can be broadcast over the input.
+ * @return The mean Tensor.
+ */
+FUNZEL_INLINE FUNZEL_API Tensor mean(const Tensor& t, int axis = -1, DTYPE dtype = DFLOAT32, bool keepdims = false)
+{
+	return mean(t, small_vector<int>{axis}, dtype, keepdims);
+}
 
 /**
  * @brief Defines the interface of a general RNG.
