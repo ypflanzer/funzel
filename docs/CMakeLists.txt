@@ -1,6 +1,6 @@
 
 ## Doxygen part
-find_package(Doxygen REQUIRED)
+find_package(Doxygen)
 if(NOT Doxygen_FOUND)
 	message(STATUS "Doxygen was not found, documentation is disabled.")
 	return()
