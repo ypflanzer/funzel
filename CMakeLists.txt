@@ -24,7 +24,7 @@ endif()
 project(
 	Funzel
 	VERSION 0.1
-	DESCRIPTION "A small, GPU enabled tensor library for C++."	
+	DESCRIPTION "A small, GPU enabled tensor library for C++."
 )
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
@@ -33,6 +33,8 @@ set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
+option(FUNZEL_ENABLE_LTO "Use LTO if available." ON)
 
 option(USE_RELATIVE_RPATH "Use relative RPATH on *NIX systems." ON)
 if(USE_RELATIVE_RPATH AND NOT APPLE)
@@ -47,18 +49,25 @@ if (FUNZEL_USE_LIBCPP AND CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT ANDROID)
 	add_link_options(-stdlib=libc++)
 endif()
 
-## Set some optimization flags for MSVC
-if(MSVC)
-	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /O2 /Ob2 /Oi /Ot")
-endif()
-
+option(FUNZEL_ENABLE_AVX2 "Use AVX2 instruction set." ON)
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang" OR CMAKE_CXX_COMPILER_ID MATCHES "GNU")
-	option(ENABLE_AVX2 "Use AVX2 instruction set." ON)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2") # "-march=native")
-endif()
+	set(FUNZEL_ARCH "x86-64-v3" CACHE STRING "The CPU architecture to generate code for. Equivalent to '-march=<arch>'")
+	if(FUNZEL_ENABLE_AVX2)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -mavx2")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mavx2")
+	endif()
 
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3 -funroll-loops -mavx2 -march=native")
-set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -funroll-loops -mavx2 -march=native")
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -g -O3 -funroll-loops -march=${FUNZEL_ARCH}")
+	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -g -O3 -funroll-loops -march=${FUNZEL_ARCH}")
+elseif(MSVC)
+	set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "${CMAKE_CXX_FLAGS_RELWITHDEBINFO} /Ox /Ob2 /Oi /Ot")
+	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Ox /Ob2 /Oi /Ot")
+
+	if(FUNZEL_ENABLE_AVX2)
+		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /arch:AVX2")
+		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /arch:AVX2")
+	endif()
+endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
