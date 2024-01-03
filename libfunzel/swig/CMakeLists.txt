@@ -32,7 +32,9 @@ else()
 endif()
 
 # Dotnet
-if(NOT NO_CSHARP)
+include(CheckLanguage)
+check_language(CSharp)
+if(NOT NO_CSHARP AND CMAKE_CSharp_COMPILER)
 	if(WIN32)
 		enable_language(CSharp)
 		set(CSC_EXE ${CMAKE_CSharp_COMPILER})
