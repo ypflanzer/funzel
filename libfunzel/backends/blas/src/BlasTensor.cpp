@@ -26,8 +26,6 @@
 
 #include "BlasTensorImpl.hpp"
 
-#include <cblas.h>
-
 #ifdef WIN32
 #include <windows.h>
 static size_t systemMemory()
@@ -76,37 +74,46 @@ void* BlasTensor::data(size_t offset)
 	return m_data.get() + offset;
 }
 
+template<SIMD_TYPE SimdType = SIMD_TYPE::NONE>
 static inline BlasTensor* CreateBlasTensor(DTYPE dtype)
 {
 	switch(dtype)
 	{
 		default:
-		case DFLOAT32: return new BlasTensorImpl<float>(); break;
+		case DFLOAT32: return new BlasTensorImpl<float, SimdType>(); break;
 
-		case DFLOAT64: return new BlasTensorImpl<double>(); break;
-		case DINT8: return new BlasTensorImpl<int8_t>(); break;
-		case DINT16: return new BlasTensorImpl<int16_t>(); break;
-		case DINT32: return new BlasTensorImpl<int32_t>(); break;
-		case DINT64: return new BlasTensorImpl<int64_t>(); break;
-		case DUINT8: return new BlasTensorImpl<uint8_t>(); break;
-		case DUINT16: return new BlasTensorImpl<uint16_t>(); break;
-		case DUINT32: return new BlasTensorImpl<uint32_t>(); break;
+		case DFLOAT64: return new BlasTensorImpl<double, SimdType>(); break;
+		case DINT8: return new BlasTensorImpl<int8_t, SimdType>(); break;
+		case DINT16: return new BlasTensorImpl<int16_t, SimdType>(); break;
+		case DINT32: return new BlasTensorImpl<int32_t, SimdType>(); break;
+		case DINT64: return new BlasTensorImpl<int64_t, SimdType>(); break;
+		case DUINT8: return new BlasTensorImpl<uint8_t, SimdType>(); break;
+		case DUINT16: return new BlasTensorImpl<uint16_t, SimdType>(); break;
+		case DUINT32: return new BlasTensorImpl<uint32_t, SimdType>(); break;
 	}
 
 	// Should never happen!
 	return nullptr;
 }
 
+static inline BlasTensor* CreateBlasTensor(DTYPE dtype, const std::string& simd)
+{
+	if(simd == "AVX2")
+		return CreateBlasTensor<SIMD_TYPE::AVX2>(dtype);
+	else
+		return CreateBlasTensor<SIMD_TYPE::NONE>(dtype);
+}
+
 std::shared_ptr<BackendTensor> BlasTensor::Empty(std::shared_ptr<char> data, size_t sz, DTYPE dtype, const std::string& args)
 {
-	BlasTensor* tensor = CreateBlasTensor(dtype);
+	BlasTensor* tensor = CreateBlasTensor(dtype, args);
 	tensor->empty(data, sz);
 	return std::shared_ptr<BackendTensor>(tensor);
 }
 
 std::shared_ptr<BackendTensor> BlasTensor::Empty(const void* data, size_t sz, DTYPE dtype, const std::string& args)
 {
-	BlasTensor* tensor = CreateBlasTensor(dtype);
+	BlasTensor* tensor = CreateBlasTensor(dtype, args);
 	tensor->empty(data, sz);
 	return std::shared_ptr<BackendTensor>(tensor);
 }
@@ -116,7 +123,12 @@ void BlasTensor::empty(std::shared_ptr<char> buffer, size_t sz)
 	this->size = sz;
 	if(!buffer)
 	{
-		m_data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
+		// FIXME: Windows does currently not support aligned_alloc. _aligned_alloc is not compatible with default delete and free.
+#ifdef WIN32
+		m_data = std::shared_ptr<char>((char*)std::malloc(sz));
+#else
+		m_data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, size * dtypeSizeof(dtype)));
+#endif
 	}
 	else
 	{
@@ -128,7 +140,12 @@ void BlasTensor::empty(const void* buffer, size_t sz)
 {
 	this->size = sz;
 
+	// FIXME: Windows does currently not support aligned_alloc. _aligned_alloc is not compatible with default delete and free.
+#ifdef WIN32
 	m_data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
+#else
+	m_data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, size * dtypeSizeof(dtype)));
+#endif
 
 	if(buffer)
 	{
@@ -140,7 +157,13 @@ std::shared_ptr<BackendTensor> BlasTensor::clone() const
 {
 	BlasTensor* t = CreateBlasTensor(dtype);
 	size_t sz = size*dtypeSizeof(dtype);
-	auto data = std::shared_ptr<char>((char*) std::malloc(sz));
+
+	// FIXME: Windows does currently not support aligned_alloc. _aligned_alloc is not compatible with default delete and free.
+#ifdef WIN32
+	auto data = std::shared_ptr<char>((char*)std::malloc(sz));
+#else
+	auto data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, sz));
+#endif
 
 	memcpy(data.get(), m_data.get(), sz);
 

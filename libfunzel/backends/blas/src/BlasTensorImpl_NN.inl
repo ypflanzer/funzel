@@ -19,13 +19,15 @@
 #include "Pool2D.hpp"
 #include "Conv2D.hpp"
 
+#include <functional>
+
 namespace funzel
 {
 namespace blas
 {
 
-template<typename T>
-void BlasTensorImpl<T>::pool2d(
+template<typename T, SIMD_TYPE SimdType>
+void BlasTensorImpl<T, SimdType>::pool2d(
 			const Tensor& self, Tensor tgt,
 			POOLING_MODE mode,
 			const UVec2& kernelSize,
@@ -66,8 +68,8 @@ void BlasTensorImpl<T>::pool2d(
 			);
 }
 
-template<typename T>
-void BlasTensorImpl<T>::relu(const Tensor& self, Tensor& tgt, double negativeSlope)
+template<typename T, SIMD_TYPE SimdType>
+void BlasTensorImpl<T, SimdType>::relu(const Tensor& self, Tensor& tgt, double negativeSlope)
 {
 	if(negativeSlope == 0.0)
 		TensorOp(self, tgt, [](const auto& v) {

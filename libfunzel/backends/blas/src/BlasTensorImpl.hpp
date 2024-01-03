@@ -1,6 +1,8 @@
 #pragma once
 
 #include "BlasTensor.hpp"
+
+#include <lapacke.h>
 #include <cblas.h>
 
 namespace funzel
@@ -8,7 +10,15 @@ namespace funzel
 namespace blas
 {
 
-template<typename T>
+enum SIMD_TYPE
+{
+	NONE,
+	AVX2,
+	AVX512,
+	NEON
+};
+
+template<typename T, SIMD_TYPE SimdType = NONE>
 class EXPORT BlasTensorImpl: public BlasTensor
 {
 public:
@@ -30,6 +40,9 @@ public:
 		}
 	}
 
+	template<typename AccumT>
+	AccumT sum(const T* FUNZEL_RESTRICT data, size_t n, size_t stride = 1) FUNZEL_NOINLINE;
+
 	double sum(const Tensor& self) override
 	{
 		if(self.shape.empty())
@@ -46,6 +59,8 @@ public:
 			return s;
 		}
 
+		return sum<double>((T*) data(self.offset), self.size(), self.strides.back() / sizeof(T));
+#if 0
 		void* data = this->data(self.offset);
 		size_t stride = self.strides.back();
 
@@ -63,7 +78,7 @@ public:
 		{
 			throw std::runtime_error("Unsupported type for operation!");
 		}
-
+#endif
 		return 0;
 	}
 
@@ -130,6 +145,38 @@ public:
 		TensorOp(self, tgt, [](const auto& v) { return std::tanh(v); });
 	}
 
+	template<typename Result, typename Input>
+	Result meanFlattened(Tensor& self) const
+	{
+		const auto size = self.size();
+		Result accum(0);
+
+		#if 0
+		if constexpr (std::is_same_v<Input, float>)
+			accum = cblas_sasum(size, self.data(), self.strides.back());
+		else if constexpr (std::is_same_v<Input, double>)
+			accum = cblas_dasum(size, self.data(), self.strides.back());
+		else if constexpr (std::is_same_v<Input, float>)
+			accum = cblas_sasum(size, self.data(), self.strides.back());
+		else // Use our own, (unoptimized) version
+		#endif
+		{
+			//for(size_t i = 0; i < size; i++)
+			//	accum += self.dataAs<Input>(i);
+		}
+
+		return sum(self) / size;
+	}
+
+	void mean(const Tensor& self, Tensor& tgt, const small_vector<int>& axis, DTYPE dtype, bool keepdims) override
+	{
+		// Use flattened version
+		if(axis.empty() || axis[0] == -1)
+		{
+			tgt = sum(self) / self.size();
+			//auto v = meanFlattened<>(self);
+		}
+	}
 
 	void mulAdd(const Tensor& self, Tensor tgt, double alpha)
 	{
@@ -328,6 +375,7 @@ public:
 }
 }
 
+#include "BlasTensorImpl.inl"
 #include "BlasTensorImpl_NN.inl"
 #include "BlasTensorImpl_CV.inl"
 #include "BlasTensorImpl_Linalg.inl"

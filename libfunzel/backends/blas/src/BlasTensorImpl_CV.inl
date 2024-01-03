@@ -21,8 +21,8 @@ namespace funzel
 namespace blas
 {
 
-template<typename T>
-void BlasTensorImpl<T>::conv2d(
+template<typename T, SIMD_TYPE SimdType>
+void BlasTensorImpl<T, SimdType>::conv2d(
 		const Tensor& self, Tensor tgt,
 		const Tensor& kernel,
 		const UVec2& stride,
@@ -89,8 +89,8 @@ static void ConvertRGBToGrayCHW(const Tensor& self, Tensor& tgt)
 	}
 }
 
-template<typename T>
-void BlasTensorImpl<T>::convertGrayscale(const Tensor& self, Tensor tgt)
+template<typename T, SIMD_TYPE SimdType>
+void BlasTensorImpl<T, SimdType>::convertGrayscale(const Tensor& self, Tensor tgt)
 {
 	if(self.shape.size() <= 2)
 		return;
