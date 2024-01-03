@@ -58,7 +58,7 @@ static inline std::shared_ptr<BackendTensor> CreateBackendTensorT(T data, size_t
 		if(iter == s_tensorBackends.end())
 			return nullptr;
 		
-		return iter->second->create(data, count, dtype);
+		return iter->second->create(data, count, dtype, name);
 	}
 
 	std::string device = name.substr(0, splitterIdx);
@@ -138,7 +138,7 @@ void LoadBackendFile(const std::string& filename)
 	spdlog::debug("Loading backend: {}", filename);
 #ifdef _WIN32
 	auto backend = LoadLibrary(filename.c_str());
-	AssertExcept(backend != NULL, "Could not load backend: " << name);
+	AssertExcept(backend != NULL, "Could not load backend: " << filename);
 
 	auto InitFunc = (FunzelInitFuncType) GetProcAddress(backend, "FunzelInit");
 	if(InitFunc != NULL)
