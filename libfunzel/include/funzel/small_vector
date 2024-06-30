@@ -131,16 +131,19 @@ public:
 			m_capacity = other.max_size();
 			m_size = other.size();
 			m_data = other.data();
-
-			other.resetToCache();
 		}
 
+		// Reset other container
+		other.resetToCache();
 		return *this;
 	}
 #endif
 
 	iterator begin() { return m_data; }
 	iterator end() { return m_data + m_size; }
+
+	reference front() { return *m_data; }
+	const_reference front() const { return *m_data; }
 
 #ifndef SWIG
 	const_iterator begin() const { return m_data; }
