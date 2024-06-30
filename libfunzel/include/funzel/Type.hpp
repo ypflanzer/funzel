@@ -64,12 +64,10 @@ inline constexpr size_t dtypeSizeof(const DTYPE dtype)
 		case DINT64: return 8;
 	
 		case DINT8:
-		case DUINT8:
-			return 1;
+		case DUINT8: return 1;
 
-		case NONE:
-		default:
-			return 0;
+		case NONE: return 0;
+		default: throw std::invalid_argument("Invalid DTYPE given: " + std::to_string(dtype));
 	}
 }
 
@@ -97,8 +95,10 @@ inline std::string dtypeToNativeString(const DTYPE dtype)
 		case DINT8: return "char";
 		case DUINT8: return "uchar";
 
-		default:
 		case NONE: return "void";
+
+		default:
+			return "Unknown (" + std::to_string(dtype) + ")";
 	}
 }
 
@@ -116,12 +116,12 @@ DTYPE dtype()
 	else if constexpr(std::is_same_v<T, float>) return DFLOAT32;
 	else if constexpr(std::is_same_v<T, int64_t>) return DINT64;
 	else if constexpr(std::is_same_v<T, uint64_t>) return DUINT64;
-	else if constexpr(std::is_same_v<T, int>) return DINT32;
-	else if constexpr(std::is_same_v<T, unsigned int>) return DUINT32;
-	else if constexpr(std::is_same_v<T, short>) return DINT16;
-	else if constexpr(std::is_same_v<T, unsigned short>) return DUINT16;
-	else if constexpr(std::is_same_v<T, char>) return DINT8;
-	else if constexpr(std::is_same_v<T, unsigned char>) return DUINT8;
+	else if constexpr(std::is_same_v<T, int32_t>) return DINT32;
+	else if constexpr(std::is_same_v<T, uint32_t>) return DUINT32;
+	else if constexpr(std::is_same_v<T, int16_t>) return DINT16;
+	else if constexpr(std::is_same_v<T, uint16_t>) return DUINT16;
+	else if constexpr(std::is_same_v<T, int8_t>) return DINT8;
+	else if constexpr(std::is_same_v<T, uint8_t>) return DUINT8;
 	return NONE;
 }
 
@@ -134,6 +134,35 @@ DTYPE dtype()
  */
 template<typename T>
 DTYPE dtypeOf(const T&) { return dtype<T>(); }
+
+template<typename Fn, typename... Args>
+inline void DoAsDtype(DTYPE dtype, Fn&& fn, Args&&... args)
+{
+	// FIXME: This always fails. Find out why!
+	//static_assert(std::is_invocable_v<Fn, Args&&...>,
+	//				"The given function needs the following signature: void(args...)");
+	
+	switch(dtype)
+	{
+	case DINT16: fn.template operator()<int16_t>(args...); break;
+	case DINT32: fn.template operator()<int32_t>(args...); break;
+	case DINT64: fn.template operator()<int64_t>(args...); break;
+
+	case DUINT16: fn.template operator()<uint16_t>(args...); break;
+	case DUINT32: fn.template operator()<uint32_t>(args...); break;
+	case DUINT64: fn.template operator()<uint64_t>(args...); break;
+
+	case DFLOAT32: fn.template operator()<float>(args...); break;
+	case DFLOAT64: fn.template operator()<double>(args...); break;
+	
+	case DINT8: fn.template operator()<int8_t>(args...); break;
+	case DUINT8: fn.template operator()<uint8_t>(args...); break;
+
+	default:
+		throw std::runtime_error("Invalid DTYPE given: " + dtypeToNativeString(dtype));
+	}
+}
+
 #endif
 
 }
