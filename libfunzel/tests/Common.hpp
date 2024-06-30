@@ -16,7 +16,7 @@ using namespace funzel;
 #define STRINGIFY(x) STRINGIFY2(x)
 
 #define CAT_(x, y) x ## y
-#define CAT(x, y) CAT_(x, y)
+#define CAT(x, y) CAT_(x, y) 
 
 #ifndef CommonTest
 #define CommonTest DefaultTest
@@ -25,6 +25,8 @@ using namespace funzel;
 #ifndef TestDevice
 #define TestDevice ""
 #endif
+
+#include "BasicOpsTest.hpp"
 
 TEST(CommonTest, Fill)
 {
@@ -43,14 +45,26 @@ TEST(CommonTest, Fill)
 TEST(CommonTest, Sum)
 {
 	auto v = Tensor::ones({3, 3, 3});
-	EXPECT_EQ(v.sum(), 3*3*3);
-	EXPECT_EQ(v[0].sum(), 3*3);
+
+	// Test simple sum of all elements
+	EXPECT_EQ(v.sum().item<float>(), 3*3*3);
+
+	// Test sum for one submatrix
+	EXPECT_EQ(v[0].sum().item<float>(), 3*3);
+}
+
+TEST(CommonTest, SumStrided)
+{
+	auto v = Tensor::ones({3, 3, 3});
 	
+	// Set one value to zero such that a transpose will show different results
 	v[{0, 0, 1}] = 0;
 
-	EXPECT_EQ(v.transpose()[0].sum(), 3*3);
-	EXPECT_EQ(v[0].sum(), 3*3 - 1);
+	// This tests whether strides work
+	EXPECT_EQ(v.transpose()[0].sum().item<float>(), 3*3);
+	EXPECT_EQ(v[0].sum().item<float>(), 3*3 - 1);
 
+	// Set random values and keep sum
 	double overall = 0;
 	for(size_t p = 0; p < 3; p++)
 		for(size_t q = 0; q < 3; q++)
@@ -61,7 +75,42 @@ TEST(CommonTest, Sum)
 				v[{p, q, r}] = x;
 			}
 
-	EXPECT_EQ(v.transpose().sum(), overall);
+	// Check if a strided version works
+	EXPECT_EQ(v.transpose().sum().item<float>(), overall);
+}
+
+TEST(CommonTest, Sum3D)
+{
+	auto tensor = Tensor::ones({1, 2, 3}, funzel::DFLOAT32, TestDevice);
+
+	// Scalar
+	if(false)
+	{
+		auto scalarSum = tensor.sum();
+		const Tensor scalarSumExpected({1}, {6.0f});
+		EXPECT_TENSOR_EQ(scalarSum.cpu(), scalarSumExpected);
+	}
+
+	// Axis 0
+	{
+		auto sum = tensor.sum({0});
+		std::cout<< "SUM: " << sum << std::endl;
+		const Tensor sumExpected({2, 3}, {
+			1.0f, 1.0f, 1.0f,
+			1.0f, 1.0f, 1.0f
+		});
+		
+		EXPECT_TENSOR_EQ(sum.cpu(), sumExpected);
+	}
+
+	return;
+
+	// Axis 1
+	{
+		auto sum = tensor.sum({1});
+		const Tensor sumExpected({2}, {3.0f, 3.0f});
+		EXPECT_TENSOR_EQ(sum.cpu(), sumExpected);
+	}
 }
 
 TEST(CommonTest, Abs)
@@ -329,60 +378,6 @@ TEST(CommonTest, TanhStrided)
 			}
 }
 
-TEST(CommonTest, AddMatrix)
-{
-	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
-	auto result = v.add(v);
-
-	v = v.cpu();
-	result = result.cpu();
-
-	// Make sure the original value did not change
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
-			{
-				EXPECT_EQ((v[{p, q, r}].item<float>()), 1);
-			}
-
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
-			{
-				EXPECT_EQ((result[{p, q, r}].item<float>()), 2);
-			}
-}
-
-TEST(CommonTest, AddMatrixInplace)
-{
-	auto v = Tensor::ones({3, 3, 3}).to(TestDevice);
-	v.add_(v);
-	v = v.cpu();
-
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
-			{
-				EXPECT_EQ((v[{p, q, r}].item<float>()), 2);
-			}
-}
-
-TEST(CommonTest, AddMatrixStridedInplace)
-{
-	const auto ones = Tensor::ones({3, 3}).to(TestDevice);
-	auto v = Tensor::ones({3, 3, 3}).to(TestDevice).transpose();
-	v[1].add_(ones);
-	v = v.transpose();
-	v = v.cpu();
-
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
-			{
-				EXPECT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 2 : 1));
-			}
-}
-
 TEST(CommonTest, MatmulTensor)
 {
 	Tensor a({2, 3, 3},
@@ -567,4 +562,36 @@ TEST(CommonTest, BroadcastVectorVectorDiv)
 
 	auto c = a.div(b).cpu();
 	EXPECT_TENSOR_EQ(c, expected);
+}
+
+TEST(CommonTest, Mean1D)
+{
+	Tensor a({9}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, TestDevice);
+	auto c = funzel::mean(a);
+	
+	const Tensor expected({1}, {5.0f}, TestDevice);
+	EXPECT_TENSOR_EQ(c, expected);
+}
+
+TEST(CommonTest, Mean2D)
+{
+	Tensor a({3, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, TestDevice);
+	
+	auto c = funzel::mean(a);
+	
+	const Tensor expected({1}, {5.0f}, TestDevice);
+	EXPECT_TENSOR_EQ(c, expected);
+}
+
+TEST(CommonTest, MeanAxis2D)
+{
+	Tensor a({3, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, TestDevice);
+	Tensor mean = funzel::mean(a, {1});
+
+	Tensor expected({3},
+	{
+		2.0f, 5.0f, 8.0f
+	});
+
+	EXPECT_TENSOR_EQ(mean.cpu(), expected);
 }

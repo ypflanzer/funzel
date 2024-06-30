@@ -5,6 +5,7 @@
 #include <lapacke.h>
 #include <cblas.h>
 
+#include <numeric> // std::accumulate
 namespace funzel
 {
 namespace blas
@@ -41,45 +42,18 @@ public:
 	}
 
 	template<typename AccumT>
-	AccumT sum(const T* FUNZEL_RESTRICT data, size_t n, size_t stride = 1) FUNZEL_NOINLINE;
+	static AccumT sum(const T* FUNZEL_RESTRICT data, size_t n, size_t stride = 1) FUNZEL_NOINLINE;
 
-	double sum(const Tensor& self) override
+	void sum(
+		const Tensor& self,
+		Tensor& tgt,
+		const small_vector<int>& axis,
+		DTYPE dtype,
+		bool keepdims) override
 	{
-		if(self.shape.empty())
-			return 0;
-		
-		if(self.shape.size() > 1)
-		{
-			double s = 0;
-			for(int i = 0; i < self.shape[0]; i++)
-			{
-				s += sum(self[i]);
-			}
-
-			return s;
-		}
-
-		return sum<double>((T*) data(self.offset), self.size(), self.strides.back() / sizeof(T));
-#if 0
-		void* data = this->data(self.offset);
-		size_t stride = self.strides.back();
-
-		if constexpr (std::is_same_v<T, float>)
-		{
-			const float one = 1.0f;
-			return cblas_sdot(self.size(), reinterpret_cast<float*>(data), stride/sizeof(float), &one, 0);
-		}
-		else if constexpr (std::is_same_v<T, double>)
-		{
-			const double one = 1.0;
-			return cblas_ddot(self.size(), reinterpret_cast<double*>(data), stride/sizeof(double), &one, 0);
-		}
-		else
-		{
-			throw std::runtime_error("Unsupported type for operation!");
-		}
-#endif
-		return 0;
+		Reduce<int>(self, axis, dtype, tgt, keepdims, std::optional<int>{0}, [](const Tensor& t1, Tensor& t2) {
+			t2.add_(t1);
+		});
 	}
 
 	template<typename Fn>
@@ -145,41 +119,74 @@ public:
 		TensorOp(self, tgt, [](const auto& v) { return std::tanh(v); });
 	}
 
-	template<typename Result, typename Input>
-	Result meanFlattened(Tensor& self) const
-	{
-		const auto size = self.size();
-		Result accum(0);
-
-		#if 0
-		if constexpr (std::is_same_v<Input, float>)
-			accum = cblas_sasum(size, self.data(), self.strides.back());
-		else if constexpr (std::is_same_v<Input, double>)
-			accum = cblas_dasum(size, self.data(), self.strides.back());
-		else if constexpr (std::is_same_v<Input, float>)
-			accum = cblas_sasum(size, self.data(), self.strides.back());
-		else // Use our own, (unoptimized) version
-		#endif
-		{
-			//for(size_t i = 0; i < size; i++)
-			//	accum += self.dataAs<Input>(i);
-		}
-
-		return sum(self) / size;
-	}
-
 	void mean(const Tensor& self, Tensor& tgt, const small_vector<int>& axis, DTYPE dtype, bool keepdims) override
 	{
-		// Use flattened version
-		if(axis.empty() || axis[0] == -1)
+		sum(self, tgt, axis, dtype, keepdims);
+
+		// Calculate normalizing factor
+		small_vector<double> norm(tgt.shape.size());
+
+		if(axis.empty())
+			norm[0] = 1.0/self.size();
+		else
 		{
-			tgt = sum(self) / self.size();
-			//auto v = meanFlattened<>(self);
+
+			// Axes needs to be sorted descending!
+			auto sortedAx = axis;
+			std::sort(sortedAx.begin(), sortedAx.end(), std::greater<int>());
+
+			for(int i = 0; i < sortedAx.size(); i++)
+			{
+				norm[i] = 1.0/self.shape[sortedAx[i]];
+			}
+		}
+		
+		auto normTensor = Tensor::empty({tgt.shape.size()}, norm.data(), DTYPE::DFLOAT64, self.device);
+		tgt.mul_(normTensor.astype(tgt.dtype));
+	}
+
+	void add(const Tensor& a, const Tensor& b, Tensor tgt) override
+	{
+		Broadcast<0>(a, b, tgt,
+			[](const auto& a, const auto& b) { return a; },
+			[](const Tensor& a, Tensor b, Tensor tgt) {
+				funzel::ApplyStrided(a, b, tgt, [](const auto& a, const auto& b, auto tgt) {
+					const T* adata = reinterpret_cast<const T*>(a.data(a.offset));
+					const T* bdata = reinterpret_cast<const T*>(b.data(b.offset));
+					T* dest = reinterpret_cast<T*>(tgt.data(tgt.offset));
+
+					const size_t tgtStride = tgt.strides[0] / sizeof(T);
+					const size_t aStride = a.strides[0] / sizeof(T);
+					const size_t bStride = b.strides[0] / sizeof(T);
+
+					for(size_t i = 0; i < a.size(); i++)
+					{
+						dest[i*tgtStride] = adata[i*aStride] + bdata[i*bStride];
+					}
+				});
+		});
+	}
+
+	static void axpy(
+		const T* FUNZEL_RESTRICT a,
+		const T* FUNZEL_RESTRICT b,
+		T* FUNZEL_RESTRICT dest,
+		T alpha,
+		
+		size_t n,
+		size_t astride = 1,
+		size_t bstride = 1,
+		size_t deststride = 1) FUNZEL_NOINLINE
+	{
+		for(size_t i = 0; i < n; i++)
+		{
+			dest[i*deststride] = a[i*astride] + b[i*bstride]*alpha;
 		}
 	}
 
 	void mulAdd(const Tensor& self, Tensor tgt, double alpha)
 	{
+		#if 0
 		if(self.shape.empty())
 			return;
 		
@@ -193,26 +200,37 @@ public:
 
 			return;
 		}
+		#endif
 
-		const void* src = self.data(self.offset);
-		void* dest = tgt.data(tgt.offset);
-		size_t destStride = tgt.strides.back();
-		size_t stride = self.strides.back();
+		//funzel::ApplyStrided(self, tgt, [alpha](const auto& self, auto tgt) {
+		funzel::Apply(self, tgt, tgt, 1, [](const auto& self, const auto& b, auto tgt, double alpha) {
+			const T* src = reinterpret_cast<const T*>(self.data(self.offset));
+			T* dest = reinterpret_cast<T*>(tgt.data(tgt.offset));
+			size_t destStride = tgt.strides.back();
+			size_t stride = self.strides.back();
 
-		if constexpr (std::is_same_v<T, float>)
-		{
-			cblas_saxpy(self.size(), alpha, reinterpret_cast<const float*>(src),
-									stride/sizeof(float), reinterpret_cast<float*>(dest), destStride/sizeof(float));
-		}
-		else if constexpr (std::is_same_v<T, double>)
-		{
-			cblas_daxpy(self.size(), alpha, reinterpret_cast<const double*>(src), stride/sizeof(double), 
-									reinterpret_cast<double*>(dest), destStride/sizeof(double));
-		}
-		else
-		{
-			throw std::runtime_error("Unsupported type for operation!");
-		}
+			axpy(src, src, dest, alpha, self.size(), stride/sizeof(T), stride/sizeof(T), destStride/sizeof(T));
+			// std::cout << self << " " << tgt << std::endl;
+
+#if 0
+			if constexpr (std::is_same_v<T, float>)
+			{
+				cblas_saxpy(self.size(), alpha, reinterpret_cast<const float*>(src),
+										stride/sizeof(float), reinterpret_cast<float*>(dest), destStride/sizeof(float));
+
+				std::cout << self << " " << tgt << std::endl;
+			}
+			else if constexpr (std::is_same_v<T, double>)
+			{
+				cblas_daxpy(self.size(), alpha, reinterpret_cast<const double*>(src), stride/sizeof(double), 
+										reinterpret_cast<double*>(dest), destStride/sizeof(double));
+			}
+			else
+			{
+				throw std::runtime_error("Unsupported type for operation!");
+			}
+#endif
+		}, alpha);
 	}
 
 	void mul(Tensor self, double alpha)
@@ -286,6 +304,59 @@ public:
 							reinterpret_cast<const T*>(src), self.strides.back()/sizeof(T),
 							reinterpret_cast<const T*>(bdata), b.strides.back()/sizeof(T),
 							reinterpret_cast<T*>(dest), tgt.strides.back()/sizeof(T));
+	}
+
+	template<typename V>
+	static void TensorMul(
+		size_t count,
+		const V* a, size_t strideA,
+		const V* b, size_t strideB,
+		V* c, size_t strideC)
+	{
+		for(size_t i = 0; i < count; i++)
+		{
+			c[i * strideC] = a[i * strideA] * b[i * strideB];
+		}
+	}
+
+	template<typename V>
+	static void ScalarMul(
+		size_t count,
+		const V* a, size_t strideA,
+		V scalar,
+		V* c, size_t strideC)
+	{
+		for(size_t i = 0; i < count; i++)
+		{
+			c[i * strideC] = a[i * strideA] * scalar;
+		}
+	}
+
+
+	void mul(const Tensor& self, const Tensor& b, Tensor tgt)
+	{
+		funzel::ApplyStrided(self, b, tgt, [](const auto& self, const auto& b, auto tgt) {
+			const void* src = self.data(self.offset);
+			const T* bdata = reinterpret_cast<const T*>(b.data(b.offset));
+			void* dest = tgt.data(tgt.offset);
+
+			if(b.size() == 1) // Scalar!
+			{
+				ScalarMul<T>(
+							self.size(),
+							reinterpret_cast<const T*>(src), self.strides.back()/sizeof(T),
+							*bdata,
+							reinterpret_cast<T*>(dest), tgt.strides.back()/sizeof(T));
+			}
+			else
+			{
+				TensorMul<T>(
+							self.size(),
+							reinterpret_cast<const T*>(src), self.strides.back()/sizeof(T),
+							reinterpret_cast<const T*>(bdata), b.strides.back()/sizeof(T),
+							reinterpret_cast<T*>(dest), tgt.strides.back()/sizeof(T));
+			}
+		});
 	}
 
 	void matmul(const Tensor& self, Tensor b, Tensor tgt)

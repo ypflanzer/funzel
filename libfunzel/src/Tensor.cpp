@@ -92,10 +92,82 @@ Tensor::Tensor(const Shape& shape, const double data[], unsigned long long sz, c
 	*this = empty(shape, (const void*) data, DFLOAT64, device);
 }
 
+Tensor::Tensor(const Shape& shape, const int8_t data[], unsigned long long sz, const std::string& device)
+{
+	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
+	*this = empty(shape, (const void*) data, DINT8, device);
+}
+
+Tensor::Tensor(const Shape& shape, const int16_t data[], unsigned long long sz, const std::string& device)
+{
+	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
+	*this = empty(shape, (const void*) data, DINT16, device);
+}
+
+Tensor::Tensor(const Shape& shape, const int32_t data[], unsigned long long sz, const std::string& device)
+{
+	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
+	*this = empty(shape, (const void*) data, DINT32, device);
+}
+
+Tensor::Tensor(const Shape& shape, const int64_t data[], unsigned long long sz, const std::string& device)
+{
+	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
+	*this = empty(shape, (const void*) data, DINT64, device);
+}
+
+Tensor::Tensor(const Shape& shape, const uint8_t data[], unsigned long long sz, const std::string& device)
+{
+	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
+	*this = empty(shape, (const void*) data, DUINT8, device);
+}
+
+Tensor::Tensor(const Shape& shape, const uint16_t data[], unsigned long long sz, const std::string& device)
+{
+	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
+	*this = empty(shape, (const void*) data, DUINT16, device);
+}
+
+Tensor::Tensor(const Shape& shape, const uint32_t data[], unsigned long long sz, const std::string& device)
+{
+	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
+	*this = empty(shape, (const void*) data, DUINT32, device);
+}
+
+Tensor::Tensor(const Shape& shape, const uint64_t data[], unsigned long long sz, const std::string& device)
+{
+	AssertExcept(::size(shape) == sz, "Given shape does not match the size of the initial data!");
+	*this = empty(shape, (const void*) data, DUINT64, device);
+}
+
 Tensor::Tensor(const Shape& shape, const std::initializer_list<double> data, const std::string& device):
 	Tensor(shape, data.begin(), data.size(), device) {}
 
 Tensor::Tensor(const Shape& shape, const std::initializer_list<float> data, const std::string& device):
+	Tensor(shape, data.begin(), data.size(), device) {}
+
+Tensor::Tensor(const Shape& shape, const std::initializer_list<int8_t> data, const std::string& device):
+	Tensor(shape, data.begin(), data.size(), device) {}
+
+Tensor::Tensor(const Shape& shape, const std::initializer_list<int16_t> data, const std::string& device):
+	Tensor(shape, data.begin(), data.size(), device) {}
+
+Tensor::Tensor(const Shape& shape, const std::initializer_list<int32_t> data, const std::string& device):
+	Tensor(shape, data.begin(), data.size(), device) {}
+
+Tensor::Tensor(const Shape& shape, const std::initializer_list<int64_t> data, const std::string& device):
+	Tensor(shape, data.begin(), data.size(), device) {}
+
+Tensor::Tensor(const Shape& shape, const std::initializer_list<uint8_t> data, const std::string& device):
+	Tensor(shape, data.begin(), data.size(), device) {}
+
+Tensor::Tensor(const Shape& shape, const std::initializer_list<uint16_t> data, const std::string& device):
+	Tensor(shape, data.begin(), data.size(), device) {}
+
+Tensor::Tensor(const Shape& shape, const std::initializer_list<uint32_t> data, const std::string& device):
+	Tensor(shape, data.begin(), data.size(), device) {}
+
+Tensor::Tensor(const Shape& shape, const std::initializer_list<uint64_t> data, const std::string& device):
 	Tensor(shape, data.begin(), data.size(), device) {}
 
 std::string Tensor::toString() const
@@ -256,7 +328,6 @@ void Tensor::trimDimensions()
 template<typename From, typename To>
 static void convertType(const Tensor& in, Tensor& tgt)
 {
-	#pragma omp parallel for
 	for(int64_t i = 0; i < tgt.size(); i++)
 	{
 		tgt.dataAs<To>(i) = in.dataAs<From>(i);
@@ -276,9 +347,10 @@ static void convertType(DTYPE to, const Tensor& in, Tensor& tgt)
 		case DINT64: convertType<From, int64_t>(in, tgt); break;
 		case DINT8: convertType<From, char>(in, tgt); break;
 		case DUINT8: convertType<From, unsigned char>(in, tgt); break;
-		
-		default:
+		case DINT16: convertType<From, int16_t>(in, tgt); break;
+		case DUINT16: convertType<From, uint16_t>(in, tgt); break;
 		case NONE: break;
+		default: throw std::invalid_argument("Unsupported DTYPE given: " + std::to_string(to));
 	}
 }
 
@@ -298,9 +370,11 @@ Tensor Tensor::astype(DTYPE type) const
 		case DINT64: convertType<int64_t>(type, *this, tgt); break;
 		case DINT8: convertType<char>(type, *this, tgt); break;
 		case DUINT8: convertType<unsigned char>(type, *this, tgt); break;
-		
-		default:
+		case DINT16: convertType<char>(type, *this, tgt); break;
+		case DUINT16: convertType<unsigned char>(type, *this, tgt); break;
 		case NONE: break;
+
+		default: throw std::invalid_argument("Unsupported DTYPE given: " + std::to_string(type));
 	}
 
 	return tgt.to(device);
@@ -308,6 +382,10 @@ Tensor Tensor::astype(DTYPE type) const
 
 Tensor Tensor::to(const std::string& device) const
 {
+	// If the tensor is completely empty, return an empty tensor.
+	if(!m_backend)
+		return {};
+
 	// If we do not change device, return self
 	if((device.empty() && m_backend->backendName() == funzel::GetDefaultBackend())
 		|| m_backend->backendName() == device)
@@ -392,14 +470,40 @@ void Tensor::permute_(const Shape& indices)
 
 	for(size_t i = 0; i < indices.size(); i++)
 	{
-		AssertExcept(indices[i] < shape.size(),
-			"Cannot permute axes, given index value exceeds the number of dimensions!");
+		if(indices[i] >= shape.size())
+					throw std::out_of_range("Cannot permute axes, given index value exceeds the number of dimensions!");
 
 		shape[i] = oldshape[indices[i]];
 		strides[i] = oldstrides[indices[i]];
 	}
 
 	flags &= (~C_CONTIGUOUS);
+}
+
+Tensor Tensor::swapaxes(int axis1, int axis2)
+{
+	Shape nshape(shape.size());
+
+	if(axis1 < 0) axis1 = shape.size() - axis1 - 2;
+	if(axis2 < 0) axis2 = shape.size() - axis2 - 2;
+
+	std::iota(nshape.begin(), nshape.end(), 0);
+	std::swap(nshape[axis1], nshape[axis2]);
+
+	return permute(nshape);
+}
+
+void Tensor::swapaxes_(int axis1, int axis2)
+{
+	Shape nshape(shape.size());
+
+	if(axis1 < 0) axis1 = shape.size() - axis1;
+	if(axis2 < 0) axis2 = shape.size() - axis2;
+
+	std::iota(nshape.begin(), nshape.end(), 0);
+	std::swap(nshape[axis1], nshape[axis2]);
+	
+	permute_(nshape);
 }
 
 static void unravel(Tensor src, Tensor dest)
@@ -464,84 +568,19 @@ Tensor& Tensor::fill(double value)
 	return *this;
 }
 
-inline bool IsBroadcastable(const Shape& a, const Shape& b)
+#include <iostream>
+
+Tensor& Tensor::add_(const Tensor& b)
 {
-	if(b.size() >= a.size())
-		return false;
-
-	for(int i = 1; i <= b.size(); i++)
-	{
-		const auto bidx = b.size() - i;
-		const auto aidx = a.size() - i;
-		if(b[bidx] != a[aidx] && b[bidx] != 1 && a[aidx] != 1)
-			return false;
-	}
-
-	return true;
+	m_backend->add(*this, b, *this);
+	return *this;
 }
 
-template<typename Fn, typename... Args>
-inline void Apply(const Tensor& a, const Tensor& b, const Tensor& tgt, size_t stopDim, Fn fn, Args&&... args)
+Tensor Tensor::add(const Tensor& b) const
 {
-	if(a.shape.size() < stopDim)
-		return;
-
-	if(a.shape.size() == stopDim)
-	{
-		fn(a, b, tgt, std::forward<Args>(args)...);
-		return;
-	}
-
-	for(int64_t i = 0; i < a.shape[0]; i++)
-	{
-		Apply(a[i], b, tgt[i], stopDim, fn, std::forward<Args>(args)...);
-	}
-}
-
-template<unsigned int StopDims = 1, typename Fn, typename... Args>
-inline void Broadcast(const Tensor& a, const Tensor& b, Tensor& tgt,
-	std::function<Shape(const Shape&, const Shape&)> determineShape,
-	Fn fn, Args&&... args)
-{
-	if(a.shape.empty() || b.shape.empty())
-		return;
-
-	// Check if tensors are trivially fitting
-	if(a.shape.size() == b.shape.size())
-	{
-		if(tgt.empty())
-		{
-			Shape ashape = a.shape;
-			ashape.erase(ashape.begin(), ashape.begin() + a.shape.size() - b.shape.size());
-
-			const Shape newShape = determineShape(ashape, b.shape);
-			tgt = Tensor::zeros(newShape, a.dtype, a.device);
-			tgt.trimDimensions();
-		}
-
-		fn(a, b, tgt, std::forward<Args>(args)...);
-		return;
-	}
-
-	AssertExcept(IsBroadcastable(a.shape, b.shape), "Cannot broadcast " << b.shape << " to " << a.shape);
-	if(tgt.empty())
-	{
-		Shape ashape = a.shape;
-		ashape.erase(ashape.begin(), ashape.begin() + a.shape.size() - b.shape.size());
-
-		const Shape newShape = determineShape(ashape, b.shape);
-		
-		ashape = a.shape;
-		ashape.erase(ashape.begin() + a.shape.size() - b.shape.size(), ashape.end());
-
-		for(auto d : newShape)
-			ashape.push_back(d);
-
-		tgt = Tensor::zeros(ashape, a.dtype, a.device);
-		tgt.trimDimensions();
-	}
-
-	Apply(a, b, tgt, tgt.shape.size() - b.shape.size() + StopDims, fn, std::forward<Args>(args)...);
+	Tensor t = Tensor::empty_like(*this);
+	t.m_backend->add(*this, b, t);
+	return t;
 }
 
 Tensor& Tensor::add_(const Tensor& b, double alpha)
@@ -552,7 +591,6 @@ Tensor& Tensor::add_(const Tensor& b, double alpha)
 			b->mulAdd(b, c, alpha);
 		}, alpha);
 
-	//m_backend->mulAdd(b, *this, alpha);
 	return *this;
 }
 
@@ -577,6 +615,7 @@ Tensor Tensor::sub(const Tensor& b, double alpha) const
 	return t;
 }
 
+#if 0
 Tensor& Tensor::add_(double alpha)
 {
 	// TODO Optimized version that does not require a full tensor copy!
@@ -594,6 +633,7 @@ Tensor Tensor::add(double alpha) const
 	t.add_(alpha);
 	return t;
 }
+#endif
 
 Tensor& Tensor::mul_(double alpha)
 {
@@ -607,6 +647,25 @@ Tensor Tensor::mul(double alpha) const
 	Tensor t = clone();
 	t.mul_(alpha);
 	return t;
+}
+
+Tensor Tensor::mul(const Tensor& b) const
+{
+	// TODO Run without copy!!!
+	Tensor t = clone();
+	t.mul_(b);
+	return t;
+}
+
+Tensor& Tensor::mul_(const Tensor& b)
+{
+	Broadcast<0>(*this, b, *this,
+		[](const auto& a, const auto& b) { return b; },
+		[](Tensor a, Tensor b, Tensor c) {
+			a->mul(a, b, c);
+		});
+
+	return *this;
 }
 
 Tensor Tensor::div(const Tensor& b) const
@@ -653,10 +712,24 @@ Tensor Tensor::matmul(const Tensor& b) const
 	return tgt;
 }
 
-double Tensor::sum()
+Tensor Tensor::sum(const small_vector<int>& axis, DTYPE dtype, bool keepdims)
 {
-	return m_backend->sum(*this);
+	if(dtype == NONE)
+		dtype = this->dtype;
+
+	Tensor t;// = Tensor::empty({1}, dtype, device);
+	m_backend->sum(*this, t, axis, dtype, keepdims);
+	return t;
 }
+
+#if 0
+Tensor Tensor::sum()
+{
+	Tensor t = Tensor::zeros({1}, dtype, device);
+	m_backend->sum(*this, t);
+	return t;
+}
+#endif
 
 #define UNARY_OP_PAIR(f) \
 Tensor& Tensor::f##_() \
@@ -779,4 +852,14 @@ Tensor& funzel::randn(Tensor& out)
 {
 	RandomGenerator<std::uniform_real_distribution<double>> gen{std::uniform_real_distribution<double>(-1.0, 1.0)};
 	return randn(out, gen);
+}
+
+Tensor funzel::mean(const Tensor& t, const small_vector<int>& axis, DTYPE dtype, bool keepdims)
+{
+	if(t.empty())
+		return {};
+
+	Tensor tgt;// = Tensor::empty({t.shape[axis[0]]}, t.dtype, t.device);
+	t.getBackend()->mean(t, tgt, axis, dtype, keepdims);
+	return tgt;
 }

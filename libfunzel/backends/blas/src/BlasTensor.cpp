@@ -79,9 +79,7 @@ static inline BlasTensor* CreateBlasTensor(DTYPE dtype)
 {
 	switch(dtype)
 	{
-		default:
 		case DFLOAT32: return new BlasTensorImpl<float, SimdType>(); break;
-
 		case DFLOAT64: return new BlasTensorImpl<double, SimdType>(); break;
 		case DINT8: return new BlasTensorImpl<int8_t, SimdType>(); break;
 		case DINT16: return new BlasTensorImpl<int16_t, SimdType>(); break;
@@ -90,6 +88,9 @@ static inline BlasTensor* CreateBlasTensor(DTYPE dtype)
 		case DUINT8: return new BlasTensorImpl<uint8_t, SimdType>(); break;
 		case DUINT16: return new BlasTensorImpl<uint16_t, SimdType>(); break;
 		case DUINT32: return new BlasTensorImpl<uint32_t, SimdType>(); break;
+		case DUINT64: return new BlasTensorImpl<uint64_t, SimdType>(); break;
+
+		default: throw std::invalid_argument("Unsupported DTYPE given: " + std::to_string(dtype));
 	}
 
 	// Should never happen!
@@ -144,7 +145,8 @@ void BlasTensor::empty(const void* buffer, size_t sz)
 #ifdef WIN32
 	m_data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
 #else
-	m_data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, size * dtypeSizeof(dtype)));
+	//m_data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, size * dtypeSizeof(dtype)));
+	m_data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
 #endif
 
 	if(buffer)
@@ -162,7 +164,8 @@ std::shared_ptr<BackendTensor> BlasTensor::clone() const
 #ifdef WIN32
 	auto data = std::shared_ptr<char>((char*)std::malloc(sz));
 #else
-	auto data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, sz));
+	//auto data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, sz));
+	auto data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
 #endif
 
 	memcpy(data.get(), m_data.get(), sz);

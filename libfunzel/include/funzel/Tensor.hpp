@@ -24,6 +24,8 @@
 #include <memory>
 #include <vector>
 #include <random>
+#include <functional>
+#include <optional>
 
 namespace funzel
 {
@@ -158,13 +160,72 @@ public:
 	 */
 	static Tensor zeros_like(const Tensor& t);
 
+	template<typename T>
+	static Tensor scalar(T v, const std::string& device = EmptyStr) { return Tensor({1}, {v}, device); }
+
+	template<typename T>
+	static Tensor scalar(T v, DTYPE dtype, const std::string& device = EmptyStr) { return Tensor({1}, {v}, device).astype(dtype); }
+
+	template<typename T>
+	static Tensor scalar_like(const Tensor& t, T v) { return Tensor({1}, {v}, t.device).astype(t.dtype); }
+
 	Tensor() = default;
+
+	Tensor(const Tensor&) = default;
+	Tensor& operator=(const Tensor&) = default;
+
+	Tensor(Tensor&& t)
+	{
+		*this = std::move(t);
+	}
+	
+	Tensor& operator=(Tensor&& t)
+	{
+		shape = std::move(t.shape);
+		strides = std::move(t.strides);
+		device = std::move(t.device);
+		m_backend = std::move(t.m_backend);
+
+		offset = t.offset; t.offset = 0;
+		flags = t.flags; t.flags = 0;
+		dtype = t.dtype; t.dtype = NONE;
+		return *this;
+	}
+
 	explicit Tensor(const Shape& shape, const float data[], unsigned long long sz, const std::string& device = EmptyStr);
 	explicit Tensor(const Shape& shape, const double data[], unsigned long long sz, const std::string& device = EmptyStr);
+
+	explicit Tensor(const Shape& shape, const int8_t data[], unsigned long long sz, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, const int16_t data[], unsigned long long sz, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, const int32_t data[], unsigned long long sz, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, const int64_t data[], unsigned long long sz, const std::string& device = EmptyStr);
+
+	explicit Tensor(const Shape& shape, const uint8_t data[], unsigned long long sz, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, const uint16_t data[], unsigned long long sz, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, const uint32_t data[], unsigned long long sz, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, const uint64_t data[], unsigned long long sz, const std::string& device = EmptyStr);
 
 #ifndef SWIG
 	explicit Tensor(const Shape& shape, std::initializer_list<float> data, const std::string& device = EmptyStr);
 	explicit Tensor(const Shape& shape, std::initializer_list<double> data, const std::string& device = EmptyStr);
+
+	explicit Tensor(const Shape& shape, std::initializer_list<int8_t> data, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, std::initializer_list<int16_t> data, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, std::initializer_list<int32_t> data, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, std::initializer_list<int64_t> data, const std::string& device = EmptyStr);
+
+	explicit Tensor(const Shape& shape, std::initializer_list<uint8_t> data, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, std::initializer_list<uint16_t> data, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, std::initializer_list<uint32_t> data, const std::string& device = EmptyStr);
+	explicit Tensor(const Shape& shape, std::initializer_list<uint64_t> data, const std::string& device = EmptyStr);
+
+	template<typename V>
+	explicit Tensor(const Shape& shape, std::initializer_list<V> data, DTYPE dtype, const std::string& device = EmptyStr):
+		Tensor(shape, data, device)
+	{
+		*this = astype(dtype);
+	}
+
 #endif
 
 	BackendTensor* getBackend() { return m_backend.get(); }
@@ -208,6 +269,8 @@ public:
 	 * @return size_t The number of elements contained in the Tensor.
 	 */
 	size_t size() const;
+
+	FUNZEL_INLINE size_t ndim() const { return shape.size(); }
 
 	/**
 	 * @brief Fetches the data from the given index.
@@ -303,7 +366,9 @@ public:
 			case DINT64: ritem<int64_t>() = t; break;
 			case DINT8: ritem<char>() = t; break;
 			case DUINT8: ritem<unsigned char>() = t; break;
-			
+			case DINT16: ritem<int16_t>() = t; break;
+			case DUINT16: ritem<uint16_t>() = t; break;
+
 			default:
 			case NONE: break;
 		}
@@ -353,6 +418,9 @@ public:
 			case DFLOAT64: return *reinterpret_cast<const double*>(data); break;
 			case DUINT64: return *reinterpret_cast<const uint64_t*>(data); break;
 			case DINT64: return *reinterpret_cast<const int64_t*>(data); break;
+			case DINT16: return *reinterpret_cast<const int16_t*>(data); break;
+			case DUINT16: return *reinterpret_cast<const uint16_t*>(data); break;
+
 			case DINT8: return *reinterpret_cast<const char*>(data); break;
 
 			default:
@@ -405,6 +473,12 @@ public:
 	 */
 	void reshape_(const Shape& shape);
 
+	Tensor flatten()
+	{
+		const size_t total = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+		return reshape(Shape{total});
+	}
+
 	/**
 	 * @brief Permutes the dimensions of the Tensor.
 	 * 
@@ -425,6 +499,29 @@ public:
 	 * @param shape An array containing the new dimension order.
 	 */
 	void permute_(const Shape& shape);
+
+	/**
+	 * @brief Swaps the two given axes.
+	 * 
+	 * Negative indices count from back to front.
+	 * 
+	 * @param axis1 The first axis.
+	 * @param axis2 The second axis.
+	 * @return Tensor A new Tensor with the two given axes swapped.
+	 */
+	Tensor swapaxes(int axis1, int axis2);
+
+	/**
+	 * @brief Swaps the two given axes in-place.
+	 * 
+	 * Negative indices count from back to front.
+	 * 
+	 * @see swapaxes
+	 * @param axis1 The first axis.
+	 * @param axis2 The second axis.
+	 * @return Tensor A new Tensor with the two given axes swapped.
+	 */
+	void swapaxes_(int axis1, int axis2);
 
 	/**
 	 * @brief Retrieves the Tensor such that it is available on the host CPU.
@@ -476,7 +573,7 @@ public:
 	Tensor operator-(const Tensor& t) const { return sub(t); }
 	Tensor operator*(const Tensor& t) const { return matmul(t); }
 	
-	Tensor operator+(double t) const { return add(t); }
+	Tensor operator+(double t) const { return add(Tensor::scalar_like(*this, t)); }
 	Tensor operator*(double t) const { return mul(t); }
 	Tensor operator/(double t) const { return mul(1.0/t); }
 	Tensor operator/(const Tensor& t) const { return div(t); }
@@ -499,6 +596,9 @@ public:
 	 */
 	Tensor mul(double alpha) const;
 	Tensor& mul_(double alpha);
+
+	Tensor mul(const Tensor& b) const;
+	Tensor& mul_(const Tensor& b);
 
 	/**
 	 * @brief Divides the Tensor element wise by another Tensor.
@@ -531,16 +631,19 @@ public:
 	 * \f$ add(x, b, alpha) = alpha \cdot x + b \f$
 	 * @return Tensor 
 	 */
-	Tensor add(const Tensor& b, double alpha = 1.0) const;
-	Tensor& add_(const Tensor& b, double alpha = 1.0);
+	Tensor add(const Tensor& b, double alpha) const;
+	Tensor& add_(const Tensor& b, double alpha);
+
+	Tensor add(const Tensor& b) const;
+	Tensor& add_(const Tensor& b);
 
 	/**
 	 * @brief Adds a scalar to the Tensor.
 	 * \f$ add(x, alpha) = x + alpha \f$
 	 * @return Tensor 
 	 */
-	Tensor add(double alpha) const;
-	Tensor& add_(double alpha);
+	//Tensor add(double alpha) const;
+	//Tensor& add_(double alpha);
 
 	/**
 	 * @brief Subtracts a scalar from the Tensor.
@@ -607,7 +710,9 @@ public:
 	 * \f$ x = \{x_0, ..., x_n\}: sum(x) = \sum_{i=0}^{n} x_i \f$
 	 * @return double The sum.
 	 */
-	double sum();
+	//Tensor sum();
+
+	Tensor sum(const small_vector<int>& axis = {}, DTYPE dtype = DTYPE::NONE, bool keepdims = false);
 
 	/**
 	 * @brief Checks if the Tensor is C_CONTIGUOUS.
@@ -627,7 +732,7 @@ private:
 	std::shared_ptr<BackendTensor> m_backend = nullptr;
 };
 
-inline Tensor operator+(double v, const Tensor& t) { return t.add(v); }
+inline Tensor operator+(double v, const Tensor& t) { return t.add(Tensor::scalar(v)); }
 inline Tensor operator*(double v, const Tensor& t) { return t.mul(v); }
 inline Tensor operator/(double v, const Tensor& t) { return Tensor::empty_like(t).fill(v).div_(t); }
 
@@ -695,6 +800,8 @@ public:
 	 */
 	virtual void fill(const Tensor& self, double scalar) = 0;
 
+	virtual void add(const Tensor& a, const Tensor& b, Tensor tgt) { UnsupportedOperationError; }
+
 	/**
 	 * @brief Calculates a multiply-add.
 	 * 
@@ -731,6 +838,7 @@ public:
 	 * @param tgt The target tensor results will be stored to.
 	 */
 	virtual void div(const Tensor& self, const Tensor& b, Tensor tgt) { UnsupportedOperationError; }
+	virtual void mul(const Tensor& self, const Tensor& b, Tensor tgt) { UnsupportedOperationError; }
 
 	virtual void sub(const Tensor& self, const Tensor& b, double alpha = 1.0) { UnsupportedOperationError; }
 	
@@ -796,13 +904,12 @@ public:
 	 */
 	virtual void tanh(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
-	/**
-	 * @brief Calculates the sum of elements.
-	 * 
-	 * @param self A Tensor defining which exact elements to use.
-	 * @return double The sum of values contained in Tensor self.
-	 */
-	virtual double sum(const Tensor& self) { UnsupportedOperationError; return 0; }
+	virtual void sum(
+		const Tensor& self,
+		Tensor& tgt,
+		const small_vector<int>& axis,
+		DTYPE dtype,
+		bool keepdims) { UnsupportedOperationError; }
 
 	/**
 	 * @brief Copies elements from another tensor.
@@ -922,23 +1029,7 @@ FUNZEL_API Tensor arange(double start, double stop, double step, DTYPE dtype = D
  * @param keepdims (optional) Keeps the number of dimensions such that the result can be broadcast over the input.
  * @return The mean Tensor.
  */
-FUNZEL_API Tensor mean(const Tensor& t, const small_vector<int>& axis, DTYPE dtype = DFLOAT32, bool keepdims = false);
-
-/**
- * @brief Calculates the arithmetic mean along the given axis.
- * 
- * If the axis is -1, the mean is calculated over the flattened array.
- * 
- * @param t The input Tensor.
- * @param axis (optional) The axis to calculate the mean along.
- * @param dtype (optional) The type to use for the calculation.
- * @param keepdims (optional) Keeps the number of dimensions such that the result can be broadcast over the input.
- * @return The mean Tensor.
- */
-FUNZEL_INLINE FUNZEL_API Tensor mean(const Tensor& t, int axis = -1, DTYPE dtype = DFLOAT32, bool keepdims = false)
-{
-	return mean(t, small_vector<int>{axis}, dtype, keepdims);
-}
+FUNZEL_API Tensor mean(const Tensor& t, const small_vector<int>& axis = {}, DTYPE dtype = DFLOAT32, bool keepdims = false);
 
 /**
  * @brief Defines the interface of a general RNG.
@@ -1005,6 +1096,15 @@ FUNZEL_API Tensor& randn(Tensor& out);
 FUNZEL_API std::ostream& operator<<(std::ostream& out, const Tensor& s);
 FUNZEL_API std::ostream& operator<<(std::ostream& out, const Shape& s);
 
+template<typename T>
+inline std::ostream& funzel::operator<<(std::ostream& out, const small_vector<T>& s)
+{
+	out << "(";
+	for(auto& k : s)
+		out << k << (&k != &s.back() ? ", " : "");
+	out << ")";
+	return out;
+}
 
 // Out of line definition to prevent "invalid use of incomplete type" warning.
 template<typename T>
@@ -1013,6 +1113,270 @@ inline T& Tensor::ensureBackend() const
 	auto* t = dynamic_cast<T*>(m_backend.get());
 	AssertExcept(t, "Expected a type supporting trait '" << T::BackendName() << "' but backend '" << m_backend->backendName() << "' does not.");
 	return *t;
+}
+
+template<typename Fn>
+FUNZEL_INLINE void ApplyStrided(const Tensor& self, Tensor tgt, Fn&& fn)
+{
+	static_assert(std::is_invocable_v<Fn, const Tensor&, Tensor>,
+					"The given function needs the following signature: void(const Tensor&, Tensor)");
+	
+	if(self.shape.empty())
+		return;
+	
+	if(self.shape.size() > 1)
+	{
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			ApplyStrided(self[i], (tgt.shape[0] > self.shape[0] ? tgt[i] : tgt), fn);
+		}
+		return;
+	}
+
+	fn(self, tgt);
+}
+
+/**
+ * @brief Perform a reduction operation on a tensor along specified axes using a custom reduction function.
+ *
+ * This function reduces the input tensor `arr` along the specified `axis` or axes using the reduction function `ufunc`.
+ * The result is stored in `out`. The reduction can optionally maintain the dimensions of the reduced axes if `keepdims`
+ * is set to true. An optional initial value for the reduction can be specified with `initial`.
+ *
+ * @tparam T The type of the optional initial value.
+ * @tparam Fn The type of the reduction function. This should be a callable that takes two `Tensor` arguments.
+ *
+ * @param [in] arr The input tensor to be reduced.
+ * @param [in] axis A `small_vector` of integers specifying the axes along which the reduction should be performed. If empty,
+ *                  the tensor is flattened before reduction.
+ * @param [in] dtype The data type of the output tensor. If set to DTYPE::NONE, the data type of `arr` is used.
+ * @param [out] out The output tensor where the result of the reduction is stored.
+ * @param [in] keepdims If true, the reduced dimensions are retained as dimensions with size one in the output tensor.
+ * @param [in] initial An optional initial value for the reduction. If provided, it is used as the starting value for the
+ *                     reduction operation.
+ * @param [in] ufunc The reduction function to apply. It should take two `Tensor` parameters: the source tensor and the
+ *                   target tensor where results are accumulated.
+ *
+ * @return A reference to the output tensor `out` containing the result of the reduction.
+ *
+ * @note This function modifies the output tensor `out` in-place.
+ *
+ * @exception std::out_of_range Thrown if any axis in `axis` is out of the valid range of dimensions for `arr`.
+ *
+ * @b Example:
+ * @code
+ * Tensor myTensor; // Initialized with some data
+ * Tensor outputTensor;
+ * std::vector<int> axes{0}; // Reduce along the first axis
+ * Reduce<float>(myTensor, axes, DTYPE::FLOAT, outputTensor, false, std::nullopt, myReductionFunction);
+ * @endcode
+ */
+template<typename T = float, typename Fn>
+FUNZEL_INLINE Tensor& Reduce(Tensor arr, const small_vector<int>& axis, DTYPE dtype, Tensor& out, bool keepdims, const std::optional<T>& initial, Fn&& ufunc) // TODO: Initial
+{
+	static_assert(std::is_invocable_r_v<void, Fn, Tensor, Tensor&>, "Functor needs to have signature compatible to void(Tensor, Tensor)!");
+	
+	// Step 1: Validate and prepare input arguments
+	Shape origShape = arr.shape; // In case of keepdims this is required.
+	if(axis.empty())
+	{
+		arr = arr.flatten();
+	}
+	else
+	{
+		if(axis.size() == 1) // Recursion anchor
+		{
+			arr = arr.swapaxes(axis.front(), -1);
+		}
+		else
+		{
+			auto sortedAx = axis;
+			std::sort(sortedAx.begin(), sortedAx.end(), std::greater<int>());
+
+			Tensor input = arr;
+			for(int ax : sortedAx) // Reduce for each dimension
+			{
+				Reduce(input, {ax}, dtype, out, keepdims, initial, ufunc);
+				input = std::move(out);
+			}
+
+			out = std::move(input);
+			return out;
+		}
+	}
+
+	if(dtype == DTYPE::NONE)
+		dtype = arr.dtype;
+
+	if(out.empty())
+	{
+		auto newShape = arr.shape;
+		newShape.pop_back();
+
+		if(newShape.empty())
+			newShape.push_back(1); // Scalar tensors do not exist here as they do in Numpy!
+
+		out = Tensor::empty(newShape, dtype, arr.device);
+	}
+
+	// Step 2: Perform the reduction operation
+	//if initial is not <no value>:
+	if(initial.has_value())
+		out.fill(*initial);
+
+	const auto arrT = arr.transpose();
+	auto outT = out.transpose();
+	for(size_t i = 0; i < arr.shape.back(); i++)
+	{
+		ufunc(arrT[i], outT);
+	}
+
+	// TODO Find out why this is required only for axis=0
+	if(axis.front() == 0)
+		out = outT;
+
+	// Step 3: Handle keepdims option
+	if(keepdims)
+	{
+		if(axis.empty())
+		{
+			// Need to use original shape because arr has been flattened.
+			Shape shape(origShape.size(), 1);
+			std::fill(shape.begin(), shape.end(), 1);
+			out = out.reshape(shape);
+		}
+		else
+		{
+			Shape shape(arr.shape);
+			shape.back() = 1;
+			out = out.reshape(shape);
+		}
+	}
+
+	return out;
+}
+
+template<typename Fn>
+FUNZEL_INLINE void ApplyStridedAsType(const Tensor& self, Tensor tgt, DTYPE dtype, Fn&& fn)
+{
+	if(self.shape.empty())
+		return;
+	
+	if(self.shape.size() > 1)
+	{
+		for(int i = 0; i < self.shape[0]; i++)
+		{
+			//std::cout << tgt.shape << "   " << self.shape << std::endl;
+			ApplyStridedAsType(self[i], (tgt.shape[0] >= self.shape[0] ? tgt[i] : tgt), dtype, fn);
+		}
+		return;
+	}
+
+	DoAsDtype(dtype, fn, self, tgt);
+}
+
+template<typename Fn>
+FUNZEL_INLINE void ApplyStrided(const Tensor& a, const Tensor& b, Tensor tgt, Fn&& fn)
+{
+	static_assert(std::is_invocable_v<Fn, const Tensor&, const Tensor&, Tensor>,
+					"The given function needs the following signature: void(const Tensor&, Tensor)");
+	
+	if(a.shape.empty())
+		return;
+	
+	if(a.shape.size() > 1)
+	{
+		for(int i = 0; i < a.shape[0]; i++)
+		{
+			ApplyStrided(a[i], b[i], tgt[i], fn);
+		}
+		return;
+	}
+
+	fn(a, b, tgt);
+}
+
+inline bool IsBroadcastable(const Shape& a, const Shape& b)
+{
+	if(b.size() >= a.size())
+		return false;
+
+	for(int i = 1; i <= b.size(); i++)
+	{
+		const auto bidx = b.size() - i;
+		const auto aidx = a.size() - i;
+		if(b[bidx] != a[aidx] && b[bidx] != 1 && a[aidx] != 1)
+			return false;
+	}
+
+	return true;
+}
+
+template<typename Fn, typename... Args>
+inline void Apply(const Tensor& a, const Tensor& b, Tensor tgt, size_t stopDim, Fn fn, Args&&... args)
+{
+	static_assert(std::is_invocable_v<Fn, const Tensor&, const Tensor&, Tensor&, Args&&...>,
+					"The given function needs the following signature: void(const Tensor&, const Tensor&, Tensor&, Args&&...)");
+
+	if(a.shape.size() < stopDim)
+		return;
+
+	if(a.shape.size() == stopDim)
+	{
+		fn(a, b, tgt, std::forward<Args>(args)...);
+		return;
+	}
+
+	for(int64_t i = 0; i < a.shape[0]; i++)
+	{
+		Apply(a[i], b, tgt[i], stopDim, fn, std::forward<Args>(args)...);
+	}
+}
+
+template<unsigned int StopDims = 1, typename Fn, typename... Args>
+inline void Broadcast(const Tensor& a, const Tensor& b, Tensor& tgt,
+	std::function<Shape(const Shape&, const Shape&)> determineShape,
+	Fn fn, Args&&... args)
+{
+	if(a.shape.empty() || b.shape.empty())
+		return;
+
+	// Check if tensors are trivially fitting
+	if(a.shape.size() == b.shape.size())
+	{
+		if(tgt.empty())
+		{
+			Shape ashape = a.shape;
+			ashape.erase(ashape.begin(), ashape.begin() + a.shape.size() - b.shape.size());
+
+			const Shape newShape = determineShape(ashape, b.shape);
+			tgt = Tensor::zeros(newShape, a.dtype, a.device);
+			tgt.trimDimensions();
+		}
+
+		fn(a, b, tgt, std::forward<Args>(args)...);
+		return;
+	}
+
+	AssertExcept(IsBroadcastable(a.shape, b.shape), "Cannot broadcast " << b.shape << " to " << a.shape);
+	if(tgt.empty())
+	{
+		Shape ashape = a.shape;
+		ashape.erase(ashape.begin(), ashape.begin() + a.shape.size() - b.shape.size());
+
+		const Shape newShape = determineShape(ashape, b.shape);
+		
+		ashape = a.shape;
+		ashape.erase(ashape.begin() + a.shape.size() - b.shape.size(), ashape.end());
+
+		for(auto d : newShape)
+			ashape.push_back(d);
+
+		tgt = Tensor::zeros(ashape, a.dtype, a.device);
+		tgt.trimDimensions();
+	}
+
+	Apply(a, b, tgt, tgt.shape.size() - b.shape.size() + StopDims, fn, std::forward<Args>(args)...);
 }
 
 #endif

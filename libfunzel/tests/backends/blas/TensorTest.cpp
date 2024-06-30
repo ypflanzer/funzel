@@ -4,21 +4,6 @@
 
 using namespace funzel;
 
-#if 0
-TEST(BLASTensor, Test)
-{
-	auto ones = Tensor::ones({3, 3, 3});
-
-	ones[2][2][2].ritem<float>() = 5;
-	auto f = ones[0][0][0].item<float>();
-
-
-	f = ones[2][2][2].item<float>();
-
-	std::cout << "Value: " << f << std::endl;
-}
-#endif
-
 TEST(CPUTensorTest, PrintDevices)
 {
 	funzel::PrintDevices();
@@ -59,10 +44,13 @@ TEST(CPUTensorTest, Transpose)
 
 TEST(CPUTensorTest, Index)
 {
-	auto ones = Tensor::ones({3, 3, 3});
+	auto ones = Tensor::ones({3, 2, 1}, DTYPE::DFLOAT32);
 
 	EXPECT_EQ(0, ones.offset);
 	EXPECT_EQ(0, ones[0].offset);
+
+	EXPECT_EQ(2*sizeof(float), ones[1].offset);
+	EXPECT_EQ(ones[0].shape[0], 2);
 }
 
 TEST(CPUTensorTest, Unravel)
@@ -128,6 +116,14 @@ TEST(CPUTensorTest, TrimDimensions)
 
 	a.trimDimensions();
 	EXPECT_EQ(a.shape, (Shape({3, 1, 3, 1})));
+}
+
+TEST(CPUTensorTest, Flatten)
+{
+	Tensor a = Tensor::ones({3, 1, 1, 3, 1, 1});
+	Tensor b = a.flatten();
+
+	EXPECT_EQ(b.shape, (Shape({9})));
 }
 
 #define CommonTest TensorTest
