@@ -57,7 +57,7 @@
 typedef void (*FunzelInitFuncType)();
 
 /**
- * @function FUNZEL_REGISTER_BACKEND(name, type)
+ * @fn FUNZEL_REGISTER_BACKEND(name, type)
  * @brief Registers a backend class.
  * @param name The name of the backend.
  * @param type The C++ typename of the backend class.
@@ -91,7 +91,7 @@ const std::string EmptyStr; ///< An empty string.
 #define UnsupportedOperationError ThrowError("Operation '" + std::string(__func__) + "' is not supported at " __FILE__ ":" STRINGIZE(__LINE__))
 
 /**
- * @function AssertExcept(v, msg)
+ * @fn AssertExcept(v, msg)
  * @brief Thros an exception if the given predicate is false.
  * @param v A truth value.
  * @param msg An error message.
