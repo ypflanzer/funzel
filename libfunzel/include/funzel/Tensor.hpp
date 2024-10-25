@@ -26,6 +26,7 @@
 #include <random>
 #include <functional>
 #include <optional>
+#include <numeric>
 
 namespace funzel
 {
@@ -1097,7 +1098,7 @@ FUNZEL_API std::ostream& operator<<(std::ostream& out, const Tensor& s);
 FUNZEL_API std::ostream& operator<<(std::ostream& out, const Shape& s);
 
 template<typename T>
-inline std::ostream& funzel::operator<<(std::ostream& out, const small_vector<T>& s)
+inline std::ostream& operator<<(std::ostream& out, const small_vector<T>& s)
 {
 	out << "(";
 	for(auto& k : s)
