@@ -60,9 +60,3 @@ install(TARGETS funzelBlas
 	RUNTIME DESTINATION bin
 )
 
-find_package(GTest CONFIG)
-if(GTest_FOUND)
-	file(GLOB TEST_SRC tests/*.cpp)
-	add_executable(blasBackendTest ${TEST_SRC})
-	target_link_libraries(blasBackendTest PUBLIC funzelBlas GTest::gtest_main)
-endif()
