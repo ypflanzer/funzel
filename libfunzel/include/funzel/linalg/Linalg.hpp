@@ -18,8 +18,16 @@
 
 #include <funzel/Tensor.hpp>
 
-namespace funzel::linalg
+namespace funzel
 {
+namespace linalg
+{
+
+struct SVDResult
+{
+	Tensor u, s, vh;
+};
+
 FUNZEL_API Tensor& det(Tensor input, Tensor& result);
 FUNZEL_API Tensor det(Tensor input);
 
@@ -30,6 +38,7 @@ FUNZEL_API Tensor& trace(Tensor input, Tensor& result);
 FUNZEL_API Tensor trace(Tensor input);
 
 FUNZEL_API void svd(Tensor input, Tensor& U, Tensor& S, Tensor& V);
-FUNZEL_API std::tuple<Tensor, Tensor, Tensor> svd(Tensor input);
+FUNZEL_API SVDResult svd(Tensor input);
 FUNZEL_API Tensor svdvals(Tensor input);
+}
 }

@@ -69,10 +69,9 @@ void funzel::linalg::svd(Tensor input, Tensor& U, Tensor& S, Tensor& V)
 	input.ensureBackend<LinalgBackendTensor>().svd(input, U, S, V);
 }
 
-std::tuple<Tensor, Tensor, Tensor> funzel::linalg::svd(Tensor input)
+SVDResult funzel::linalg::svd(Tensor input)
 {
-	std::tuple<Tensor, Tensor, Tensor> usv;
-	auto& [u, s, v] = usv;
+	SVDResult result;
 
 	const size_t m = input.shape[input.shape.size() - 2];
 	const size_t n = input.shape[input.shape.size() - 1];
@@ -81,29 +80,29 @@ std::tuple<Tensor, Tensor, Tensor> funzel::linalg::svd(Tensor input)
 
 	if(outsize != 1)
 	{
-		s = Tensor::empty({outsize, std::min(m, n)}, input.dtype, input.device);
-		u = Tensor::empty({outsize, m, m}, input.dtype, input.device);
-		v = Tensor::empty({outsize, n, n}, input.dtype, input.device);
+		result.s = Tensor::empty({outsize, std::min(m, n)}, input.dtype, input.device);
+		result.u = Tensor::empty({outsize, m, m}, input.dtype, input.device);
+		result.vh = Tensor::empty({outsize, n, n}, input.dtype, input.device);
 	}
 	else
 	{
-		s = Tensor::empty({std::min(m, n)}, input.dtype, input.device);
-		u = Tensor::empty({m, m}, input.dtype, input.device);
-		v = Tensor::empty({n, n}, input.dtype, input.device);
+		result.s = Tensor::empty({std::min(m, n)}, input.dtype, input.device);
+		result.u = Tensor::empty({m, m}, input.dtype, input.device);
+		result.vh = Tensor::empty({n, n}, input.dtype, input.device);
 	}
 
-	svd(input, u, s, v);
+	svd(input, result.u, result.s, result.vh);
 
 	// Get last indices so the last entries can be transposed.
 	// s and v are created as their transpose in col major mode by default.
-	const size_t shapeSize = u.shape.size();
-	std::swap(u.shape[shapeSize - 2], u.shape[shapeSize - 1]);
-	std::swap(v.shape[shapeSize - 2], v.shape[shapeSize - 1]);
+	const size_t shapeSize = result.u.shape.size();
+	std::swap(result.u.shape[shapeSize - 2], result.u.shape[shapeSize - 1]);
+	std::swap(result.vh.shape[shapeSize - 2], result.vh.shape[shapeSize - 1]);
 
-	std::swap(u.strides[shapeSize - 2], u.strides[shapeSize - 1]);
-	std::swap(v.strides[shapeSize - 2], v.strides[shapeSize - 1]);
+	std::swap(result.u.strides[shapeSize - 2], result.u.strides[shapeSize - 1]);
+	std::swap(result.vh.strides[shapeSize - 2], result.vh.strides[shapeSize - 1]);
 
-	return usv;
+	return result;
 }
 
 Tensor funzel::linalg::svdvals(Tensor input)
