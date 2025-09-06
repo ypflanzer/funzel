@@ -11,9 +11,11 @@ include_directories(../include)
 
 find_package(Lua)
 if(LUA_FOUND AND NOT NO_LUA)
+	set(CMAKE_SWIG_FLAGS "-no-old-metatable-bindings") # I would also like -nomoduleglobal, but it needs to be global for some Lua functions to work...
 	set_source_files_properties(LuaFunzel.i PROPERTIES CPLUSPLUS ON)
 	swig_add_library(LuaFunzel LANGUAGE lua SOURCES LuaFunzel.i OUTPUT_DIR ${CMAKE_LIBRARY_OUTPUT_DIRECTORY})
 	target_include_directories(LuaFunzel PRIVATE ${LUA_INCLUDE_DIR})
+	unset(CMAKE_SWIG_FLAGS)
 
 	if(NOT WIN32)
 		target_link_libraries(LuaFunzel PUBLIC funzel funzelBlas)

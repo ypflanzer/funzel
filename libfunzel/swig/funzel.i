@@ -74,4 +74,9 @@ namespace funzel
 		str += ")";
 		return str;
 	}
+
+	size_t __getitem__(size_t i)
+	{
+		return (*$self)[i];
+	}
 }
