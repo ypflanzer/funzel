@@ -18,6 +18,7 @@
 #include <funzel/linalg/LinalgBackendTensor.hpp>
 #include <funzel/Tensor.hpp>
 #include <numeric>
+#include <spdlog/spdlog.h>
 
 using namespace funzel;
 using namespace linalg;
@@ -64,12 +65,12 @@ Tensor funzel::linalg::trace(Tensor input)
 	return tgt;
 }
 
-void funzel::linalg::svd(Tensor input, Tensor& U, Tensor& S, Tensor& V)
+void funzel::linalg::svd(Tensor input, Tensor& U, Tensor& S, Tensor& V, bool fullMatrices)
 {
-	input.ensureBackend<LinalgBackendTensor>().svd(input, U, S, V);
+	input.ensureBackend<LinalgBackendTensor>().svd(input, U, S, V, fullMatrices);
 }
 
-SVDResult funzel::linalg::svd(Tensor input)
+SVDResult funzel::linalg::svd(Tensor input, bool fullMatrices)
 {
 	SVDResult result;
 
@@ -78,6 +79,41 @@ SVDResult funzel::linalg::svd(Tensor input)
 
 	const auto outsize = std::accumulate(input.shape.begin(), input.shape.end()-2, size_t(1), [](auto a, auto b) { return a*b; });
 
+	Shape sshape, ushape, vshape;
+	if(fullMatrices)
+	{
+		sshape = Shape({std::min(m, n)});
+		ushape = Shape({m, m});
+		vshape = Shape({n, n});
+	}
+	else
+	{
+		sshape = Shape({std::min(m, n)});
+		ushape = Shape({m, std::min(m, n)});
+		vshape = Shape({n, std::min(m, n)});
+	}
+
+	if(outsize != 1)
+	{
+		sshape.insert(sshape.begin(), outsize);
+		ushape.insert(ushape.begin(), outsize);
+		vshape.insert(vshape.begin(), outsize);
+	}
+
+	result.s = Tensor::empty(sshape, input.dtype, input.device);
+	result.u = Tensor::empty(ushape, input.dtype, input.device);
+	result.vh = Tensor::empty(vshape, input.dtype, input.device);
+
+	#if 0
+	if(fullMatrices)
+	{
+	sshape = Shape({std::min(m, n)});
+	ushape = Shape({m, m});
+	vshape = Shape({n, n});
+	}
+	#endif
+
+	#if 0
 	if(outsize != 1)
 	{
 		result.s = Tensor::empty({outsize, std::min(m, n)}, input.dtype, input.device);
@@ -90,25 +126,28 @@ SVDResult funzel::linalg::svd(Tensor input)
 		result.u = Tensor::empty({m, m}, input.dtype, input.device);
 		result.vh = Tensor::empty({n, n}, input.dtype, input.device);
 	}
+	#endif
 
-	svd(input, result.u, result.s, result.vh);
+	svd(input, result.u, result.s, result.vh, fullMatrices);
 
 	// Get last indices so the last entries can be transposed.
 	// s and v are created as their transpose in col major mode by default.
+	#if 0
 	const size_t shapeSize = result.u.shape.size();
 	std::swap(result.u.shape[shapeSize - 2], result.u.shape[shapeSize - 1]);
 	std::swap(result.vh.shape[shapeSize - 2], result.vh.shape[shapeSize - 1]);
 
 	std::swap(result.u.strides[shapeSize - 2], result.u.strides[shapeSize - 1]);
 	std::swap(result.vh.strides[shapeSize - 2], result.vh.strides[shapeSize - 1]);
-
+	#endif
+	
 	return result;
 }
 
 Tensor funzel::linalg::svdvals(Tensor input)
 {
 	const auto ndim = input.shape.size();
-	const auto ndiag = std::min(input.shape[ndim-1], input.shape[ndim-2]);
+	// const auto ndiag = std::min(input.shape[ndim-1], input.shape[ndim-2]);
 
 	const auto outsize = std::accumulate(input.shape.begin(), input.shape.end()-2, size_t(1), [](auto a, auto b) { return a*b; });
 	Tensor s = Tensor::empty({outsize, ndim});

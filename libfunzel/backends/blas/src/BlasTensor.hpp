@@ -49,9 +49,6 @@ public:
 
 	const char* backendName() const override { return "BLAS"; }
 
-	void set(Tensor& self, const Tensor& src) override;
-	void unravel(const Tensor& self, Tensor tgt) override;
-
 private:
 	std::shared_ptr<char> m_data;
 };

@@ -19,10 +19,10 @@
 #include "Funzel.hpp"
 #include "Vector.hpp"
 
+#include "funzel/Type.hpp"
 #include "small_vector"
 
 #include <memory>
-#include <vector>
 #include <random>
 #include <functional>
 #include <optional>
@@ -32,9 +32,23 @@ namespace funzel
 {
 
 typedef small_vector<size_t> Shape;
-typedef small_vector<size_t> Index;
+typedef small_vector<int64_t> Index;
+typedef small_vector<int64_t> Strides;
 //typedef std::vector<size_t> Shape;
 //typedef std::vector<size_t> Index;
+
+/**
+ * @brief Represents a slice of a tensor.
+ * 
+ * The default values for the parameters are chosen to represent the entire tensor.
+ * first = 0 (start at beginning), last = -1 (until end), step = 1 (every element)
+ */
+struct TensorSlice
+{
+	int64_t first = 0;
+	int64_t last = -1;
+	int64_t step = 1;
+};
 
 enum TensorFlags
 {
@@ -171,6 +185,7 @@ public:
 	static Tensor scalar_like(const Tensor& t, T v) { return Tensor({1}, {v}, t.device).astype(t.dtype); }
 
 	Tensor() = default;
+	~Tensor() = default;
 
 	Tensor(const Tensor&) = default;
 	Tensor& operator=(const Tensor&) = default;
@@ -289,7 +304,7 @@ public:
 	 * @param idx The index to fetch from.
 	 * @return Tensor A reference to the data at the given index.
 	 */
-	Tensor get(size_t idx) const;
+	Tensor get(int64_t idx) const;
 
 	/**
 	 * @brief Retrieves a pointer to the data at the given offset into the Tensor.
@@ -345,6 +360,13 @@ public:
 	 */
 	Tensor operator[](const Index& idx) const { return get(idx); }
 
+	/**
+	 * @brief Slices the Tensor.
+	 * @param slices An array of TensorSlice objects defining the slices.
+	 */
+ 	Tensor operator()(const small_vector<TensorSlice>& slices) const { return slice(slices); }
+ 	Tensor slice(const small_vector<TensorSlice>& slices) const;
+	
 	/**
 	 * @brief Sets the content of the tensor to the given value.
 	 * 
@@ -724,7 +746,8 @@ public:
 	bool isContiguous() const { return flags & C_CONTIGUOUS; }
 
 	DTYPE dtype;
-	Shape shape, strides;
+	Shape shape;
+	Strides strides;
 	size_t offset = 0;
 	uint32_t flags = C_CONTIGUOUS;
 	std::string device;
@@ -733,9 +756,11 @@ private:
 	std::shared_ptr<BackendTensor> m_backend = nullptr;
 };
 
+#ifndef SWIG
 inline Tensor operator+(double v, const Tensor& t) { return t.add(Tensor::scalar(v)); }
 inline Tensor operator*(double v, const Tensor& t) { return t.mul(v); }
 inline Tensor operator/(double v, const Tensor& t) { return Tensor::empty_like(t).fill(v).div_(t); }
+#endif
 
 enum POOLING_MODE
 {
@@ -942,8 +967,17 @@ public:
 	virtual void mean(const Tensor& self, Tensor& tgt, const small_vector<int>& axis, DTYPE dtype, bool keepdims)
 		{ UnsupportedOperationError; }
 
+	/**
+	 * @brief Converts the Tensor data to another DTYPE.
+	 * 
+	 * @param self The input Tensor.
+	 * @param tgt The target tensor results will be stored to.
+	 * @param targetType The new DTYPE.
+	 */
+	virtual void astype(const Tensor& self, Tensor tgt, DTYPE targetType) { UnsupportedOperationError; }
+
 	DTYPE dtype;
-	size_t size;
+	size_t size; ///< Size of the buffer in bytes.
 
 private:
 };

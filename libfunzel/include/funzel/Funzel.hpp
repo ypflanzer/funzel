@@ -126,12 +126,12 @@ struct TensorFactory : public ITensorFactory
 {
 	std::shared_ptr<BackendTensor> create(std::shared_ptr<char> data, size_t count, DTYPE dtype, const std::string& args = EmptyStr) override
 	{
-		return Backend::Empty(data, count, dtype, args);
+		return Backend::Empty(data, count*dtypeSizeof(dtype), dtype, args);
 	}
 
 	std::shared_ptr<BackendTensor> create(const void* data, size_t count, DTYPE dtype, const std::string& args = EmptyStr) override
 	{
-		return Backend::Empty(data, count, dtype, args);
+		return Backend::Empty(data, count*dtypeSizeof(dtype), dtype, args);
 	}
 };
 

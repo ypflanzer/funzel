@@ -9,6 +9,8 @@
 
 #include <cmath>
 
+#include <spdlog/spdlog.h>
+
 using namespace funzel;
 
 // For all following test suites
@@ -34,11 +36,58 @@ TEST(CommonTest, Fill)
 	v.fill(42);
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_EQ((v[{p, q, r}].item<float>()), 42);
+			}
+}
+
+TEST(CommonTest, FillWithStrides)
+{
+	auto v = Tensor::empty({3, 3, 3}, funzel::DFLOAT32, TestDevice);
+	v.fill(42);
+
+	// Test with default strides
+	auto v_cpu = v.cpu();
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
+				EXPECT_EQ((v_cpu[{p, q, r}].item<float>()), 42);
+
+	// Test with transposed strides
+	auto v_transposed = v.transpose().cpu();
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
+				EXPECT_EQ((v_transposed[{p, q, r}].item<float>()), 42);
+
+	// Test with permuted strides (swap axes 0 and 2)
+	auto v_permuted = v.permute({2, 1, 0}).cpu();
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
+				EXPECT_EQ((v_permuted[{p, q, r}].item<float>()), 42);
+}
+
+TEST(CommonTest, FillWithSlice)
+{
+	auto v = Tensor::zeros({3, 3, 3}, funzel::DFLOAT32, TestDevice);
+
+	// Fill a slice (all elements at r%2 = 0)
+	v.slice({{}, {}, {0, -1, 2}}).fill(42);
+
+	// Test that only the slice is filled
+	auto v_cpu = v.cpu();
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
+			{
+				if(r % 2 == 0)
+					EXPECT_EQ((v_cpu[{p, q, r}].item<float>()), 42);
+				else
+					EXPECT_EQ((v_cpu[{p, q, r}].item<float>()), 0);
 			}
 }
 
@@ -66,9 +115,9 @@ TEST(CommonTest, SumStrided)
 
 	// Set random values and keep sum
 	double overall = 0;
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				auto x = rand() % 10;
 				overall += x;
@@ -116,9 +165,9 @@ TEST(CommonTest, Sum3D)
 TEST(CommonTest, Abs)
 {
 	auto v = Tensor::empty({3, 3, 3});
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				v[{p, q, r}] = -1;
 			}
@@ -127,9 +176,9 @@ TEST(CommonTest, Abs)
 	v.abs_();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_EQ((v[{p, q, r}].item<float>()), 1);
 			}
@@ -142,9 +191,9 @@ TEST(CommonTest, AbsStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 1 : -1));
 			}
@@ -156,9 +205,9 @@ TEST(CommonTest, MulScalar)
 	v.mul_(32);
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_EQ((v[{p, q, r}].item<float>()), 32);
 			}
@@ -171,9 +220,9 @@ TEST(CommonTest, MulScalarStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				const auto value = v[{p, q, r}].item<float>();
 				EXPECT_FLOAT_EQ((value), (r == 1 ? 32 : 1));
@@ -187,9 +236,9 @@ TEST(CommonTest, Exp)
 	v.exp_();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), std::exp(2));
 			}
@@ -202,9 +251,9 @@ TEST(CommonTest, ExpStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				const auto value = v[{p, q, r}].item<float>();
 				EXPECT_FLOAT_EQ(value, (r == 1 ? std::exp(2) : 2));
@@ -218,9 +267,9 @@ TEST(CommonTest, Sqrt)
 	v.sqrt_();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), std::sqrt(2));
 			}
@@ -233,9 +282,9 @@ TEST(CommonTest, SqrtStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::sqrt(2) : 2));
 			}
@@ -248,9 +297,9 @@ TEST(CommonTest, Sin)
 	v.sin_();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), std::sin(2));
 			}
@@ -263,9 +312,9 @@ TEST(CommonTest, SinStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::sin(2) : 2));
 			}
@@ -278,9 +327,9 @@ TEST(CommonTest, Cos)
 	v.cos_();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), std::cos(2));
 			}
@@ -293,9 +342,9 @@ TEST(CommonTest, CosStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::cos(2) : 2));
 			}
@@ -309,9 +358,9 @@ TEST(CommonTest, Sigmoid)
 	v.sigmoid_();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), 0.88079707797788);
 			}
@@ -325,9 +374,9 @@ TEST(CommonTest, Tan)
 	v.tan_();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), std::tan(2));
 			}
@@ -340,9 +389,9 @@ TEST(CommonTest, TanStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::tan(2) : 2));
 			}
@@ -355,9 +404,9 @@ TEST(CommonTest, Tanh)
 	v.tanh_();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), std::tanh(2));
 			}
@@ -370,9 +419,9 @@ TEST(CommonTest, TanhStrided)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? std::tanh(2) : 2));
 			}

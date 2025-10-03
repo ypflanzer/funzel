@@ -18,11 +18,9 @@
 #include <funzel/Tensor.hpp>
 #include "BlasTensor.hpp"
 
-#include <iostream>
 #include <cstring>
-#include <cmath>
-#include <functional>
 #include <spdlog/spdlog.h>
+#include <stdexcept>
 
 #include "BlasTensorImpl.hpp"
 
@@ -49,6 +47,23 @@ static size_t systemMemory()
 using namespace funzel;
 using namespace blas;
 
+static inline void* checkedMalloc(size_t sz)
+{
+	void* p = nullptr;
+
+#if 1
+	p = std::malloc(sz);
+#else
+	p = std::aligned_alloc(0x40, sz);
+#endif
+
+	if(!p)
+		// Don't use std::bad_alloc because this is only used to allocate Tensors which may be very large and
+		// fail because of that such that normal operation can continue afterwards.
+		throw std::runtime_error("Could not allocate " + std::to_string(sz) + " bytes of memory: " + std::strerror(errno));
+	return p;
+}
+
 void BlasTensor::initializeBackend()
 {
 	DeviceProperties props;
@@ -71,6 +86,7 @@ void* BlasTensor::data(size_t offset)
 	// TODO: Bounds check!
 	const auto sz = size*dtypeSizeof(dtype);
 	AssertExcept(offset < sz, "Out of bounds access: " + std::to_string(offset) + " >= " + std::to_string(sz));
+	AssertExcept(m_data, "Tensor data is null!");
 	return m_data.get() + offset;
 }
 
@@ -124,12 +140,7 @@ void BlasTensor::empty(std::shared_ptr<char> buffer, size_t sz)
 	this->size = sz;
 	if(!buffer)
 	{
-		// FIXME: Windows does currently not support aligned_alloc. _aligned_alloc is not compatible with default delete and free.
-#ifdef WIN32
-		m_data = std::shared_ptr<char>((char*)std::malloc(sz));
-#else
-		m_data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, size * dtypeSizeof(dtype)));
-#endif
+		m_data = std::shared_ptr<char>((char*) checkedMalloc(sz));
 	}
 	else
 	{
@@ -140,18 +151,11 @@ void BlasTensor::empty(std::shared_ptr<char> buffer, size_t sz)
 void BlasTensor::empty(const void* buffer, size_t sz)
 {
 	this->size = sz;
-
-	// FIXME: Windows does currently not support aligned_alloc. _aligned_alloc is not compatible with default delete and free.
-#ifdef WIN32
-	m_data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
-#else
-	//m_data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, size * dtypeSizeof(dtype)));
-	m_data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
-#endif
+	m_data = std::shared_ptr<char>((char*) checkedMalloc(sz));
 
 	if(buffer)
 	{
-		memcpy(m_data.get(), buffer, this->size*dtypeSizeof(dtype));
+		memcpy(m_data.get(), buffer, sz);
 	}
 }
 
@@ -160,125 +164,9 @@ std::shared_ptr<BackendTensor> BlasTensor::clone() const
 	BlasTensor* t = CreateBlasTensor(dtype);
 	size_t sz = size*dtypeSizeof(dtype);
 
-	// FIXME: Windows does currently not support aligned_alloc. _aligned_alloc is not compatible with default delete and free.
-#ifdef WIN32
-	auto data = std::shared_ptr<char>((char*)std::malloc(sz));
-#else
-	//auto data = std::shared_ptr<char>((char*)std::aligned_alloc(0x40, sz));
-	auto data = std::shared_ptr<char>((char*) std::malloc(size*dtypeSizeof(dtype)));
-#endif
-
+	auto data = std::shared_ptr<char>((char*) checkedMalloc(sz));
 	memcpy(data.get(), m_data.get(), sz);
 
 	t->empty(data, sz);
 	return std::shared_ptr<BackendTensor>(t);
-}
-
-static void CopyTensor(Tensor src, Tensor dest)
-{
-	if(src.shape.empty())
-		return;
-
-	if(src.shape.size() == 1)
-	{
-		// #pragma omp parallel for
-		for(int64_t i = 0; i < src.shape[0]; i++)
-		{
-			dest[i] = src[i].item<double>();
-		}
-		return;
-	}
-
-	for(size_t i = 0; i < src.shape[0]; i++)
-	{
-		CopyTensor(src[i], dest[i]);
-	}
-}
-
-void BlasTensor::set(Tensor& self, const Tensor& src)
-{
-	CopyTensor(src, self);
-}
-
-template<typename T, typename Fn>
-inline void TensorOpInner(const Tensor& self, Tensor& tgt, Fn op)
-{
-	for(int64_t x = 0; x < self.shape[0]; x++)
-	{
-		T& v = self[x].ritem<T>();
-		tgt[x].ritem<T>() = op(v);
-	}
-}
-
-template<typename T, typename Fn>
-inline void TensorOpOuter(const Tensor& self, Tensor tgt, Fn op)
-{
-	if(self.shape.size() > 1)
-	{
-		#pragma omp parallel for
-		for(int i = 0; i < self.shape[0]; i++)
-			TensorOpOuter<T>(self[i], tgt[i], op);
-
-		return;
-	}
-
-	TensorOpInner<T>(self, tgt, op);
-}
-
-template<bool EnableUnsigned = true, typename Fn>
-inline void TensorOp(const Tensor& self, Tensor& tgt, Fn op)
-{
-	if constexpr (EnableUnsigned)
-	{
-		switch(self.dtype)
-		{
-			case DUINT16: {
-				TensorOpOuter<uint16_t>(self, tgt, op);
-				return;
-			}
-			case DUINT32: {
-				TensorOpOuter<uint32_t>(self, tgt, op);
-				return;
-			}
-			case DUINT64: {
-				TensorOpOuter<uint64_t>(self, tgt, op);
-				return;
-			}
-
-			default: {}
-		}
-	}
-
-	switch(self.dtype)
-	{
-		case DFLOAT32: {
-			TensorOpOuter<float>(self, tgt, op);
-		} break;
-		case DFLOAT64: {
-			TensorOpOuter<double>(self, tgt, op);
-		} break;
-		
-		case DINT8: {
-			TensorOpOuter<int8_t>(self, tgt, op);
-		} break;
-		case DUINT8: {
-			TensorOpOuter<uint8_t>(self, tgt, op);
-		} break;
-		
-		case DINT16: {
-			TensorOpOuter<int16_t>(self, tgt, op);
-		} break;
-		case DINT32: {
-			TensorOpOuter<int32_t>(self, tgt, op);
-		} break;
-		case DINT64: {
-			TensorOpOuter<int64_t>(self, tgt, op);
-		} break;
-		default: ThrowError("Unsupported dtype!");
-	}
-}
-
-void BlasTensor::unravel(const Tensor& self, Tensor tgt)
-{
-	TensorOp(self, tgt, [](const auto& v) { return v; });
 }

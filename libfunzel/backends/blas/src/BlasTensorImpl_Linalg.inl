@@ -16,6 +16,7 @@
  */
 #pragma once
 
+#include "funzel/Funzel.hpp"
 #include <lapacke.h>
 
 namespace funzel
@@ -58,7 +59,7 @@ inline static void DoDet(Tensor& luMat, Tensor& tgt)
 	}
 
 	T detval = 1;
-	for(size_t i = 0; i < numPivots; i++)
+	for(int64_t i = 0; i < numPivots; i++)
 	{
 		detval *= luMat[{i, i}].item<T>();
 		if(pivots[i] != i + 1) // FIXME: Is this right?
@@ -98,7 +99,7 @@ void BlasTensorImpl<T, SimdType>::inv(const Tensor& self, Tensor tgt)
 	if(self.shape.size() > 2)
 	{
 		//#pragma omp parallel for
-		for(int i = 0; i < self.shape[0]; i++)
+		for(int64_t i = 0; i < self.shape[0]; i++)
 		{
 			inv(self[i], tgt[i]);
 		}
@@ -149,7 +150,7 @@ inline static void DoTrace(const Tensor& self, Tensor& tgt)
 {
 	T traceval = 0;
 
-	for(size_t i = 0; i < self.shape[0]; i++)
+	for(int64_t i = 0; i < self.shape[0]; i++)
 	{
 		traceval += self[{i, i}].item<T>();
 	}
@@ -165,7 +166,7 @@ void BlasTensorImpl<T, SimdType>::trace(const Tensor& self, Tensor tgt)
 	if(self.shape.size() > 2)
 	{
 		//#pragma omp parallel for
-		for(int i = 0; i < self.shape[0]; i++)
+		for(int64_t i = 0; i < self.shape[0]; i++)
 		{
 			trace(self[i], tgt[i]);
 		}
@@ -178,7 +179,7 @@ void BlasTensorImpl<T, SimdType>::trace(const Tensor& self, Tensor tgt)
 }
 
 template<typename T, SIMD_TYPE SimdType>
-void BlasTensorImpl<T, SimdType>::svd(const Tensor& self, Tensor U, Tensor S, Tensor V)
+void BlasTensorImpl<T, SimdType>::svd(const Tensor& self, Tensor U, Tensor S, Tensor V, bool fullMatrices)
 {
 	if(self.shape.empty())
 		return;
@@ -186,7 +187,7 @@ void BlasTensorImpl<T, SimdType>::svd(const Tensor& self, Tensor U, Tensor S, Te
 	if(self.shape.size() > 2)
 	{
 		//#pragma omp parallel for
-		for(int i = 0; i < self.shape[0]; i++)
+		for(int64_t i = 0; i < self.shape[0]; i++)
 		{
 			svd(self[i], U[i], S[i], V[i]);
 		}
@@ -200,12 +201,15 @@ void BlasTensorImpl<T, SimdType>::svd(const Tensor& self, Tensor U, Tensor S, Te
 	void* vdata = V.data(V.offset);
 	const void* selfdata = self.data(self.offset);
 
+	AssertExcept(udata && sdata && vdata && selfdata, "All tensors must be allocated!");
+
 	const int mode = LAPACK_COL_MAJOR; //(self.isContiguous() ? LAPACK_ROW_MAJOR : LAPACK_COL_MAJOR);
+	const char job = fullMatrices ? 'A' : 'S';
 
 	int errcode = 0;
 	if constexpr (std::is_same_v<T, float>)
 	{
-		errcode = LAPACKE_sgesdd(mode, 'A', m, n,
+		errcode = LAPACKE_sgesdd(mode, job, m, n,
 				(float*) selfdata, m,
 				(float*) sdata,
 				(float*) udata, m, // TODO Strides!
@@ -213,7 +217,7 @@ void BlasTensorImpl<T, SimdType>::svd(const Tensor& self, Tensor U, Tensor S, Te
 	}
 	else if constexpr (std::is_same_v<T, double>)
 	{
-		errcode = LAPACKE_dgesdd(mode, 'A', m, n,
+		errcode = LAPACKE_dgesdd(mode, job, m, n,
 				(double*) selfdata, m,
 				(double*) sdata,
 				(double*) udata, m, // TODO Strides!

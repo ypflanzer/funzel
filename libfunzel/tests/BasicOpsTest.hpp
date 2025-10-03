@@ -15,7 +15,7 @@ FUNZEL_TEST(CommonTest, BasicOps, Instantiation)
 	EXPECT_EQ(v.shape, (Shape{3,3,3}));
 
 	const auto st = sizeof(TypeParam);
-	EXPECT_EQ(v.strides, (Shape{3*3*st, 3*st, st}));
+	EXPECT_EQ(v.strides, (Strides{3*3*st, 3*st, st}));
 }
 
 // **************************************************
@@ -109,9 +109,9 @@ FUNZEL_TEST(CommonTest, BasicOps, AddMatrixStridedInplace)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 2 : 1));
 			}
@@ -180,9 +180,9 @@ FUNZEL_TEST(CommonTest, BasicOps, SubtractMatrixStridedInplace)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 0 : 1));
 			}
@@ -285,9 +285,9 @@ FUNZEL_TEST(CommonTest, BasicOps, MultiplyMatrixStridedInplace)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 9 : 3));
 			}
@@ -435,9 +435,9 @@ FUNZEL_TEST(CommonTest, BasicOps, DivideMatrixStridedInplace)
 	v = v.transpose();
 	v = v.cpu();
 
-	for(size_t p = 0; p < 3; p++)
-		for(size_t q = 0; q < 3; q++)
-			for(size_t r = 0; r < 3; r++)
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
 			{
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 1.5f : 3));
 			}

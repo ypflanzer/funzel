@@ -107,6 +107,82 @@ SWIG_TYPEMAP_NUM_CUSTOM(funzel::Shape&, size_t)
 	$1 = lua_istable(L, $input);
 }
 
+%typemap(in) funzel::small_vector<funzel::TensorSlice> ()
+{
+	const int stackpos = $input;
+
+	size_t n = lua_rawlen(L, stackpos);
+	$1.reserve(n);
+
+	for (size_t i = 1; i <= n; ++i)
+	{
+		lua_rawgeti(L, stackpos, i);
+		if (!lua_istable(L, -1))
+		{
+			luaL_error(L, "Each slice must be a table");
+			lua_pop(L, 1);
+			return 0;
+		}
+
+		const auto len = lua_rawlen(L, -1);
+		funzel::TensorSlice slice;
+
+		if (len == 0)
+		{
+			slice = funzel::TensorSlice();
+		}
+		else if (len == 1)
+		{
+			lua_rawgeti(L, -1, 1);
+			int start = lua_tointeger(L, -1);
+			lua_pop(L, 1);
+			slice = funzel::TensorSlice(start, start + 1, 1);
+		}
+		else if (len == 2)
+		{
+			lua_rawgeti(L, -1, 1);
+			int start = lua_tointeger(L, -1);
+			lua_pop(L, 1);
+			lua_rawgeti(L, -1, 2);
+			int stop = lua_tointeger(L, -1);
+			lua_pop(L, 1);
+			slice = funzel::TensorSlice(start, stop, 1);
+		}
+		else if (len == 3)
+		{
+			lua_rawgeti(L, -1, 1);
+			int start = lua_tointeger(L, -1);
+			lua_pop(L, 1);
+			lua_rawgeti(L, -1, 2);
+			int stop = lua_tointeger(L, -1);
+			lua_pop(L, 1);
+			lua_rawgeti(L, -1, 3);
+			int step = lua_tointeger(L, -1);
+			lua_pop(L, 1);
+			slice = funzel::TensorSlice(start, stop, step);
+		}
+		else
+		{
+			luaL_error(L, "Slice table must have 0, 1, 2, or 3 elements");
+			lua_pop(L, 1);
+			return 0;
+		}
+
+		$1.push_back(slice);
+		lua_pop(L, 1);
+	}
+}
+
+%typemap(typecheck, precedence=SWIG_TYPECHECK_POINTER) const funzel::small_vector<funzel::TensorSlice>&
+{
+	$1 = lua_istable(L, $input);
+}
+
+%typemap(typecheck, precedence=SWIG_TYPECHECK_POINTER) const funzel::small_vector<funzel::TensorSlice>
+{
+	$1 = lua_istable(L, $input);
+}
+
 %include "funzel.i"
 %include "funzel_nn.i"
 %include "funzel_cv.i"
@@ -126,7 +202,7 @@ SWIG_TYPEMAP_NUM_CUSTOM(funzel::Shape&, size_t)
 	
 	funzel::Tensor __mul__(const funzel::Tensor& other)
 	{
-		return *$self * other;
+		return $self->mul(other);
 	}
 	
 	funzel::Tensor __div__(const funzel::Tensor& other)
@@ -155,9 +231,14 @@ SWIG_TYPEMAP_NUM_CUSTOM(funzel::Shape&, size_t)
 	{
 		return $self->matmul(other);
 	}
+
+	funzel::Tensor __call__(const funzel::small_vector<funzel::TensorSlice> slices)
+	{
+		return $self->slice(slices);
+	}
 }
 
-#if 0
+#if 1
 %inline %{
 #include <funzel/Tensor.hpp>
 #include <cstring>
@@ -165,7 +246,7 @@ SWIG_TYPEMAP_NUM_CUSTOM(funzel::Shape&, size_t)
 namespace funzel
 {
 
-static funzel::Tensor frombufferWrapped(const std::string& data, funzel::DTYPE dtype)
+static funzel::Tensor frombuffer(const std::string& data, funzel::DTYPE dtype)
 {
 	const size_t typeSize = funzel::dtypeSizeof(dtype);
 	if (typeSize == 0)
@@ -187,8 +268,7 @@ static funzel::Tensor frombufferWrapped(const std::string& data, funzel::DTYPE d
 
 }
 %}
-#endif
-
+#else
 // Load a Lua string into a Tensor without copying multiple times
 // as is the case for the wrapped version with std::string.
 %native(_NSFUNC_funzel_frombuffer) int frombuffer(lua_State* L);
@@ -238,4 +318,192 @@ int frombuffer(lua_State* L)
 	return 1;
 }
 %}
+#endif
 
+#ifdef SWIGLUA
+
+%luacode {
+
+	-- Extend the Tensor class with Lua methods
+	local mt = getmetatable(LuaFunzel.funzel.Tensor)
+	local orig_index = mt.__index
+
+	mt.__index = function(self, key)
+
+		print("__index: ", key)
+		-- Check if there is a Lua extension method
+		local ext = rawget(mt, "__lua_ext")
+		print("ext: ", ext[key])
+		if ext and ext[key] then
+			print("Found extension method: ", key)
+			return ext[key]
+		end
+
+		-- Fallback to original __index
+		local val = orig_index(self, key)
+		print("val: ", val)
+
+		if val ~= nil then
+			return val
+		end
+
+		return nil
+	end
+
+	mt.__call = function(self, ...)
+		print("__call")
+		return self:slice(...)
+	end
+
+	-- Table to hold Lua-side extensions
+	mt.__lua_ext = {}
+
+	setmetatable(LuaFunzel.funzel.Tensor, mt)
+}
+
+#endif
+
+%{
+	namespace TensorExtensions
+	{
+		int slice(lua_State* L)
+		{
+			funzel::Tensor* me = nullptr;
+			if(!SWIG_isptrtype(L,1))
+				return 0;
+
+			if (!SWIG_IsOK(SWIG_ConvertPtr(L, 1, (void**) &me, SWIGTYPE_p_funzel__Tensor, 0)))
+			{
+				return 0;
+			}
+
+			if (!me)
+			{
+				luaL_error(L, "Invalid Tensor object");
+				return 0;
+			}
+
+			funzel::small_vector<funzel::TensorSlice> slices;
+			if (lua_istable(L, 2))
+			{
+				int n = lua_rawlen(L, 2);
+				slices.reserve(n);
+				
+				for (int i = 1; i <= n; ++i)
+				{
+					lua_rawgeti(L, 2, i);
+					if (!lua_istable(L, -1))
+					{
+						luaL_error(L, "Each slice must be a table");
+						return 0;
+					}
+
+					int len = lua_rawlen(L, -1);
+					funzel::TensorSlice slice;
+
+					if (len == 0)
+					{
+						// ":" full slice
+						slice = funzel::TensorSlice();
+					}
+					else if (len == 1)
+					{
+						lua_rawgeti(L, -1, 1);
+						int start = lua_tointeger(L, -1);
+						lua_pop(L, 1);
+						slice = funzel::TensorSlice(start, start + 1, 1);
+					}
+					else if (len == 2)
+					{
+						lua_rawgeti(L, -1, 1);
+						int start = lua_tointeger(L, -1);
+						lua_pop(L, 1);
+						lua_rawgeti(L, -1, 2);
+						int stop = lua_tointeger(L, -1);
+						lua_pop(L, 1);
+						slice = funzel::TensorSlice(start, stop, 1);
+					}
+					else if (len == 3)
+					{
+						lua_rawgeti(L, -1, 1);
+						int start = lua_tointeger(L, -1);
+						lua_pop(L, 1);
+						lua_rawgeti(L, -1, 2);
+						int stop = lua_tointeger(L, -1);
+						lua_pop(L, 1);
+						lua_rawgeti(L, -1, 3);
+						int step = lua_tointeger(L, -1);
+						lua_pop(L, 1);
+						slice = funzel::TensorSlice(start, stop, step);
+					}
+					else
+					{
+						luaL_error(L, "Slice table must have 0, 1, 2, or 3 elements");
+						return 0;
+					}
+
+					slices.push_back(slice);
+					lua_pop(L, 1);
+				}
+			}
+			else
+			{
+				luaL_error(L, "Second argument must be a table of slices");
+				return 0;
+			}
+
+			funzel::Tensor* result = new funzel::Tensor(me->slice(slices));
+			SWIG_NewPointerObj(L, result, SWIG_TypeQuery("funzel::Tensor *"), 1);
+			return 1;
+		}
+	}
+%}
+
+%wrapper %{
+// https://stackoverflow.com/questions/16360012/swig-lua-extending-extend-class-with-native-is-it-possible-to-add-native
+void script_addNativeMethod(lua_State *L, const char *className, const char *methodName, lua_CFunction fn)
+{
+	SWIG_Lua_get_class_registry(L); /* get the registry */
+	lua_pushstring(L, className);   /* get the name */
+	lua_rawget(L,-2);               /* get the metatable itself */
+	lua_remove(L,-2);               /* tidy up (remove registry) */
+
+	// If the metatable is not null, add the method to the ".fn" table
+	if(lua_isnil(L, -1) != 1)
+	{
+		SWIG_Lua_get_table(L, ".fn");
+		SWIG_Lua_add_function(L, methodName, fn);
+		lua_pop(L, 2);              /* tidy up (remove metatable and ".fn" table) */
+	}
+	else
+	{
+		printf("[script_addNativeMethod(..)] - \"%s\" metatable is not found. Method \"%s\" will not be added\n", className, methodName);
+		return;
+	}
+}
+
+void script_addNativeMethod2(lua_State *L, const char *className, const char *methodName, lua_CFunction fn)
+{
+	SWIG_Lua_get_class_registry(L); /* get the registry */
+	lua_pushstring(L, className);   /* get the name */
+	lua_rawget(L,-2);               /* get the metatable itself */
+	lua_remove(L,-2);               /* tidy up (remove registry) */
+
+	// If the metatable is not null, add the method to the ".fn" table
+	if(lua_isnil(L, -1) != 1)
+	{
+		SWIG_Lua_get_table(L, ".fn");
+		SWIG_Lua_add_function(L, methodName, fn);
+		lua_pop(L, 2);              /* tidy up (remove metatable and ".fn" table) */
+	}
+	else
+	{
+		printf("[script_addNativeMethod(..)] - \"%s\" metatable is not found. Method \"%s\" will not be added\n", className, methodName);
+		return;
+	}
+}
+%}
+
+%init %{
+	//script_addNativeMethod(L, "funzel.Tensor", "slice", TensorExtensions::slice);
+%}

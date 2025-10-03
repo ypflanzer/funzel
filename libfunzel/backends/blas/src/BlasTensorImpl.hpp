@@ -1,11 +1,12 @@
 #pragma once
 
 #include "BlasTensor.hpp"
+#include "funzel/Funzel.hpp"
 
 #include <lapacke.h>
 #include <cblas.h>
+#include <spdlog/spdlog.h>
 
-#include <numeric> // std::accumulate
 namespace funzel
 {
 namespace blas
@@ -28,17 +29,21 @@ public:
 		dtype = funzel::dtype<T>();
 	}
 
+	~BlasTensorImpl() = default;
+
 	void fill(const Tensor& self, double scalar) override
 	{
-		const auto sz = self.size();
-		auto* d = reinterpret_cast<T*>(data(self.offset));
-		
-		// TODO Make configurable!
-		#pragma omp parallel for if(sz > 4096)
-		for(int64_t i = 0; i < sz; i++)
-		{
-			d[i] = scalar;
-		}
+		TensorOp(self, self, [scalar](const auto& v) -> T { return T(scalar); });
+	}
+
+	void unravel(const Tensor& self, Tensor tgt) override
+	{
+		TensorOp(self, tgt, [](const auto& v) { return v; });
+	}
+
+	void set(Tensor& self, const Tensor& src) override
+	{
+		unravel(src, self);
 	}
 
 	template<typename AccumT>
@@ -59,10 +64,25 @@ public:
 	template<typename Fn>
 	inline void TensorOpInner(const Tensor& self, Tensor& tgt, Fn op)
 	{
+		using TargetT = std::invoke_result_t<Fn, T>;
+
+		const T* src = reinterpret_cast<const T*>(self.data(self.offset));
+		TargetT* dest = reinterpret_cast<TargetT*>(tgt.data(tgt.offset));
+		
+		const int64_t srcStride = self.strides[0] / int(sizeof(T));
+		const int64_t tgtStride = tgt.strides[0] / int(sizeof(TargetT));
+
+		const int64_t srcOffset = srcStride < 0 ? (self.shape[0] - 1) * std::abs(srcStride) : 0;
+		const int64_t tgtOffset = tgtStride < 0 ? (tgt.shape[0] - 1) * std::abs(tgtStride) : 0;
+
+		//spdlog::info("SIZE: {} vs {} self.offset = {} offset: {} stride: {}", self.size(), self->size/sizeof(T), self.offset, srcOffset, srcStride);
+
+		//#pragma omp parallel for if(self.shape[0] > 4096)
 		for(int64_t x = 0; x < self.shape[0]; x++)
 		{
-			T& v = self[x].ritem<T>();
-			tgt[x].ritem<T>() = op(v);
+			//tgt.dataAs<TargetT>(tgtOffset + x*tgtStride) = op(self.dataAs<T>(srcOffset + x*srcStride));
+			//spdlog::info("OP {} -> {}", srcOffset + x*srcStride, tgtOffset + x*tgtStride);
+			dest[tgtOffset + x * tgtStride] = op(src[srcOffset + x * srcStride]);
 		}
 	}
 
@@ -71,7 +91,8 @@ public:
 	{
 		if(self.shape.size() > 1)
 		{
-			for(int i = 0; i < self.shape[0]; i++)
+			//#pragma omp parallel for if(self.shape[0] > 4096)
+			for(int64_t i = 0; i < self.shape[0]; i++)
 				TensorOp(self[i], tgt[i], op);
 
 			return;
@@ -117,6 +138,38 @@ public:
 	void tanh(const Tensor& self, Tensor tgt)
 	{
 		TensorOp(self, tgt, [](const auto& v) { return std::tanh(v); });
+	}
+
+	template<typename TargetT>
+	inline TargetT convertValue(const TargetT& v)
+	{
+		if constexpr (std::is_same_v<TargetT, T>)
+		{
+			return v;
+		}
+		else
+		{
+			return static_cast<TargetT>(v);
+		}
+	}
+
+	void astype(const Tensor& self, Tensor tgt, DTYPE targetType) override
+	{
+		AssertExcept(tgt->dtype == targetType, "Target tensor does not match the given target DTYPE!");
+		switch(targetType)
+		{
+			case DFLOAT32: TensorOp(self, tgt, [this](const auto& v) { return convertValue<float>(v); }); break;
+			case DUINT32: TensorOp(self, tgt, [this](const auto& v) { return convertValue<uint32_t>(v); }); break;
+			case DINT32: TensorOp(self, tgt, [this](const auto& v) { return convertValue<int32_t>(v); }); break;
+			case DFLOAT64: TensorOp(self, tgt, [this](const auto& v) { return convertValue<double>(v); }); break;
+			case DUINT64: TensorOp(self, tgt, [this](const auto& v) { return convertValue<uint64_t>(v); }); break;
+			case DINT64: TensorOp(self, tgt, [this](const auto& v) { return convertValue<int64_t>(v); }); break;
+			case DINT8: TensorOp(self, tgt, [this](const auto& v) { return convertValue<int8_t>(v); }); break;
+			case DUINT8: TensorOp(self, tgt, [this](const auto& v) { return convertValue<uint8_t>(v); }); break;
+			case DINT16: TensorOp(self, tgt, [this](const auto& v) { return convertValue<int16_t>(v); }); break;
+			case DUINT16: TensorOp(self, tgt, [this](const auto& v) { return convertValue<uint16_t>(v); }); break;
+			default: throw std::invalid_argument("Unsupported DTYPE given: " + std::to_string(targetType));
+		}
 	}
 
 	void mean(const Tensor& self, Tensor& tgt, const small_vector<int>& axis, DTYPE dtype, bool keepdims) override
@@ -332,7 +385,6 @@ public:
 		}
 	}
 
-
 	void mul(const Tensor& self, const Tensor& b, Tensor tgt)
 	{
 		funzel::ApplyStrided(self, b, tgt, [](const auto& self, const auto& b, auto tgt) {
@@ -440,7 +492,7 @@ public:
 	void det(const Tensor& self, Tensor tgt) override;
 	void inv(const Tensor& self, Tensor tgt) override;
 	void trace(const Tensor& self, Tensor tgt) override;
-	void svd(const Tensor& self, Tensor U, Tensor S, Tensor V) override;
+	void svd(const Tensor& self, Tensor U, Tensor S, Tensor V, bool fullMatrices = true) override;
 };
 
 }

@@ -1,7 +1,9 @@
+#include "funzel/Type.hpp"
 #include <funzel/Tensor.hpp>
 #include <funzel/Funzel.hpp>
 #include <functional>
 
+#include <spdlog/spdlog.h>
 #include <sstream>
 #include <algorithm>
 
@@ -269,10 +271,10 @@ size_t Tensor::size() const
 	return ::size(shape);
 }
 
-Tensor Tensor::get(size_t idx) const
+Tensor Tensor::get(int64_t idx) const
 {
 	AssertExcept(!shape.empty(), "Cannot index an empty tensor!");
-	AssertExcept(idx < shape[0], "Index out of bounds error: " << idx << " >= " << shape[0]);
+	AssertExcept(std::abs(idx) < shape[0], "Index out of bounds error: " << idx << " >= " << shape[0]);
 
 	Tensor t(*this);
 	t.shape.erase(t.shape.begin());
@@ -285,7 +287,13 @@ Tensor Tensor::get(size_t idx) const
 		t.shape.push_back(1);
 	}
 
-	t.offset += idx * strides[0];
+	// Handle negative steps in strides
+	int64_t newOffset = t.offset + idx * strides[0];
+	if(newOffset < 0)
+		newOffset = t->size + newOffset;
+
+	t.offset = newOffset;
+	assert(t.offset < t->size);
 	return t;
 }
 
@@ -296,6 +304,50 @@ Tensor Tensor::get(const Index& idx) const
 	{
 		t = t[i];
 	}
+	return t;
+}
+
+Tensor Tensor::slice(const small_vector<TensorSlice>& slices) const
+{
+	Tensor t = *this;
+
+	AssertExcept(slices.size() <= shape.size(), "Too many indices for tensor of dimension " << shape.size());
+	for(size_t i = 0; i < slices.size(); i++)
+	{
+		const auto& s = slices[i];
+		int64_t first = s.first;
+		int64_t last = s.last;
+		int64_t step = s.step;
+
+		// Handle negative indices
+		if(first < 0) first = t.shape[i] + first;
+		if(last < 0) last = t.shape[i] + last;
+
+		// Check out of bounds for the start element
+		if(first < 0 || first >= t.shape[i])
+			throw std::out_of_range("Slice start index out of range: " + std::to_string(s.first) + " for dimension " + std::to_string(i) + " with size " + std::to_string(t.shape[i]));
+		
+		// Check out of bounds for the end element
+		if(last < 0 || last > t.shape[i])
+			throw std::out_of_range("Slice end index out of range: " + std::to_string(s.last) + " for dimension " + std::to_string(i) + " with size " + std::to_string(t.shape[i]));
+
+		if(step == 0)
+			throw std::invalid_argument("Slice step cannot be zero!");
+
+		if(first >= last)
+			throw std::invalid_argument("Slice start index must be less than end index!");
+
+		// FIXME Strange that it only works with s.last == -1, probably because '[...]/step' is rounded toward zero
+		//       by default.
+		const int64_t newSize = (last - first + std::abs(step) - 1) / std::abs(step) + (s.last == -1 ? 1 : 0);
+		const int64_t oldStride = t.strides[i];
+
+		// Set the new values
+		t.shape[i] = newSize;
+		t.strides[i] = oldStride * step;
+		t.offset += first * oldStride;
+	}
+
 	return t;
 }
 
@@ -356,28 +408,10 @@ static void convertType(DTYPE to, const Tensor& in, Tensor& tgt)
 
 Tensor Tensor::astype(DTYPE type) const
 {
-	// TODO GPU versions?
-	Tensor tgt = empty(shape, type);
-	Tensor cpuSrc = cpu();
+	Tensor t = empty(this->shape, type, this->device);
+	m_backend->astype(*this, t, type);
+	return t;
 
-	switch(this->dtype)
-	{
-		case DFLOAT32: convertType<float>(type, *this, tgt); break;
-		case DUINT32: convertType<uint32_t>(type, *this, tgt); break;
-		case DINT32: convertType<int32_t>(type, *this, tgt); break;
-		case DFLOAT64: convertType<double>(type, *this, tgt); break;
-		case DUINT64: convertType<uint64_t>(type, *this, tgt); break;
-		case DINT64: convertType<int64_t>(type, *this, tgt); break;
-		case DINT8: convertType<char>(type, *this, tgt); break;
-		case DUINT8: convertType<unsigned char>(type, *this, tgt); break;
-		case DINT16: convertType<char>(type, *this, tgt); break;
-		case DUINT16: convertType<unsigned char>(type, *this, tgt); break;
-		case NONE: break;
-
-		default: throw std::invalid_argument("Unsupported DTYPE given: " + std::to_string(type));
-	}
-
-	return tgt.to(device);
 }
 
 Tensor Tensor::to(const std::string& device) const
@@ -437,11 +471,6 @@ void Tensor::reshape_(const Shape& shape)
 	AssertExcept(::size(shape) == ::size(this->shape),
 		"Cannot reshape due to a size conflict: " + std::to_string(::size(shape)) + " vs " + std::to_string(::size(this->shape)));
 
-	if(!(flags & C_CONTIGUOUS))
-	{
-		*this = this->unravel();
-	}
-
 	this->shape = shape;
 	this->strides.resize(shape.size());
 
@@ -471,7 +500,7 @@ void Tensor::permute_(const Shape& indices)
 	for(size_t i = 0; i < indices.size(); i++)
 	{
 		if(indices[i] >= shape.size())
-					throw std::out_of_range("Cannot permute axes, given index value exceeds the number of dimensions!");
+			throw std::out_of_range("Cannot permute axes, given index value exceeds the number of dimensions!");
 
 		shape[i] = oldshape[indices[i]];
 		strides[i] = oldstrides[indices[i]];
@@ -504,30 +533,6 @@ void Tensor::swapaxes_(int axis1, int axis2)
 	std::swap(nshape[axis1], nshape[axis2]);
 	
 	permute_(nshape);
-}
-
-static void unravel(Tensor src, Tensor dest)
-{
-	if(src.shape.empty())
-		return;
-	
-	AssertExcept(src.shape == dest.shape, "Cannot unravel tensor into a target with different shape!");
-	if(src.shape.size() > 1)
-	{
-		//#pragma omp parallel for
-		for(int i = 0; i < src.shape[0]; i++)
-		{
-			unravel(src[i], dest[i]);
-		}
-
-		return;
-	}
-
-	#pragma omp parallel for
-	for(int64_t i = 0; i < src.shape[0]; i++)
-	{
-		dest[i].set(src[i].item<double>());
-	}
 }
 
 Tensor Tensor::unravel() const
@@ -567,8 +572,6 @@ Tensor& Tensor::fill(double value)
 	m_backend->fill(*this, value);
 	return *this;
 }
-
-#include <iostream>
 
 Tensor& Tensor::add_(const Tensor& b)
 {
@@ -614,26 +617,6 @@ Tensor Tensor::sub(const Tensor& b, double alpha) const
 	t.add_(b, -alpha);
 	return t;
 }
-
-#if 0
-Tensor& Tensor::add_(double alpha)
-{
-	// TODO Optimized version that does not require a full tensor copy!
-	Tensor t = Tensor::empty_like(*this);
-	t.fill(alpha);
-	m_backend->mulAdd(*this, t, 1.0);
-
-	*this = t;
-	return *this;
-}
-
-Tensor Tensor::add(double alpha) const
-{
-	Tensor t(*this);
-	t.add_(alpha);
-	return t;
-}
-#endif
 
 Tensor& Tensor::mul_(double alpha)
 {
@@ -687,10 +670,11 @@ Tensor& Tensor::div_(const Tensor& b)
 	return *this;
 }
 
-#include <iostream>
 Tensor Tensor::matmul(const Tensor& b) const
 {
-	AssertExcept(dtype == b.dtype, "Cannot multiply matrices with different dtypes!");
+	AssertExcept(dtype == b.dtype,
+		"Cannot multiply matrices with different dtypes: " << dtypeToNativeString(dtype) << " vs " << dtypeToNativeString(b.dtype));
+	
 	Tensor tgt;
 	Broadcast<2>(*this, b, tgt,
 		[](const Shape& a, const Shape& b) {
@@ -721,15 +705,6 @@ Tensor Tensor::sum(const small_vector<int>& axis, DTYPE dtype, bool keepdims)
 	m_backend->sum(*this, t, axis, dtype, keepdims);
 	return t;
 }
-
-#if 0
-Tensor Tensor::sum()
-{
-	Tensor t = Tensor::zeros({1}, dtype, device);
-	m_backend->sum(*this, t);
-	return t;
-}
-#endif
 
 #define UNARY_OP_PAIR(f) \
 Tensor& Tensor::f##_() \
@@ -793,9 +768,9 @@ Tensor funzel::linspace(const Tensor& start, const Tensor& stop, size_t num, boo
 
 Tensor funzel::logspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint, double base, DTYPE dtype)
 {
-
+	UnsupportedOperationError;
+	
 	Tensor t;
-
 	return t;
 }
 

@@ -36,11 +36,6 @@ using namespace std;
 	{
 		return (*$self)[i];
 	}
-
-	funzel::Tensor __getitem__(const funzel::Shape& i)
-	{
-		return (*$self)[i];
-	}
 }
 
 %extend std::vector<size_t> {
@@ -62,6 +57,7 @@ namespace funzel
 %template(FloatSmallVector) small_vector<float>;
 %template(DoubleSmallVector) small_vector<double>;
 %template(SizeSmallVector) small_vector<size_t>;
+%template(SliceSmallVector) small_vector<funzel::TensorSlice>;
 }
 
 %extend funzel::small_vector<size_t> {
