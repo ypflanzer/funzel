@@ -17,8 +17,6 @@
 #pragma once
 
 #include "Funzel.hpp"
-#include "Vector.hpp"
-
 #include "funzel/Type.hpp"
 #include "small_vector"
 

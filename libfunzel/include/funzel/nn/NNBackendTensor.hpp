@@ -17,6 +17,7 @@
 #pragma once
 
 #include <funzel/Tensor.hpp>
+#include <funzel/Vector.hpp>
 
 namespace funzel::nn
 {
