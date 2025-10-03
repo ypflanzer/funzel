@@ -162,11 +162,9 @@ void BlasTensor::empty(const void* buffer, size_t sz)
 std::shared_ptr<BackendTensor> BlasTensor::clone() const
 {
 	BlasTensor* t = CreateBlasTensor(dtype);
-	size_t sz = size*dtypeSizeof(dtype);
+	auto data = std::shared_ptr<char>((char*) checkedMalloc(size));
+	memcpy(data.get(), m_data.get(), size);
 
-	auto data = std::shared_ptr<char>((char*) checkedMalloc(sz));
-	memcpy(data.get(), m_data.get(), sz);
-
-	t->empty(data, sz);
+	t->empty(data, size);
 	return std::shared_ptr<BackendTensor>(t);
 }
