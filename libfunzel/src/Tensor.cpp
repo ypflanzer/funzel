@@ -67,7 +67,7 @@ std::ostream& funzel::operator<<(std::ostream& out, const Tensor& s)
 	if(s.shape.empty())
 		return out;
 
-	out << "Tensor(";
+	out << "Tensor<" << dtypeToNativeString(s.dtype) << ", " << s.shape << ">(";
 	outputTensor(out, s, "\t");
 	out << ")";
 	return out;
