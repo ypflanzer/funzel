@@ -622,6 +622,17 @@ public:
 	Tensor& mul_(const Tensor& b);
 
 	/**
+	 * @brief Calculates exponentiates the Tensor.
+	 * \f$ pow(x, y) = x^y \f$
+	 * @return Tensor 
+	 */
+	Tensor pow(const Tensor& y) const;
+	Tensor& pow_(const Tensor& y);
+
+	Tensor pow(double y) const;
+	Tensor& pow_(double y);
+
+	/**
 	 * @brief Divides the Tensor element wise by another Tensor.
 	 * 
 	 * Performs broadcasting.
@@ -865,7 +876,8 @@ public:
 	virtual void mul(const Tensor& self, const Tensor& b, Tensor tgt) { UnsupportedOperationError; }
 
 	virtual void sub(const Tensor& self, const Tensor& b, double alpha = 1.0) { UnsupportedOperationError; }
-	
+	virtual void pow(const Tensor& self, const Tensor& y, Tensor tgt) { UnsupportedOperationError; }
+
 	/**
 	 * @brief Calculates the absolute value of elements.
 	 * 

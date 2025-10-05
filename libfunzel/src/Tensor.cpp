@@ -670,6 +670,38 @@ Tensor& Tensor::div_(const Tensor& b)
 	return *this;
 }
 
+Tensor& Tensor::pow_(double y)
+{
+	m_backend->mul(*this, y);
+	return *this;
+}
+
+Tensor Tensor::pow(double y) const
+{
+	// TODO Run without copy!!!
+	Tensor t = clone();
+	t.pow_(y);
+	return t;
+}
+
+Tensor& Tensor::pow_(const Tensor& y)
+{
+	Broadcast<0>(*this, y, *this,
+		[](const auto& a, const auto& b) { return b; },
+		[](Tensor a, Tensor b, Tensor c) {
+			a->pow(a, b, c);
+		});
+
+	return *this;
+}
+
+Tensor Tensor::pow(const Tensor& y) const
+{
+	Tensor t = clone();
+	t.pow_(y);
+	return t;
+}
+
 Tensor Tensor::matmul(const Tensor& b) const
 {
 	AssertExcept(dtype == b.dtype,

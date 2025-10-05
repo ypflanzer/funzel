@@ -3,6 +3,7 @@
 #include "BlasTensor.hpp"
 #include "funzel/Funzel.hpp"
 
+#include <cmath>
 #include <lapacke.h>
 #include <cblas.h>
 #include <spdlog/spdlog.h>
@@ -403,6 +404,58 @@ public:
 			else
 			{
 				TensorMul<T>(
+							self.size(),
+							reinterpret_cast<const T*>(src), self.strides.back()/sizeof(T),
+							reinterpret_cast<const T*>(bdata), b.strides.back()/sizeof(T),
+							reinterpret_cast<T*>(dest), tgt.strides.back()/sizeof(T));
+			}
+		});
+	}
+
+	template<typename V>
+	static void TensorPow(
+		size_t count,
+		const V* a, size_t strideA,
+		const V* b, size_t strideB,
+		V* c, size_t strideC)
+	{
+		for(size_t i = 0; i < count; i++)
+		{
+			c[i * strideC] = std::pow(a[i * strideA], b[i * strideB]);
+		}
+	}
+
+	template<typename V>
+	static void ScalarPow(
+		size_t count,
+		const V* a, size_t strideA,
+		V scalar,
+		V* c, size_t strideC)
+	{
+		for(size_t i = 0; i < count; i++)
+		{
+			c[i * strideC] = std::pow(a[i * strideA], scalar);
+		}
+	}
+
+	void pow(const Tensor& self, const Tensor& b, Tensor tgt)
+	{
+		funzel::ApplyStrided(self, b, tgt, [](const auto& self, const auto& b, auto tgt) {
+			const void* src = self.data(self.offset);
+			const T* bdata = reinterpret_cast<const T*>(b.data(b.offset));
+			void* dest = tgt.data(tgt.offset);
+
+			if(b.size() == 1) // Scalar!
+			{
+				ScalarPow<T>(
+							self.size(),
+							reinterpret_cast<const T*>(src), self.strides.back()/sizeof(T),
+							*bdata,
+							reinterpret_cast<T*>(dest), tgt.strides.back()/sizeof(T));
+			}
+			else
+			{
+				TensorPow<T>(
 							self.size(),
 							reinterpret_cast<const T*>(src), self.strides.back()/sizeof(T),
 							reinterpret_cast<const T*>(bdata), b.strides.back()/sizeof(T),

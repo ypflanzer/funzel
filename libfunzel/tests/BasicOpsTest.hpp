@@ -442,3 +442,155 @@ FUNZEL_TEST(CommonTest, BasicOps, DivideMatrixStridedInplace)
 				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 1.5f : 3));
 			}
 }
+
+
+// **************************************************
+// POWER
+// **************************************************
+FUNZEL_TEST(CommonTest, BasicOps, PowMatrix)
+{
+	auto v = Tensor({3, 3, 3},
+	{
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+	});
+
+	auto v1 = v.to(TestDevice);
+	auto v2 = Tensor({3, 3, 3},
+	{
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+		
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+	}).to(TestDevice);
+
+	auto result = v1.pow(v2);
+
+	v1 = v1.cpu();
+	result = result.cpu();
+
+	const Tensor expected({3, 3, 3},
+	{
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+	});
+
+	// Make sure the original value did not change
+	EXPECT_TENSOR_EQ(v1, v);
+	EXPECT_TENSOR_EQ(result, expected);
+}
+
+FUNZEL_TEST(CommonTest, BasicOps, PowMatrixInplace)
+{
+	auto v1 = Tensor({3, 3, 3},
+	{
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+	}).to(TestDevice);
+
+	auto v2 = Tensor({3, 3, 3},
+	{
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+		
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+	}).to(TestDevice);
+
+	v1.pow_(v2);
+	v1 = v1.cpu();
+
+	const Tensor expected({3, 3, 3},
+	{
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+		9.0f, 9.0f, 9.0f,
+	});
+
+	EXPECT_TENSOR_EQ(v1, expected);
+}
+
+FUNZEL_TEST(CommonTest, BasicOps, PowMatrixStridedInplace)
+{
+	const auto three = Tensor({3, 3},
+	{
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+		2.0f, 2.0f, 2.0f,
+	}).to(TestDevice);
+
+	auto v = Tensor({3, 3, 3},
+	{
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+		3.0f, 3.0f, 3.0f,
+	}).to(TestDevice).transpose();
+
+	v[1].pow_(three);
+	v = v.transpose();
+	v = v.cpu();
+
+	for(int64_t p = 0; p < 3; p++)
+		for(int64_t q = 0; q < 3; q++)
+			for(int64_t r = 0; r < 3; r++)
+			{
+				EXPECT_FLOAT_EQ((v[{p, q, r}].item<float>()), (r == 1 ? 9.0f : 3));
+			}
+}
+
