@@ -15,7 +15,7 @@ Tensor Sequential::forward(const Tensor& input)
 	return res;
 }
 
-Tensor Sequential::backward(const Tensor& input)
+Tensor Sequential::backward(const Tensor& /*input*/)
 {
 	return Tensor();
 }

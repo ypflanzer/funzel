@@ -187,12 +187,13 @@ public:
 
 	Tensor(const Tensor&) = default;
 	Tensor& operator=(const Tensor&) = default;
-
+	
+#ifndef SWIG
 	Tensor(Tensor&& t)
 	{
 		*this = std::move(t);
 	}
-	
+
 	Tensor& operator=(Tensor&& t)
 	{
 		shape = std::move(t.shape);
@@ -205,6 +206,7 @@ public:
 		dtype = t.dtype; t.dtype = NONE;
 		return *this;
 	}
+#endif
 
 	explicit Tensor(const Shape& shape, const float data[], unsigned long long sz, const std::string& device = EmptyStr);
 	explicit Tensor(const Shape& shape, const double data[], unsigned long long sz, const std::string& device = EmptyStr);
@@ -310,22 +312,22 @@ public:
 	 * @param offset An offset in bytes.
 	 * @return void* A pointer to the data.
 	 */
-	void* data(size_t offset = 0);
+	void* data(size_t dataOffset = 0);
 
 #ifndef SWIG
-	const void* data(size_t offset = 0) const;
+	const void* data(size_t dataOffset = 0) const;
 #endif
 
 	template<typename T> 
-	const T& dataAs(size_t offset) const
+	const T& dataAs(size_t dataOffset) const
 	{
-		return *reinterpret_cast<const T*>(data(offset*sizeof(T)));
+		return *reinterpret_cast<const T*>(data(dataOffset * sizeof(T)));
 	}
 
 	template<typename T> 
-	T& dataAs(size_t offset)
+	T& dataAs(size_t dataOffset)
 	{
-		return *reinterpret_cast<T*>(data(offset*sizeof(T)));
+		return *reinterpret_cast<T*>(data(dataOffset * sizeof(T)));
 	}
 
 	/**
@@ -379,16 +381,16 @@ public:
 	{
 		switch(dtype)
 		{
-			case DFLOAT32: ritem<float>() = t; break;
-			case DUINT32: ritem<uint32_t>() = t; break;
-			case DINT32: ritem<int32_t>() = t; break;
-			case DFLOAT64: ritem<double>() = t; break;
-			case DUINT64: ritem<uint64_t>() = t; break;
-			case DINT64: ritem<int64_t>() = t; break;
-			case DINT8: ritem<char>() = t; break;
-			case DUINT8: ritem<unsigned char>() = t; break;
-			case DINT16: ritem<int16_t>() = t; break;
-			case DUINT16: ritem<uint16_t>() = t; break;
+			case DFLOAT32: ritem<float>() = float(t); break;
+			case DUINT32: ritem<uint32_t>() = uint32_t(t); break;
+			case DINT32: ritem<int32_t>() = int32_t(t); break;
+			case DFLOAT64: ritem<double>() = double(t); break;
+			case DUINT64: ritem<uint64_t>() = uint64_t(t); break;
+			case DINT64: ritem<int64_t>() = int64_t(t); break;
+			case DINT8: ritem<int8_t>() = int8_t(t); break;
+			case DUINT8: ritem<uint8_t>() = uint8_t(t); break;
+			case DINT16: ritem<int16_t>() = int16_t(t); break;
+			case DUINT16: ritem<uint16_t>() = uint16_t(t); break;
 
 			default:
 			case NONE: break;
@@ -433,19 +435,19 @@ public:
 
 		switch(dtype)
 		{
-			case DFLOAT32: return *reinterpret_cast<const float*>(data); break;
-			case DUINT32: return *reinterpret_cast<const uint32_t*>(data); break;
-			case DINT32: return *reinterpret_cast<const int32_t*>(data); break;
-			case DFLOAT64: return *reinterpret_cast<const double*>(data); break;
-			case DUINT64: return *reinterpret_cast<const uint64_t*>(data); break;
-			case DINT64: return *reinterpret_cast<const int64_t*>(data); break;
-			case DINT16: return *reinterpret_cast<const int16_t*>(data); break;
-			case DUINT16: return *reinterpret_cast<const uint16_t*>(data); break;
+			case DFLOAT32: return T(*reinterpret_cast<const float*>(data)); break;
+			case DUINT32: return T(*reinterpret_cast<const uint32_t*>(data)); break;
+			case DINT32: return T(*reinterpret_cast<const int32_t*>(data)); break;
+			case DFLOAT64: return T(*reinterpret_cast<const double*>(data)); break;
+			case DUINT64: return T(*reinterpret_cast<const uint64_t*>(data)); break;
+			case DINT64: return T(*reinterpret_cast<const int64_t*>(data)); break;
+			case DINT16: return T(*reinterpret_cast<const int16_t*>(data)); break;
+			case DUINT16: return T(*reinterpret_cast<const uint16_t*>(data)); break;
 
-			case DINT8: return *reinterpret_cast<const char*>(data); break;
+			case DINT8: return T(*reinterpret_cast<const char*>(data)); break;
 
 			default:
-			case DUINT8: return *reinterpret_cast<const unsigned char*>(data); break;
+			case DUINT8: return T(*reinterpret_cast<const unsigned char*>(data)); break;
 		}
 	}
 
@@ -479,10 +481,10 @@ public:
 	 * Applies the new shape to this Tensor and recalculates all strides.
 	 * The number of elements implied by both shapes need to be equal.
 	 * 
-	 * @param shape The new shape.
+	 * @param newShape The new shape.
 	 * @return Tensor The Tensor with the new shape.
 	 */
-	Tensor reshape(const Shape& shape);
+	Tensor reshape(const Shape& newShape);
 
 	/**
 	 * @brief Reshapes the tensor in-place.
@@ -492,11 +494,11 @@ public:
 	 * 
 	 * @param shape The new shape.
 	 */
-	void reshape_(const Shape& shape);
+	void reshape_(const Shape& newShape);
 
 	Tensor flatten()
 	{
-		const size_t total = std::accumulate(shape.begin(), shape.end(), 1, std::multiplies<size_t>());
+		const size_t total = std::accumulate(shape.begin(), shape.end(), size_t(1), std::multiplies<size_t>());
 		return reshape(Shape{total});
 	}
 
@@ -509,17 +511,17 @@ public:
 	 * For example, swapping the first and second dimension of a Tensor may
 	 * use the following permuation array: (1, 0, 2)
 	 * 
-	 * @param shape An array containing the new dimension order.
+	 * @param indices An array containing the new dimension order.
 	 * @return Tensor A Tensor with the permuted shape.
 	 */
-	Tensor permute(const Shape& shape) const;
+	Tensor permute(const Shape& indices) const;
 
 	/**
 	 * @brief Permutes the dimensions of the Tensor in-place.
 	 * @see permute
-	 * @param shape An array containing the new dimension order.
+	 * @param indices An array containing the new dimension order.
 	 */
-	void permute_(const Shape& shape);
+	void permute_(const Shape& indices);
 
 	/**
 	 * @brief Swaps the two given axes.
@@ -563,10 +565,10 @@ public:
 	 * needs to be copied to the device before it can be used there.
 	 * If the device is equal to the current device, no copy will be performed.
 	 * 
-	 * @param device The device to move the data to.
+	 * @param newDevice The device to move the data to.
 	 * @return Tensor A Tensor on the given device.
 	 */
-	Tensor to(const std::string& device) const;
+	Tensor to(const std::string& newDevice) const;
 
 	/**
 	 * @brief Creates a new Tensor with the same shape, dtype, device and data.
@@ -747,6 +749,16 @@ public:
 	Tensor sum(const small_vector<int>& axis = {}, DTYPE dtype = DTYPE::NONE, bool keepdims = false);
 
 	/**
+	 * @brief Calculates the mean of all elements in the Tensor.
+	 * 
+	 * @param axis The axis or axes to calculate the mean along. Default is all axes.
+	 * @param type The desired data type of the result. Default is the same as the input.
+	 * @param keepdims Whether to keep the reduced dimensions with size 1. Default is false.
+	 * @return Tensor The mean.
+	 */
+	Tensor mean(const small_vector<int>& axis = {}, DTYPE type = DTYPE::NONE, bool keepdims = false);
+
+	/**
 	 * @brief Checks if the Tensor is C_CONTIGUOUS.
 	 * 
 	 * @return true 
@@ -834,6 +846,15 @@ public:
 	 * @param scalar A scalar value which will be converted to the correct type.
 	 */
 	virtual void fill(const Tensor& self, double scalar) = 0;
+
+	// Disable unused parameter warnings for the following method stubs
+	#if defined(__GNUC__) || defined(__clang__)
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wunused-parameter"
+	#elif defined(_MSC_VER)
+		#pragma warning(push)
+		#pragma warning(disable : 4100) // Disable unused parameter warning
+	#endif
 
 	virtual void add(const Tensor& a, const Tensor& b, Tensor tgt) { UnsupportedOperationError; }
 
@@ -944,7 +965,7 @@ public:
 		const Tensor& self,
 		Tensor& tgt,
 		const small_vector<int>& axis,
-		DTYPE dtype,
+		DTYPE type,
 		bool keepdims) { UnsupportedOperationError; }
 
 	/**
@@ -971,10 +992,10 @@ public:
 	 * @param self The input Tensor.
 	 * @param tgt The target tensor results will be stored to.
 	 * @param axis The axis to calculate the mean along.
-	 * @param dtype The type to use for the calculation.
+	 * @param type The type to use for the calculation.
 	 * @param keepdims Keeps the number of dimensions such that the result can be broadcast over the input.
 	 */
-	virtual void mean(const Tensor& self, Tensor& tgt, const small_vector<int>& axis, DTYPE dtype, bool keepdims)
+	virtual void mean(const Tensor& self, Tensor& tgt, const small_vector<int>& axis, DTYPE type, bool keepdims)
 		{ UnsupportedOperationError; }
 
 	/**
@@ -985,6 +1006,12 @@ public:
 	 * @param targetType The new DTYPE.
 	 */
 	virtual void astype(const Tensor& self, Tensor tgt, DTYPE targetType) { UnsupportedOperationError; }
+
+	#if defined(__GNUC__) || defined(__clang__)
+		#pragma GCC diagnostic pop
+	#elif defined(_MSC_VER)
+		#pragma warning(pop)
+	#endif
 
 	DTYPE dtype;
 	size_t size; ///< Size of the buffer in bytes.
@@ -1109,7 +1136,7 @@ struct RandomGenerator : public IRandomGenerator
 	 */
 	RandomGenerator(const Dist& d, uint64_t seed = std::mt19937::default_seed):
 		distribution(d),
-		gen(seed) {}
+		gen(uint32_t(seed)) {}
 	
 	double get() override
 	{
@@ -1346,7 +1373,7 @@ inline bool IsBroadcastable(const Shape& a, const Shape& b)
 	if(b.size() >= a.size())
 		return false;
 
-	for(int i = 1; i <= b.size(); i++)
+	for(size_t i = 1; i <= b.size(); i++)
 	{
 		const auto bidx = b.size() - i;
 		const auto aidx = a.size() - i;
@@ -1372,7 +1399,7 @@ inline void Apply(const Tensor& a, const Tensor& b, Tensor tgt, size_t stopDim, 
 		return;
 	}
 
-	for(int64_t i = 0; i < a.shape[0]; i++)
+	for(int64_t i = 0; i < int64_t(a.shape[0]); i++)
 	{
 		Apply(a[i], b, tgt[i], stopDim, fn, std::forward<Args>(args)...);
 	}

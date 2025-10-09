@@ -9,6 +9,13 @@ set(CMAKE_SHARED_LIBRARY_PREFIX "")
 
 include_directories(../include)
 
+# Disable all warnings in the generated wrapper code
+if(MSVC)
+	add_compile_options(/w)
+else()
+	add_compile_options(-w)
+endif()
+
 find_package(Lua)
 if(LUA_FOUND AND NOT NO_LUA)
 	set(CMAKE_SWIG_FLAGS "-no-old-metatable-bindings") # I would also like -nomoduleglobal, but it needs to be global for some Lua functions to work...

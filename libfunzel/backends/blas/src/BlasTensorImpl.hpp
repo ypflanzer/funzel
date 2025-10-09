@@ -34,7 +34,8 @@ public:
 
 	void fill(const Tensor& self, double scalar) override
 	{
-		TensorOp(self, self, [scalar](const auto& v) -> T { return T(scalar); });
+		// TODO TensorOp should support functions without parameters!
+		TensorOp(self, self, [scalar](const auto&) -> T { return T(scalar); });
 	}
 
 	void unravel(const Tensor& self, Tensor tgt) override
@@ -79,7 +80,7 @@ public:
 		//spdlog::info("SIZE: {} vs {} self.offset = {} offset: {} stride: {}", self.size(), self->size/sizeof(T), self.offset, srcOffset, srcStride);
 
 		//#pragma omp parallel for if(self.shape[0] > 4096)
-		for(int64_t x = 0; x < self.shape[0]; x++)
+		for(int64_t x = 0; x < int64_t(self.shape[0]); x++)
 		{
 			//tgt.dataAs<TargetT>(tgtOffset + x*tgtStride) = op(self.dataAs<T>(srcOffset + x*srcStride));
 			//spdlog::info("OP {} -> {}", srcOffset + x*srcStride, tgtOffset + x*tgtStride);
@@ -93,7 +94,7 @@ public:
 		if(self.shape.size() > 1)
 		{
 			//#pragma omp parallel for if(self.shape[0] > 4096)
-			for(int64_t i = 0; i < self.shape[0]; i++)
+			for(int64_t i = 0; i < int64_t(self.shape[0]); i++)
 				TensorOp(self[i], tgt[i], op);
 
 			return;
@@ -102,7 +103,7 @@ public:
 		TensorOpInner(self, tgt, op);
 	}
 
-	void abs(const Tensor& self, Tensor tgt)
+	void abs(const Tensor& self, Tensor tgt) override
 	{
 		// Abs on unsigned values is a no-op!
 		if constexpr (!std::is_unsigned_v<T>)
@@ -111,32 +112,32 @@ public:
 		}
 	}
 
-	void exp(const Tensor& self, Tensor tgt)
+	void exp(const Tensor& self, Tensor tgt) override
 	{
 		TensorOp(self, tgt, [](const auto& v) { return std::exp(v); });
 	}
 
-	void sqrt(const Tensor& self, Tensor tgt)
+	void sqrt(const Tensor& self, Tensor tgt) override
 	{
 		TensorOp(self, tgt, [](const auto& v) { return std::sqrt(v); });
 	}
 
-	void sin(const Tensor& self, Tensor tgt)
+	void sin(const Tensor& self, Tensor tgt) override
 	{
 		TensorOp(self, tgt, [](const auto& v) { return std::sin(v); });
 	}
 
-	void cos(const Tensor& self, Tensor tgt)
+	void cos(const Tensor& self, Tensor tgt) override
 	{
 		TensorOp(self, tgt, [](const auto& v) { return std::cos(v); });
 	}
 
-	void tan(const Tensor& self, Tensor tgt)
+	void tan(const Tensor& self, Tensor tgt) override
 	{
 		TensorOp(self, tgt, [](const auto& v) { return std::tan(v); });
 	}
 
-	void tanh(const Tensor& self, Tensor tgt)
+	void tanh(const Tensor& self, Tensor tgt) override
 	{
 		TensorOp(self, tgt, [](const auto& v) { return std::tanh(v); });
 	}
@@ -202,7 +203,7 @@ public:
 	void add(const Tensor& a, const Tensor& b, Tensor tgt) override
 	{
 		Broadcast<0>(a, b, tgt,
-			[](const auto& a, const auto& b) { return a; },
+			[](const auto& a, const auto&) { return a; },
 			[](const Tensor& a, Tensor b, Tensor tgt) {
 				funzel::ApplyStrided(a, b, tgt, [](const auto& a, const auto& b, auto tgt) {
 					const T* adata = reinterpret_cast<const T*>(a.data(a.offset));
@@ -238,7 +239,7 @@ public:
 		}
 	}
 
-	void mulAdd(const Tensor& self, Tensor tgt, double alpha)
+	void mulAdd(const Tensor& self, Tensor tgt, double alpha) override
 	{
 		#if 0
 		if(self.shape.empty())
@@ -247,7 +248,7 @@ public:
 		if(self.shape.size() > 1 && self.shape[1] > 1)
 		{
 			//#pragma omp parallel for
-			for(int i = 0; i < self.shape[0]; i++)
+			for(int i = 0; i < int64_t(self.shape[0]); i++)
 			{
 				mulAdd(self[i], tgt[i], alpha);
 			}
@@ -257,7 +258,7 @@ public:
 		#endif
 
 		//funzel::ApplyStrided(self, tgt, [alpha](const auto& self, auto tgt) {
-		funzel::Apply(self, tgt, tgt, 1, [](const auto& self, const auto& b, auto tgt, double alpha) {
+		funzel::Apply(self, tgt, tgt, 1, [](const auto& self, const auto& /*b*/, auto tgt, double alpha ) {
 			const T* src = reinterpret_cast<const T*>(self.data(self.offset));
 			T* dest = reinterpret_cast<T*>(tgt.data(tgt.offset));
 			size_t destStride = tgt.strides.back();
@@ -287,7 +288,7 @@ public:
 		}, alpha);
 	}
 
-	void mul(Tensor self, double alpha)
+	void mul(Tensor self, double alpha) override
 	{
 		if(self.shape.empty())
 			return;
@@ -295,7 +296,7 @@ public:
 		if(self.shape.size() > 1 && self.shape[1] > 1)
 		{
 			//#pragma omp parallel for
-			for(int i = 0; i < self.shape[0]; i++)
+			for(int i = 0; i < int64_t(self.shape[0]); i++)
 			{
 				mul(self[i], alpha);
 			}
@@ -333,7 +334,7 @@ public:
 		}
 	}
 
-	void div(const Tensor& self, const Tensor& b, Tensor tgt)
+	void div(const Tensor& self, const Tensor& b, Tensor tgt) override
 	{
 		if(self.shape.empty())
 			return;
@@ -341,7 +342,7 @@ public:
 		if(self.shape.size() > 1 && self.shape[1] > 1)
 		{
 			#pragma omp parallel for
-			for(int i = 0; i < self.shape[0]; i++)
+			for(int i = 0; i < int64_t(self.shape[0]); i++)
 			{
 				div(self[i], b[i], tgt[i]);
 			}
@@ -386,7 +387,7 @@ public:
 		}
 	}
 
-	void mul(const Tensor& self, const Tensor& b, Tensor tgt)
+	void mul(const Tensor& self, const Tensor& b, Tensor tgt) override
 	{
 		funzel::ApplyStrided(self, b, tgt, [](const auto& self, const auto& b, auto tgt) {
 			const void* src = self.data(self.offset);
@@ -438,7 +439,7 @@ public:
 		}
 	}
 
-	void pow(const Tensor& self, const Tensor& b, Tensor tgt)
+	void pow(const Tensor& self, const Tensor& b, Tensor tgt) override
 	{
 		funzel::ApplyStrided(self, b, tgt, [](const auto& self, const auto& b, auto tgt) {
 			const void* src = self.data(self.offset);
@@ -464,7 +465,7 @@ public:
 		});
 	}
 
-	void matmul(const Tensor& self, Tensor b, Tensor tgt)
+	void matmul(const Tensor& self, Tensor b, Tensor tgt) override
 	{
 		AssertExcept(self.getBackend() != tgt.getBackend(), "Cannot multiply matrices in-place!");
 		if(self.shape.empty())
@@ -473,7 +474,7 @@ public:
 		if(self.shape.size() > 2)
 		{
 			//#pragma omp parallel for
-			for(int i = 0; i < self.shape[0]; i++)
+			for(int i = 0; i < int64_t(self.shape[0]); i++)
 			{
 				matmul(self[i], b[i], tgt[i]);
 			}
@@ -527,9 +528,9 @@ public:
 			const UVec2& kernelSize,
 			const UVec2& stride,
 			const UVec2& padding,
-			const UVec2& dilation);
+			const UVec2& dilation)  override;
 
-	void relu(const Tensor& self, Tensor& tgt, double negativeSlope);
+	void relu(const Tensor& self, Tensor& tgt, double negativeSlope) override;
 
 	// CVBackendTensor
 	void conv2d(
@@ -537,7 +538,7 @@ public:
 		const Tensor& kernel,
 		const UVec2& stride,
 		const UVec2& padding,
-		const UVec2& dilation);
+		const UVec2& dilation) override;
 
 	void convertGrayscale(const Tensor& self, Tensor tgt) override;
 

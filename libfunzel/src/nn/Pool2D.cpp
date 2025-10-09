@@ -27,7 +27,7 @@ Tensor Pool2D::forward(const Tensor& input)
 	return result;
 }
 
-Tensor Pool2D::backward(const Tensor& input)
+Tensor Pool2D::backward(const Tensor& /*input*/)
 {
 	return Tensor();
 }

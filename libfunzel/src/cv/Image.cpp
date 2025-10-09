@@ -8,9 +8,15 @@
 #include <funzel/cv/CVBackendTensor.hpp>
 #include <funzel/nn/NNBackendTensor.hpp>
 
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-function"
+// Disable unused parameter warnings for the following method stubs
+#if defined(__GNUC__) || defined(__clang__)
+	#pragma GCC diagnostic push
+	#pragma GCC diagnostic ignored "-Wunused-parameter"
+	#pragma GCC diagnostic ignored "-Wunused-function"
+	#pragma GCC diagnostic ignored "-Wmissing-field-initializers"
+#elif defined(_MSC_VER)
+	#pragma warning(push)
+	#pragma warning(disable : 4100) // Disable unused parameter warning
 #endif
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -24,8 +30,10 @@
 #define STBIW_ASSERT(x) AssertExcept((x), "Assertion failed: " #x)
 #include "stb_image_write.h"
 
-#if defined(__clang__) || defined(__GNUC__)
-#pragma GCC diagnostic pop
+#if defined(__GNUC__) || defined(__clang__)
+	#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+	#pragma warning(pop)
 #endif
 
 using namespace funzel;
@@ -77,9 +85,9 @@ Tensor funzel::image::load(const std::string& file, CHANNEL_ORDER order, DTYPE d
 
 static int saveUByteImage(const Tensor& tensor, const std::string& file, const std::string& ext)
 {
-	const auto h = tensor.shape[0];
-	const auto w = tensor.shape[1];
-	const auto c = (tensor.shape.size() > 2 ? tensor.shape[2] : 1);
+	const int h = int(tensor.shape[0]);
+	const int w = int(tensor.shape[1]);
+	const int c = (tensor.shape.size() > 2 ? int(tensor.shape[2]) : 1);
 	const void* data = tensor.data();
 
 	AssertExcept(c <= 3, "More than three color channels given, maybe the image is in a CHW format instead of HWC?");
@@ -105,7 +113,7 @@ static int saveUByteImage(const Tensor& tensor, const std::string& file, const s
 }
 
 // TODO: Implement saving ushort!
-static int saveUShortImage(const Tensor& tensor, const std::string& file, const std::string& ext)
+static int saveUShortImage(const Tensor& tensor, const std::string&, const std::string& ext)
 {
 	AssertExcept(false, "Unsupported image format " << ext << " for dtype " << dtypeToNativeString(tensor.dtype));
 }
@@ -178,10 +186,10 @@ void image::imshow(const Tensor& t, const std::string& title, bool waitkey)
 		else
 			im = t;
 
-		const uint32_t w = im.shape[1];
-		const uint32_t h = im.shape[0];
-		const uint32_t c = im.shape[2];
-		const uint32_t stride = im.strides[0];
+		const uint32_t w = uint32_t(im.shape[1]);
+		const uint32_t h = uint32_t(im.shape[0]);
+		const uint32_t c = uint32_t(im.shape[2]);
+		const uint32_t stride = uint32_t(im.strides[0]); // FIXME Is this always correct?
 		
 		Fl_Window win(w, h, title.c_str());
 		Fl_RGB_Image img((const uchar*) im.data(), w, h, c, stride);

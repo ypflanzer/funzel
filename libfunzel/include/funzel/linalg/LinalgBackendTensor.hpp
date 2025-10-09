@@ -30,11 +30,26 @@ public:
 
 	static const char* BackendName() { return "Linalg"; }
 
+	// Disable unused parameter warnings for the following method stubs
+	#if defined(__GNUC__) || defined(__clang__)
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wunused-parameter"
+	#elif defined(_MSC_VER)
+		#pragma warning(push)
+		#pragma warning(disable : 4100) // Disable unused parameter warning
+	#endif
+
 	virtual void det(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 	virtual void inv(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 	virtual void trace(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 
 	virtual void svd(const Tensor& self, Tensor U, Tensor S, Tensor V, bool fullMatrices = true) { UnsupportedOperationError; }
+
+	#if defined(__GNUC__) || defined(__clang__)
+		#pragma GCC diagnostic pop
+	#elif defined(_MSC_VER)
+		#pragma warning(pop)
+	#endif
 };
 
 }

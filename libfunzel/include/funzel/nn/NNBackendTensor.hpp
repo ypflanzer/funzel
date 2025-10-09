@@ -27,6 +27,15 @@ public:
 	NNBackendTensor() = default;
 	virtual ~NNBackendTensor() = default;
 
+	// Disable unused parameter warnings for the following method stubs
+	#if defined(__GNUC__) || defined(__clang__)
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wunused-parameter"
+	#elif defined(_MSC_VER)
+		#pragma warning(push)
+		#pragma warning(disable : 4100) // Disable unused parameter warning
+	#endif
+
 	virtual void pool2d(
 			const Tensor& self, Tensor tgt,
 			POOLING_MODE mode,
@@ -39,6 +48,12 @@ public:
 
 	// With default implementation
 	virtual void sigmoid(const Tensor& self, Tensor& tgt);
+
+	#if defined(__GNUC__) || defined(__clang__)
+		#pragma GCC diagnostic pop
+	#elif defined(_MSC_VER)
+		#pragma warning(pop)
+	#endif
 };
 
 }

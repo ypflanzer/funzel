@@ -1,6 +1,8 @@
 #include <funzel/cv/Image.hpp>
 #include <funzel/Plot.hpp>
 
+#include <iostream>
+
 using namespace funzel;
 
 class Plot1D : public Subplot
@@ -49,9 +51,6 @@ static std::string findGnuplot()
 	return "gnuplot"; // TODO Real search!!!
 }
 
-#include <iostream>
-#include <filesystem>
-
 #ifdef WIN32
 #define popen _popen
 #define pclose _pclose
@@ -80,7 +79,7 @@ void Plot::serialize(std::ostream& out) const
 	}
 }
 
-void Plot::show(bool wait)
+void Plot::show(bool /*wait*/)
 {
 	std::stringstream ss;
 	// ss << "set terminal wxt\n";

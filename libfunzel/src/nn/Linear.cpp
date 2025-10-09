@@ -21,7 +21,7 @@ Tensor Linear::forward(const Tensor& input)
 	return result;
 }
 
-Tensor Linear::backward(const Tensor& input)
+Tensor Linear::backward(const Tensor& /*input*/)
 {
 	return Tensor();
 }

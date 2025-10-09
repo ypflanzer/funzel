@@ -274,7 +274,7 @@ size_t Tensor::size() const
 Tensor Tensor::get(int64_t idx) const
 {
 	AssertExcept(!shape.empty(), "Cannot index an empty tensor!");
-	AssertExcept(std::abs(idx) < shape[0], "Index out of bounds error: " << idx << " >= " << shape[0]);
+	AssertExcept(std::abs(idx) < int64_t(shape[0]), "Index out of bounds error: " << idx << " >= " << shape[0]);
 
 	Tensor t(*this);
 	t.shape.erase(t.shape.begin());
@@ -324,11 +324,11 @@ Tensor Tensor::slice(const small_vector<TensorSlice>& slices) const
 		if(last < 0) last = t.shape[i] + last;
 
 		// Check out of bounds for the start element
-		if(first < 0 || first >= t.shape[i])
+		if(first < 0 || first >= int64_t(t.shape[i]))
 			throw std::out_of_range("Slice start index out of range: " + std::to_string(s.first) + " for dimension " + std::to_string(i) + " with size " + std::to_string(t.shape[i]));
 		
 		// Check out of bounds for the end element
-		if(last < 0 || last > t.shape[i])
+		if(last < 0 || last > int64_t(t.shape[i]))
 			throw std::out_of_range("Slice end index out of range: " + std::to_string(s.last) + " for dimension " + std::to_string(i) + " with size " + std::to_string(t.shape[i]));
 
 		if(step == 0)
@@ -351,14 +351,14 @@ Tensor Tensor::slice(const small_vector<TensorSlice>& slices) const
 	return t;
 }
 
-void* Tensor::data(size_t offset)
+void* Tensor::data(size_t dataOffset)
 {
-	return m_backend->data(offset);
+	return m_backend->data(dataOffset);
 }
 
-const void* Tensor::data(size_t offset) const
+const void* Tensor::data(size_t dataOffset) const
 {
-	return m_backend->data(offset);
+	return m_backend->data(dataOffset);
 }
 
 void Tensor::trimDimensions()
@@ -380,7 +380,7 @@ void Tensor::trimDimensions()
 template<typename From, typename To>
 static void convertType(const Tensor& in, Tensor& tgt)
 {
-	for(int64_t i = 0; i < tgt.size(); i++)
+	for(size_t i = 0; i < tgt.size(); i++)
 	{
 		tgt.dataAs<To>(i) = in.dataAs<From>(i);
 	}
@@ -414,15 +414,15 @@ Tensor Tensor::astype(DTYPE type) const
 
 }
 
-Tensor Tensor::to(const std::string& device) const
+Tensor Tensor::to(const std::string& newDevice) const
 {
 	// If the tensor is completely empty, return an empty tensor.
 	if(!m_backend)
 		return {};
 
 	// If we do not change device, return self
-	if((device.empty() && m_backend->backendName() == funzel::GetDefaultBackend())
-		|| m_backend->backendName() == device)
+	if((newDevice.empty() && m_backend->backendName() == funzel::GetDefaultBackend())
+		|| m_backend->backendName() == newDevice)
 	{
 		return *this;
 	}
@@ -431,14 +431,14 @@ Tensor Tensor::to(const std::string& device) const
 	const auto count = ::size(shape);
 
 	// TODO Optimize if the backend is the same, e.g. OpenCL
-	t.m_backend = backend::CreateBackendTensor(m_backend->buffer(), count, dtype, device);
+	t.m_backend = backend::CreateBackendTensor(m_backend->buffer(), count, dtype, newDevice);
 
 	if(!t.m_backend)
-		throw std::runtime_error("Could not create tensor with device '" + device + "'!");
+		throw std::runtime_error("Could not create tensor with device '" + newDevice + "'!");
 
 	t.dtype = dtype;
 	t.shape = shape;
-	t.device = device;
+	t.device = newDevice;
 	t.offset = offset;
 	t.strides = strides;
 	
@@ -459,33 +459,33 @@ void Tensor::set(const Tensor& t)
 	m_backend->set(*this, t.to(device));
 }
 
-Tensor Tensor::reshape(const Shape& shape)
+Tensor Tensor::reshape(const Shape& newShape)
 {
 	Tensor t(*this);
-	t.reshape_(shape);
+	t.reshape_(newShape);
 	return t;
 }
 
-void Tensor::reshape_(const Shape& shape)
+void Tensor::reshape_(const Shape& newShape)
 {
-	AssertExcept(::size(shape) == ::size(this->shape),
-		"Cannot reshape due to a size conflict: " + std::to_string(::size(shape)) + " vs " + std::to_string(::size(this->shape)));
+	AssertExcept(::size(newShape) == ::size(this->shape),
+		"Cannot reshape due to a size conflict: " + std::to_string(::size(newShape)) + " vs " + std::to_string(::size(this->shape)));
 
-	this->shape = shape;
-	this->strides.resize(shape.size());
+	this->shape = newShape;
+	this->strides.resize(newShape.size());
 
-	size_t offset = 1;
-	for(int i = shape.size() - 1; i >= 0; i--)
+	size_t accumulatedOffset = 1;
+	for(int64_t i = int64_t(newShape.size()) - 1; i >= 0; i--)
 	{
-		strides[i] = offset*dtypeSizeof(dtype);
-		offset *= shape[i];
+		strides[i] = accumulatedOffset * dtypeSizeof(dtype);
+		accumulatedOffset *= newShape[i];
 	}
 }
 
-Tensor Tensor::permute(const Shape& shape) const
+Tensor Tensor::permute(const Shape& indices) const
 {
 	Tensor t(*this);
-	t.permute_(shape);
+	t.permute_(indices);
 	return t;
 }
 
@@ -513,8 +513,8 @@ Tensor Tensor::swapaxes(int axis1, int axis2)
 {
 	Shape nshape(shape.size());
 
-	if(axis1 < 0) axis1 = shape.size() - axis1 - 2;
-	if(axis2 < 0) axis2 = shape.size() - axis2 - 2;
+	if(axis1 < 0) axis1 = int(shape.size()) - axis1 - 2;
+	if(axis2 < 0) axis2 = int(shape.size()) - axis2 - 2;
 
 	std::iota(nshape.begin(), nshape.end(), 0);
 	std::swap(nshape[axis1], nshape[axis2]);
@@ -526,8 +526,8 @@ void Tensor::swapaxes_(int axis1, int axis2)
 {
 	Shape nshape(shape.size());
 
-	if(axis1 < 0) axis1 = shape.size() - axis1;
-	if(axis2 < 0) axis2 = shape.size() - axis2;
+	if(axis1 < 0) axis1 = int(shape.size()) - axis1;
+	if(axis2 < 0) axis2 = int(shape.size()) - axis2;
 
 	std::iota(nshape.begin(), nshape.end(), 0);
 	std::swap(nshape[axis1], nshape[axis2]);
@@ -589,9 +589,9 @@ Tensor Tensor::add(const Tensor& b) const
 Tensor& Tensor::add_(const Tensor& b, double alpha)
 {
 	Broadcast<0>(*this, b, *this,
-		[](const auto& a, const auto& b) { return b; },
+		[](const auto& /*a*/, const auto& b) { return b; },
 		[](const Tensor& a, Tensor b, Tensor c, double alpha) {
-			b->mulAdd(b, c, alpha);
+			a->mulAdd(b, c, alpha);
 		}, alpha);
 
 	return *this;
@@ -643,7 +643,7 @@ Tensor Tensor::mul(const Tensor& b) const
 Tensor& Tensor::mul_(const Tensor& b)
 {
 	Broadcast<0>(*this, b, *this,
-		[](const auto& a, const auto& b) { return b; },
+		[](const auto& /*a*/, const auto& b) { return b; },
 		[](Tensor a, Tensor b, Tensor c) {
 			a->mul(a, b, c);
 		});
@@ -662,7 +662,7 @@ Tensor Tensor::div(const Tensor& b) const
 Tensor& Tensor::div_(const Tensor& b)
 {
 	Broadcast<0>(*this, b, *this,
-		[](const auto& a, const auto& b) { return b; },
+		[](const auto& /*a*/, const auto& b) { return b; },
 		[](Tensor a, Tensor b, Tensor c) {
 			a->div(a, b, c);
 		});
@@ -687,7 +687,7 @@ Tensor Tensor::pow(double y) const
 Tensor& Tensor::pow_(const Tensor& y)
 {
 	Broadcast<0>(*this, y, *this,
-		[](const auto& a, const auto& b) { return b; },
+		[](const auto& /*a*/, const auto& b) { return b; },
 		[](Tensor a, Tensor b, Tensor c) {
 			a->pow(a, b, c);
 		});
@@ -728,13 +728,13 @@ Tensor Tensor::matmul(const Tensor& b) const
 	return tgt;
 }
 
-Tensor Tensor::sum(const small_vector<int>& axis, DTYPE dtype, bool keepdims)
+Tensor Tensor::sum(const small_vector<int>& axis, DTYPE type, bool keepdims)
 {
-	if(dtype == NONE)
-		dtype = this->dtype;
+	if(type == NONE)
+		type = this->dtype;
 
 	Tensor t;// = Tensor::empty({1}, dtype, device);
-	m_backend->sum(*this, t, axis, dtype, keepdims);
+	m_backend->sum(*this, t, axis, type, keepdims);
 	return t;
 }
 
@@ -758,6 +758,16 @@ UNARY_OP_PAIR(sin)
 UNARY_OP_PAIR(cos)
 UNARY_OP_PAIR(tan)
 UNARY_OP_PAIR(tanh)
+
+Tensor Tensor::mean(const small_vector<int>& axis, DTYPE type, bool keepdims)
+{
+	if(type == NONE)
+		type = this->dtype;
+
+	Tensor t;// = Tensor::empty({1}, dtype, device);
+	m_backend->mean(*this, t, axis, type, keepdims);
+	return t;
+}
 
 Tensor funzel::linspace(double start, double stop, size_t num, bool endPoint, DTYPE dtype)
 {
@@ -789,7 +799,7 @@ Tensor funzel::linspace(const Tensor& start, const Tensor& stop, size_t num, boo
 	// TODO Make parallel!
 	auto iter = start;
 	Tensor t = Tensor::empty(shape, dtype);
-	for(int64_t i = 0; i < t.shape[0]; i++)
+	for(int64_t i = 0; i < int64_t(t.shape[0]); i++)
 	{
 		t[i].set(iter);
 		iter.add_(delta);
@@ -798,7 +808,7 @@ Tensor funzel::linspace(const Tensor& start, const Tensor& stop, size_t num, boo
 	return t;
 }
 
-Tensor funzel::logspace(const Tensor& start, const Tensor& stop, size_t num, bool endPoint, double base, DTYPE dtype)
+Tensor funzel::logspace(const Tensor& /*start*/, const Tensor& /*stop*/, size_t /*num*/, bool /*endPoint*/, double /*base*/, DTYPE /*dtype*/)
 {
 	UnsupportedOperationError;
 	
@@ -811,11 +821,11 @@ Tensor funzel::arange(double start, double stop, double step, DTYPE dtype)
 	AssertExcept(step > 0,
 				"Cannot calculate range with a step size of zero!");
 
-	size_t steps = (stop - start) / step;
+	size_t steps = size_t((stop - start) / step);
 	Tensor t = Tensor::empty({steps}, dtype);
 
 	#pragma omp parallel for
-	for(int64_t i = 0; i < t.shape[0]; i++)
+	for(int64_t i = 0; i < int64_t(t.shape[0]); i++)
 	{
 		t[i].set(start + step*i);
 	}
@@ -826,10 +836,9 @@ Tensor funzel::arange(double start, double stop, double step, DTYPE dtype)
 template<typename T>
 void FillRandom(void* data, IRandomGenerator& gen, size_t count)
 {
-	#pragma omp parallel for
-	for(int64_t i = 0; i < count; i++)
+	for(size_t i = 0; i < count; i++)
 	{
-		reinterpret_cast<T*>(data)[i] = gen.get();
+		reinterpret_cast<T*>(data)[i] = T(gen.get());
 	}
 }
 

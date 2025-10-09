@@ -143,9 +143,10 @@ public:
 	iterator end() { return m_data + m_size; }
 
 	reference front() { return *m_data; }
-	const_reference front() const { return *m_data; }
+
 
 #ifndef SWIG
+	const_reference front() const { return *m_data; }
 	const_iterator begin() const { return m_data; }
 	const_iterator end() const { return m_data + m_size; }
 	const_iterator cbegin() const { return m_data; }
@@ -246,12 +247,14 @@ public:
 		m_size++;
 	}
 
+#ifndef SWIG
 	void push_back(T&& value)
 	{
 		ensureSpace();
 		m_data[m_size] = std::move(value);
 		m_size++;
 	}
+#endif
 
 	template<typename... Args>
 	reference emplace_back(Args&&... args)

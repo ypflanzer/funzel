@@ -31,7 +31,7 @@ void Pool2D(
 
 	const UVec2& kernelSize,
 	const UVec2& stride,
-	const UVec2& padding,
+	const UVec2& /*padding*/,
 	const UVec2& dilation,
 	Fn accumF)
 {

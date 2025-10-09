@@ -4,7 +4,7 @@
 using namespace funzel;
 using namespace nn;
 
-Conv2D::Conv2D(size_t inChannels, size_t outChannels, const UVec2& kernelSize, bool bias)
+Conv2D::Conv2D(size_t /*inChannels*/, size_t outChannels, const UVec2& kernelSize, bool bias)
 {
 	m_parameters.reserve(2);
 	m_parameters.push_back(Tensor::empty({kernelSize[0], kernelSize[1], outChannels}));
@@ -36,7 +36,7 @@ Tensor Conv2D::forward(const Tensor& input)
 	return result;
 }
 
-Tensor Conv2D::backward(const Tensor& input)
+Tensor Conv2D::backward(const Tensor& /*input*/)
 {
 	return Tensor();
 }

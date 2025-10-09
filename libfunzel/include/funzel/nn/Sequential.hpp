@@ -29,7 +29,11 @@ public:
 	FUNZEL_MODULE(Sequential)
 
 	Sequential() = default;
+
+
+#ifndef SWIG
 	Sequential(std::initializer_list<ModuleRef> modules);
+#endif
 
 	Tensor forward(const Tensor& input) final override;
 	Tensor backward(const Tensor& input) final override;

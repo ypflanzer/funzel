@@ -19,8 +19,6 @@
 #include "Pool2D.hpp"
 #include "Conv2D.hpp"
 
-#include <functional>
-
 namespace funzel
 {
 namespace blas
@@ -53,7 +51,7 @@ void BlasTensorImpl<T, SimdType>::pool2d(
 	const void* adata = self.data(self.offset);
 	void* dest = tgt.data(tgt.offset);
 
-	const auto maxFunctor = [](const auto a, const auto b, int ksize) { return std::max(a,b); };
+	const auto maxFunctor = [](const auto a, const auto b, int /*ksize*/) { return std::max(a,b); };
 	const auto meanFunctor = [](const auto a, const auto b, int ksize) { return a + b/ksize; };
 
 	Pool2D<T>(  (const T*) adata, (T*) dest,

@@ -17,7 +17,7 @@
 #pragma once
 
 #include <funzel/Tensor.hpp>
-#include "Image.hpp"
+#include <funzel/Vector.hpp>
 
 namespace funzel::cv
 {
@@ -28,6 +28,15 @@ class CVBackendTensor
 {
 public:
 	virtual ~CVBackendTensor() = default;
+
+	// Disable unused parameter warnings for the following method stubs
+	#if defined(__GNUC__) || defined(__clang__)
+		#pragma GCC diagnostic push
+		#pragma GCC diagnostic ignored "-Wunused-parameter"
+	#elif defined(_MSC_VER)
+		#pragma warning(push)
+		#pragma warning(disable : 4100) // Disable unused parameter warning
+	#endif
 
 	/**
 	 * @brief Converts an image Tensor to grayscale.
@@ -54,6 +63,11 @@ public:
 			const UVec2& padding,
 			const UVec2& dilation) { UnsupportedOperationError; }
 
+	#if defined(__GNUC__) || defined(__clang__)
+		#pragma GCC diagnostic pop
+	#elif defined(_MSC_VER)
+		#pragma warning(pop)
+	#endif
 };
 
 }

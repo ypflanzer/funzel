@@ -16,13 +16,11 @@
  */
 #pragma once
 
-#include "Module.hpp"
-#include "Sequential.hpp"
-
-#include <optional>
 #include <iostream>
 #include <unordered_map>
 #include <cassert>
+
+#include <funzel/Tensor.hpp>
 
 namespace funzel
 {
@@ -75,12 +73,13 @@ typedef std::shared_ptr<IGraphNode> IGraphNodeRef;
 class ConstantNode : public IGraphNode
 {
 public:
-	void dump(std::ostream& out) override {}
+	void dump(std::ostream& /*out*/) override {}
 	void execute() override {}
 
 	Tensor& value() { return m_value; }
 	GraphNodeResult result(size_t idx = 0) override
 	{
+		(void) idx;
 		return GraphNodeResult{this, &m_value};
 	}
 
@@ -95,7 +94,7 @@ public:
 	BinaryOpNode(const GraphNodeResult& a, const GraphNodeResult& b):
 		a(a), b(b) {}
 
-	void dump(std::ostream& out) override {}
+	void dump(std::ostream& /*out*/) override {}
 	void execute() override
 	{
 		m_result = Fn().operator()(a.get(), b.get());
@@ -103,6 +102,7 @@ public:
 
 	GraphNodeResult result(size_t idx = 0) override
 	{
+		(void) idx;
 		return GraphNodeResult{this, &m_result};
 	}
 
@@ -123,7 +123,7 @@ public:
 	UnaryOpNode(const GraphNodeResult& x):
 		x(x) {}
 
-	void dump(std::ostream& out) override {}
+	void dump(std::ostream& /*out*/) override {}
 	void execute() override
 	{
 		m_result = Fn().operator()(x.get());
@@ -131,6 +131,7 @@ public:
 
 	GraphNodeResult result(size_t idx = 0) override
 	{
+		(void) idx;
 		return GraphNodeResult{this, &m_result};
 	}
 
