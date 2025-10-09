@@ -210,11 +210,11 @@ public:
 					const T* bdata = reinterpret_cast<const T*>(b.data(b.offset));
 					T* dest = reinterpret_cast<T*>(tgt.data(tgt.offset));
 
-					const size_t tgtStride = tgt.strides[0] / sizeof(T);
-					const size_t aStride = a.strides[0] / sizeof(T);
-					const size_t bStride = b.strides[0] / sizeof(T);
+					const int64_t tgtStride = tgt.strides[0] / sizeof(T);
+					const int64_t aStride = a.strides[0] / sizeof(T);
+					const int64_t bStride = b.strides[0] / sizeof(T);
 
-					for(size_t i = 0; i < a.size(); i++)
+					for(int64_t i = 0; i < int64_t(a.size()); i++)
 					{
 						dest[i*tgtStride] = adata[i*aStride] + bdata[i*bStride];
 					}
@@ -229,9 +229,9 @@ public:
 		T alpha,
 		
 		size_t n,
-		size_t astride = 1,
-		size_t bstride = 1,
-		size_t deststride = 1) FUNZEL_NOINLINE
+		int64_t astride = 1,
+		int64_t bstride = 1,
+		int64_t deststride = 1) FUNZEL_NOINLINE
 	{
 		for(size_t i = 0; i < n; i++)
 		{
@@ -261,8 +261,8 @@ public:
 		funzel::Apply(self, tgt, tgt, 1, [](const auto& self, const auto& /*b*/, auto tgt, double alpha ) {
 			const T* src = reinterpret_cast<const T*>(self.data(self.offset));
 			T* dest = reinterpret_cast<T*>(tgt.data(tgt.offset));
-			size_t destStride = tgt.strides.back();
-			size_t stride = self.strides.back();
+			int64_t destStride = tgt.strides.back();
+			int64_t stride = self.strides.back();
 
 			axpy(src, src, dest, alpha, self.size(), stride/sizeof(T), stride/sizeof(T), destStride/sizeof(T));
 			// std::cout << self << " " << tgt << std::endl;
@@ -305,7 +305,7 @@ public:
 		}
 
 		void* src = self.data(self.offset);
-		size_t stride = self.strides.back();
+		int64_t stride = self.strides.back();
 
 		if constexpr (std::is_same_v<T, float>)
 		{
@@ -324,9 +324,9 @@ public:
 	template<typename V>
 	static void TensorDiv(
 		size_t count,
-		const V* a, size_t strideA,
-		const V* b, size_t strideB,
-		V* c, size_t strideC)
+		const V* a, int64_t strideA,
+		const V* b, int64_t strideB,
+		V* c, int64_t strideC)
 	{
 		for(size_t i = 0; i < count; i++)
 		{
@@ -364,9 +364,9 @@ public:
 	template<typename V>
 	static void TensorMul(
 		size_t count,
-		const V* a, size_t strideA,
-		const V* b, size_t strideB,
-		V* c, size_t strideC)
+		const V* a, int64_t strideA,
+		const V* b, int64_t strideB,
+		V* c, int64_t strideC)
 	{
 		for(size_t i = 0; i < count; i++)
 		{
@@ -377,9 +377,9 @@ public:
 	template<typename V>
 	static void ScalarMul(
 		size_t count,
-		const V* a, size_t strideA,
+		const V* a, int64_t strideA,
 		V scalar,
-		V* c, size_t strideC)
+		V* c, int64_t strideC)
 	{
 		for(size_t i = 0; i < count; i++)
 		{
@@ -416,9 +416,9 @@ public:
 	template<typename V>
 	static void TensorPow(
 		size_t count,
-		const V* a, size_t strideA,
-		const V* b, size_t strideB,
-		V* c, size_t strideC)
+		const V* a, int64_t strideA,
+		const V* b, int64_t strideB,
+		V* c, int64_t strideC)
 	{
 		for(size_t i = 0; i < count; i++)
 		{
@@ -429,9 +429,9 @@ public:
 	template<typename V>
 	static void ScalarPow(
 		size_t count,
-		const V* a, size_t strideA,
+		const V* a, int64_t strideA,
 		V scalar,
-		V* c, size_t strideC)
+		V* c, int64_t strideC)
 	{
 		for(size_t i = 0; i < count; i++)
 		{

@@ -1198,7 +1198,7 @@ FUNZEL_INLINE void ApplyStrided(const Tensor& self, Tensor tgt, Fn&& fn)
 	
 	if(self.shape.size() > 1)
 	{
-		for(int i = 0; i < self.shape[0]; i++)
+		for(size_t i = 0; i < self.shape[0]; i++)
 		{
 			ApplyStrided(self[i], (tgt.shape[0] > self.shape[0] ? tgt[i] : tgt), fn);
 		}
@@ -1248,6 +1248,13 @@ FUNZEL_INLINE Tensor& Reduce(Tensor arr, const small_vector<int>& axis, DTYPE dt
 {
 	static_assert(std::is_invocable_r_v<void, Fn, Tensor, Tensor&>, "Functor needs to have signature compatible to void(Tensor, Tensor)!");
 	
+	// Check if axis values are valid
+	for(int ax : axis)
+	{
+		if(std::abs(ax) >= int(arr.shape.size()))
+			throw std::out_of_range("Axis " + std::to_string(ax) + " is out of bounds for array of dimension " + std::to_string(arr.shape.size()));
+	}
+
 	// Step 1: Validate and prepare input arguments
 	Shape origShape = arr.shape; // In case of keepdims this is required.
 	if(axis.empty())
@@ -1336,7 +1343,7 @@ FUNZEL_INLINE void ApplyStridedAsType(const Tensor& self, Tensor tgt, DTYPE dtyp
 	
 	if(self.shape.size() > 1)
 	{
-		for(int i = 0; i < self.shape[0]; i++)
+		for(size_t i = 0; i < self.shape[0]; i++)
 		{
 			//std::cout << tgt.shape << "   " << self.shape << std::endl;
 			ApplyStridedAsType(self[i], (tgt.shape[0] >= self.shape[0] ? tgt[i] : tgt), dtype, fn);
@@ -1358,7 +1365,7 @@ FUNZEL_INLINE void ApplyStrided(const Tensor& a, const Tensor& b, Tensor tgt, Fn
 	
 	if(a.shape.size() > 1)
 	{
-		for(int i = 0; i < a.shape[0]; i++)
+		for(size_t i = 0; i < a.shape[0]; i++)
 		{
 			ApplyStrided(a[i], b[i], tgt[i], fn);
 		}
