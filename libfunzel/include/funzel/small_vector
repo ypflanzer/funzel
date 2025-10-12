@@ -207,6 +207,7 @@ public:
 		return pos;
 	}
 
+#ifndef SWIG
 	template<typename... Args>
 	iterator emplace(iterator pos, Args&&... args)
 	{
@@ -217,6 +218,7 @@ public:
 		m_size++;
 		return pos;
 	}
+#endif
 	
 	iterator erase(iterator pos)
 	{
@@ -254,7 +256,6 @@ public:
 		m_data[m_size] = std::move(value);
 		m_size++;
 	}
-#endif
 
 	template<typename... Args>
 	reference emplace_back(Args&&... args)
@@ -265,6 +266,7 @@ public:
 
 		return m_data[m_size-1];
 	}
+#endif
 
 	void pop_back()
 	{

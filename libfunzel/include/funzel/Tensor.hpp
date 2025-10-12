@@ -1391,10 +1391,13 @@ inline bool IsBroadcastable(const Shape& a, const Shape& b)
 	return true;
 }
 
+#ifndef SWIG
 template<typename Fn, typename... Args>
 inline void Apply(const Tensor& a, const Tensor& b, Tensor tgt, size_t stopDim, Fn fn, Args&&... args)
 {
-	static_assert(std::is_invocable_v<Fn, const Tensor&, const Tensor&, Tensor&, Args&&...>,
+	// Need to do it this way because cppcheck is not smart enough to properly parse the static_assert directly
+	constexpr bool _fun_is_invocable = std::is_invocable_v<Fn, const Tensor&, const Tensor&, Tensor&, Args&&...>;
+	static_assert(_fun_is_invocable,
 					"The given function needs the following signature: void(const Tensor&, const Tensor&, Tensor&, Args&&...)");
 
 	if(a.shape.size() < stopDim)
@@ -1457,6 +1460,7 @@ inline void Broadcast(const Tensor& a, const Tensor& b, Tensor& tgt,
 
 	Apply(a, b, tgt, tgt.shape.size() - b.shape.size() + StopDims, fn, std::forward<Args>(args)...);
 }
+#endif
 
 #endif
 

@@ -26,8 +26,10 @@ struct Vec
 {
 	Vec() = default;
 	
+#ifndef SWIG
 	template<typename... Args>
 	Vec(Args... args): data{static_cast<T>(args)...} {}
+#endif
 
 	T& operator[](unsigned int idx) { return data[idx]; }
 	const T& operator[](unsigned int idx) const { return data[idx]; }

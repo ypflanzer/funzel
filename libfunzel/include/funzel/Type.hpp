@@ -137,6 +137,7 @@ DTYPE dtype()
 template<typename T>
 DTYPE dtypeOf(const T&) { return dtype<T>(); }
 
+#ifndef SWIG
 template<typename Fn, typename... Args>
 inline void DoAsDtype(DTYPE dtype, Fn&& fn, Args&&... args)
 {
@@ -164,6 +165,7 @@ inline void DoAsDtype(DTYPE dtype, Fn&& fn, Args&&... args)
 		throw std::runtime_error("Invalid DTYPE given: " + dtypeToNativeString(dtype));
 	}
 }
+#endif
 
 #endif
 
