@@ -1,0 +1,26 @@
+language: cpp
+sudo: required
+
+jobs:
+  include:
+    - os: linux
+      dist: focal
+      addons:
+        apt:
+          packages:
+            - build-essential
+            - cmake
+            - ninja-build
+      script:
+        - cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+        - cmake --build build --config Release
+
+    - os: windows
+      language: cpp
+      before_install:
+        - choco install -y ninja
+      env:
+        - CMAKE_GENERATOR=Ninja
+      script:
+        - cmake -S . -B build -G "%CMAKE_GENERATOR%" -DCMAKE_BUILD_TYPE=Release
+        - cmake --build build --config Release
