@@ -27,7 +27,7 @@ jobs:
         KCOV_VERSION=v43 && \
         git clone https://github.com/SimonKagstrom/kcov.git && \
         cd kcov && git checkout ${KCOV_VERSION} && mkdir build && cd build && \
-        cmake -G Ninja .. && cmake --build . && sudo cmake --build --target install && \
+        cmake -G Ninja .. && cmake --build . && sudo cmake --build . --target install && \
         kcov --version
 
     - name: Configure CMake
