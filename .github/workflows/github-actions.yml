@@ -27,11 +27,11 @@ jobs:
         KCOV_VERSION=v43 && \
         git clone https://github.com/SimonKagstrom/kcov.git && \
         cd kcov && git checkout ${KCOV_VERSION} && mkdir build && cd build && \
-        cmake .. && make && sudo make install && \
+        cmake -G Ninja .. && make && sudo make install && \
         kcov --version
 
     - name: Configure CMake
-      run: cmake -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFUNZEL_ENABLE_OPENCL_BACKEND=OFF -DFUNZEL_USE_INTERNAL_BLAS=ON -DFUNZEL_ENABLE_CPPCHECK=ON
+      run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFUNZEL_ENABLE_OPENCL_BACKEND=OFF -DFUNZEL_USE_INTERNAL_BLAS=ON -DFUNZEL_ENABLE_CPPCHECK=ON
 
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
