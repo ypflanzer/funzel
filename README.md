@@ -1,4 +1,5 @@
-# The Funzel Tensor Library
+# The Funzel Tensor Library 
+[![Build](https://github.com/ypflanzer/funzel/actions/workflows/github-actions.yml/badge.svg)](https://github.com/ypflanzer/funzel/actions/workflows/github-actions.yml)
 
 Many frameworks for scientific computing, visual computing or deep learning
 are heavily optimized for a small set of programming languages and
@@ -44,3 +45,6 @@ the following set of packages can be used everywhere.
 ```
 vcpkg install openblas opencl lua python3 gtest benchmark spdlog fltk
 ```
+
+## Test Coverage ([Codecov](https://app.codecov.io/github/ypflanzer/funzel))
+![Test Coverage](https://codecov.io/github/ypflanzer/funzel/graphs/tree.svg?token=2W1PPZF3KB)
