@@ -33,6 +33,9 @@ jobs:
     - name: Configure CMake
       run: cmake -G Ninja -B ${{github.workspace}}/build -DCMAKE_BUILD_TYPE=${{env.BUILD_TYPE}} -DFUNZEL_ENABLE_OPENCL_BACKEND=OFF -DFUNZEL_USE_INTERNAL_BLAS=ON -DFUNZEL_ENABLE_CPPCHECK=ON
 
+    - name: Build OpenBLAS
+      run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target extern_openblas
+
     - name: Build
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
