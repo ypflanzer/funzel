@@ -142,10 +142,12 @@ TEST(CPUTensorTest, Slice)
 {
 	Tensor a = Tensor::ones({5, 5, 5});
 
-	auto sliced = a({{1,4}, {}, {}}).fill(2.0);
+	auto sliced = a({{1,4}, {}, {}});
 
 	EXPECT_EQ(sliced.shape, (Shape{3, 5, 5}));
 	EXPECT_EQ(sliced.strides, (Strides{100, 20, 4}));
+
+	sliced.fill(2.0);
 
 	auto twos = Tensor::empty_like(sliced).fill(2.0);
 	EXPECT_TENSOR_EQ(sliced, twos);
@@ -182,9 +184,9 @@ TEST(CPUTensorTest, SliceNegativeStep)
 	Tensor a = Tensor::ones({5, 5, 5});
 	EXPECT_EQ(a->size, 5*5*5*sizeof(float));
 
-	auto sliced = a({{}, {}, {0, -1,-2}}).fill(2.0);
+	auto sliced = a({{}, {}, {4, 0,-2}}).fill(2.0);
 
-	EXPECT_EQ(sliced.shape, (Shape{5, 5, 3}));
+	EXPECT_EQ(sliced.shape, (Shape{5, 5, 2}));
 	EXPECT_EQ(sliced.strides, (Strides{100, 20, -8}));
 
 	EXPECT_EQ(a->size, 5*5*5*sizeof(float));
@@ -205,8 +207,29 @@ TEST(CPUTensorTest, SliceStep)
 
 	auto sliced = a({{}, {}, {0, -1, 2}}).fill(2.0);
 
-	EXPECT_EQ(sliced.shape, (Shape{5, 5, 3}));
+	EXPECT_EQ(sliced.shape, (Shape{5, 5, 2}));
 	EXPECT_EQ(sliced.strides, (Strides{100, 20, 8}));
+
+	auto twos = Tensor::empty_like(sliced).fill(2.0);
+	EXPECT_TENSOR_EQ(sliced, twos);
+}
+
+TEST(CPUTensorTest, SliceStepNonSquare)
+{
+	Tensor a({4, 3},
+	{
+		2.0f, 0.0f, 0.0f,
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+	});
+
+	auto sliced = a({{0, -1, 2}, {}});
+
+	EXPECT_EQ(sliced.shape, (Shape{2, 3}));
+	EXPECT_EQ(sliced.strides, (Strides{24,4}));
+
+	sliced.fill(2.0);
 
 	auto twos = Tensor::empty_like(sliced).fill(2.0);
 	EXPECT_TENSOR_EQ(sliced, twos);

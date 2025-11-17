@@ -68,23 +68,23 @@ public:
 	{
 		using TargetT = std::invoke_result_t<Fn, T>;
 
-		const T* src = reinterpret_cast<const T*>(self.data(self.offset));
-		TargetT* dest = reinterpret_cast<TargetT*>(tgt.data(tgt.offset));
-		
 		const int64_t srcStride = self.strides[0] / int(sizeof(T));
 		const int64_t tgtStride = tgt.strides[0] / int(sizeof(TargetT));
 
-		const int64_t srcOffset = srcStride < 0 ? (self.shape[0] - 1) * std::abs(srcStride) : 0;
-		const int64_t tgtOffset = tgtStride < 0 ? (tgt.shape[0] - 1) * std::abs(tgtStride) : 0;
+		const int64_t srcOffset = srcStride < 0 ? (self.shape[0] - 1) * (-srcStride) : 0;
+		const int64_t tgtOffset = tgtStride < 0 ? (tgt.shape[0] - 1) * (-tgtStride) : 0;
 
-		//spdlog::info("SIZE: {} vs {} self.offset = {} offset: {} stride: {}", self.size(), self->size/sizeof(T), self.offset, srcOffset, srcStride);
-
+		const T* src = reinterpret_cast<const T*>(self.data(self.offset + srcOffset));
+		TargetT* dest = reinterpret_cast<TargetT*>(tgt.data(tgt.offset + tgtOffset));
+		
 		//#pragma omp parallel for if(self.shape[0] > 4096)
 		for(int64_t x = 0; x < int64_t(self.shape[0]); x++)
 		{
+			const auto srcIdx = x*srcStride;
+			const auto tgtIdx = x*tgtStride;
+			dest[tgtIdx] = op(src[srcIdx]);
+
 			//tgt.dataAs<TargetT>(tgtOffset + x*tgtStride) = op(self.dataAs<T>(srcOffset + x*srcStride));
-			//spdlog::info("OP {} -> {}", srcOffset + x*srcStride, tgtOffset + x*tgtStride);
-			dest[tgtOffset + x * tgtStride] = op(src[srcOffset + x * srcStride]);
 		}
 	}
 

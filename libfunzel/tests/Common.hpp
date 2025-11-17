@@ -84,7 +84,7 @@ TEST(CommonTest, FillWithSlice)
 		for(int64_t q = 0; q < 3; q++)
 			for(int64_t r = 0; r < 3; r++)
 			{
-				if(r % 2 == 0)
+				if(r == 0)
 					EXPECT_EQ((v_cpu[{p, q, r}].item<float>()), 42);
 				else
 					EXPECT_EQ((v_cpu[{p, q, r}].item<float>()), 0);
@@ -110,7 +110,7 @@ TEST(CommonTest, SumStrided)
 	v[{0, 0, 1}] = 0;
 
 	// This tests whether strides work
-	EXPECT_EQ(v.transpose()[0].sum().item<float>(), 3*3);
+	EXPECT_EQ(v.transpose()[0].sum().item<float>(), 3*3 - 1);
 	EXPECT_EQ(v[0].sum().item<float>(), 3*3 - 1);
 
 	// Set random values and keep sum
@@ -613,10 +613,42 @@ TEST(CommonTest, BroadcastVectorVectorDiv)
 	EXPECT_TENSOR_EQ(c, expected);
 }
 
-TEST(CommonTest, Mean1D)
+TEST(CommonTest, FuncMean1D)
 {
 	Tensor a({9}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, TestDevice);
 	auto c = funzel::mean(a);
+	
+	const Tensor expected({1}, {5.0f}, TestDevice);
+	EXPECT_TENSOR_EQ(c, expected);
+}
+
+TEST(CommonTest, FuncMean2D)
+{
+	Tensor a({3, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, TestDevice);
+	
+	auto c = funzel::mean(a);
+	
+	const Tensor expected({1}, {5.0f}, TestDevice);
+	EXPECT_TENSOR_EQ(c, expected);
+}
+
+TEST(CommonTest, FuncMeanAxis2D)
+{
+	Tensor a({3, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, TestDevice);
+	Tensor mean = funzel::mean(a, {1});
+
+	Tensor expected({3},
+	{
+		2.0f, 5.0f, 8.0f
+	});
+
+	EXPECT_TENSOR_EQ(mean.cpu(), expected);
+}
+
+TEST(CommonTest, Mean1D)
+{
+	Tensor a({9}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, TestDevice);
+	auto c = a.mean();
 	
 	const Tensor expected({1}, {5.0f}, TestDevice);
 	EXPECT_TENSOR_EQ(c, expected);
@@ -626,7 +658,7 @@ TEST(CommonTest, Mean2D)
 {
 	Tensor a({3, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, TestDevice);
 	
-	auto c = funzel::mean(a);
+	auto c = a.mean();
 	
 	const Tensor expected({1}, {5.0f}, TestDevice);
 	EXPECT_TENSOR_EQ(c, expected);
@@ -635,7 +667,7 @@ TEST(CommonTest, Mean2D)
 TEST(CommonTest, MeanAxis2D)
 {
 	Tensor a({3, 3}, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f}, TestDevice);
-	Tensor mean = funzel::mean(a, {1});
+	Tensor mean = a.mean({1});
 
 	Tensor expected({3},
 	{

@@ -20,6 +20,7 @@
 #include "funzel/Type.hpp"
 #include "small_vector"
 
+#include <limits>
 #include <memory>
 #include <random>
 #include <functional>
@@ -39,12 +40,13 @@ typedef small_vector<int64_t> Strides;
  * @brief Represents a slice of a tensor.
  * 
  * The default values for the parameters are chosen to represent the entire tensor.
- * first = 0 (start at beginning), last = -1 (until end), step = 1 (every element)
+ * first = INT64_MIN (=> uninitialized), last = INT64_MIN (=> uninitialized), step = 1 (every element)
+ * The "first" and "last" fields will be initialized depending on the size of the tensor if it is left as INT64_MIN.
  */
 struct TensorSlice
 {
-	int64_t first = 0;
-	int64_t last = -1;
+	int64_t first = std::numeric_limits<int64_t>::min();
+	int64_t last = std::numeric_limits<int64_t>::min();
 	int64_t step = 1;
 };
 

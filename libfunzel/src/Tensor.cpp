@@ -315,39 +315,76 @@ Tensor Tensor::slice(const small_vector<TensorSlice>& slices) const
 	for(size_t i = 0; i < slices.size(); i++)
 	{
 		const auto& s = slices[i];
-		int64_t first = s.first;
-		int64_t last = s.last;
+		int64_t first = 0;
+		int64_t last = 0;
 		int64_t step = s.step;
 
+		if(s.last == std::numeric_limits<int64_t>::min())
+		{
+			if(step > 0)
+				last = t.shape[i];
+			else
+				last = -int64_t(t.shape[0]) - 1;
+		}
+		else
+			last = s.last;
+
+		if(s.first == std::numeric_limits<int64_t>::min())
+		{
+			if(step > 0)
+				first = 0;
+			else
+				first = int64_t(t.shape[0]) - 1;
+		}
+		else
+			first = s.first;
+
+		// std::cout << "Slicing dimension " << i << ": (" << first << ":" << last << ":" << step << ") " << shape << std::endl;
+
+		const int64_t shapei = t.shape[i];
+
 		// Handle negative indices
-		if(first < 0) first = t.shape[i] + first;
-		if(last < 0) last = t.shape[i] + last;
+		if(first < 0) first = shapei + first;
+		if(last < 0) last = shapei + last;
 
 		// Check out of bounds for the start element
-		if(first < 0 || first >= int64_t(t.shape[i]))
+		if(first < 0 || first >= shapei)
 			throw std::out_of_range("Slice start index out of range: " + std::to_string(s.first) + " for dimension " + std::to_string(i) + " with size " + std::to_string(t.shape[i]));
 		
 		// Check out of bounds for the end element
-		if(last < 0 || last > int64_t(t.shape[i]))
+		if(last < 0 || last > shapei)
 			throw std::out_of_range("Slice end index out of range: " + std::to_string(s.last) + " for dimension " + std::to_string(i) + " with size " + std::to_string(t.shape[i]));
 
 		if(step == 0)
 			throw std::invalid_argument("Slice step cannot be zero!");
 
-		if(first >= last)
-			throw std::invalid_argument("Slice start index must be less than end index!");
+		//if(first >= last)
+		//	throw std::invalid_argument("Slice start index must be less than end index!");
 
 		// FIXME Strange that it only works with s.last == -1, probably because '[...]/step' is rounded toward zero
 		//       by default.
-		const int64_t newSize = (last - first + std::abs(step) - 1) / std::abs(step) + (s.last == -1 ? 1 : 0);
-		const int64_t oldStride = t.strides[i];
+		const int64_t range = std::abs(last - first);
+		const int64_t q = range / std::abs(step);
+		const int64_t r = range % std::abs(step);
+		int64_t newSize = q + (r != 0 ? 1 : 0);
+
+		// std::cout << "Slice dimension " << i << ": (" << first << ":" << last << ":" << step << ") -> " << newSize << " elements." << std::endl;
+		// std::cout << "q=" << q << ", r=" << r << ", range=" << range << std::endl;
+		
+		if(newSize <= 0)
+			throw std::invalid_argument("Slice results in empty dimension!");
+
+		if(newSize > int64_t(t.shape[i]))
+			throw std::runtime_error("Slice resulted in dimension larger than original dimension!");
 
 		// Set the new values
+		const int64_t oldStride = t.strides[i];
 		t.shape[i] = newSize;
 		t.strides[i] = oldStride * step;
-		t.offset += first * oldStride;
+		t.offset += (step < 0 ? (first-1) * oldStride : first * oldStride);
 	}
 
+	// std::cout << t.offset << ", " << t.shape << ", " << t.strides << std::endl;
 	return t;
 }
 
