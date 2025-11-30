@@ -6,6 +6,7 @@
 #include <funzel/cv/CVBackendTensor.hpp>
 
 #include "TestUtils.hpp"
+#include "funzel/Type.hpp"
 
 #include <cmath>
 
@@ -675,4 +676,101 @@ TEST(CommonTest, MeanAxis2D)
 	});
 
 	EXPECT_TENSOR_EQ(mean.cpu(), expected);
+}
+
+TEST(CommonTest, Slice)
+{
+	Tensor a = Tensor::ones({5, 5, 5}, funzel::DFLOAT32, TestDevice);
+
+	auto sliced = a({{1,4}, {}, {}});
+
+	EXPECT_EQ(sliced.shape, (Shape{3, 5, 5}));
+	EXPECT_EQ(sliced.strides, (Strides{100, 20, 4}));
+
+	sliced.fill(2.0);
+
+	auto twos = Tensor::empty_like(sliced).fill(2.0);
+	EXPECT_TENSOR_EQ(sliced, twos);
+}
+
+TEST(CommonTest, SliceNegative)
+{
+	Tensor a = Tensor::ones({5, 5, 5}, funzel::DFLOAT32, TestDevice);
+
+	auto sliced = a({{0,-4}, {}, {}}).fill(2.0);
+
+	EXPECT_EQ(sliced.shape, (Shape{1, 5, 5}));
+	EXPECT_EQ(sliced.strides, (Strides{100, 20, 4}));
+
+	auto twos = Tensor::empty_like(sliced).fill(2.0);
+	EXPECT_TENSOR_EQ(sliced, twos);
+}
+
+TEST(CommonTest, SliceNegative2)
+{
+	Tensor a = Tensor::ones({5, 5, 5}, funzel::DFLOAT32, TestDevice);
+
+	auto sliced = a({{1,-3}, {0, -2}, {}}).fill(2.0);
+
+	EXPECT_EQ(sliced.shape, (Shape{1, 3, 5}));
+	EXPECT_EQ(sliced.strides, (Strides{100, 20, 4}));
+
+	auto twos = Tensor::empty_like(sliced).fill(2.0);
+	EXPECT_TENSOR_EQ(sliced, twos);
+}
+
+TEST(CommonTest, SliceNegativeStep)
+{
+	Tensor a = Tensor::ones({5, 5, 5}, funzel::DFLOAT32, TestDevice);
+	EXPECT_EQ(a->size, 5*5*5*sizeof(float));
+
+	auto sliced = a({{}, {}, {4, 0,-2}}).fill(2.0);
+
+	EXPECT_EQ(sliced.shape, (Shape{5, 5, 2}));
+	EXPECT_EQ(sliced.strides, (Strides{100, 20, -8}));
+
+	EXPECT_EQ(a->size, 5*5*5*sizeof(float));
+	EXPECT_EQ(sliced->size, 5*5*5*sizeof(float));
+
+	//std::cout << sliced << std::endl;
+
+	auto twos = Tensor::empty_like(sliced).fill(2.0);
+
+	//std::cout << twos << std::endl;
+
+	EXPECT_TENSOR_EQ(sliced, twos);
+}
+
+TEST(CommonTest, SliceStep)
+{
+	Tensor a = Tensor::ones({5, 5, 5}, funzel::DFLOAT32, TestDevice);
+
+	auto sliced = a({{}, {}, {0, -1, 2}}).fill(2.0);
+
+	EXPECT_EQ(sliced.shape, (Shape{5, 5, 2}));
+	EXPECT_EQ(sliced.strides, (Strides{100, 20, 8}));
+
+	auto twos = Tensor::empty_like(sliced).fill(2.0);
+	EXPECT_TENSOR_EQ(sliced, twos);
+}
+
+TEST(CommonTest, SliceStepNonSquare)
+{
+	Tensor a({4, 3},
+	{
+		2.0f, 0.0f, 0.0f,
+		2.0f, 0.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+		0.0f, 5.0f, 0.0f,
+	}, funzel::DFLOAT32, TestDevice);
+
+	auto sliced = a({{0, -1, 2}, {}});
+
+	EXPECT_EQ(sliced.shape, (Shape{2, 3}));
+	EXPECT_EQ(sliced.strides, (Strides{24,4}));
+
+	sliced.fill(2.0);
+
+	auto twos = Tensor::empty_like(sliced).fill(2.0);
+	EXPECT_TENSOR_EQ(sliced, twos);
 }
