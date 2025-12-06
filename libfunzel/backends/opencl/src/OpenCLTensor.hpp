@@ -64,7 +64,12 @@ public:
 	void tan(const Tensor& self, Tensor tgt) override;
 	void tanh(const Tensor& self, Tensor tgt) override;
 
-	double sum(const Tensor& self) override;
+	void sum(
+		const Tensor& self,
+		Tensor& tgt,
+		const small_vector<int>& axis,
+		DTYPE type,
+		bool keepdims) override;
 
 	void relu(const Tensor& self, Tensor& tgt, double negativeSlope = 0.0) override;
 

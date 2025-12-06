@@ -170,9 +170,14 @@ void OpenCLTensor::fill(const Tensor& self, double scalar)
 	}
 }
 
-double OpenCLTensor::sum(const Tensor& self)
+void OpenCLTensor::sum(
+		const Tensor& self,
+		Tensor& tgt,
+		const small_vector<int>& axis,
+		DTYPE type,
+		bool keepdims)
 {
-	return 0;
+
 }
 
 template<typename Fn>
@@ -882,6 +887,27 @@ void OpenCLTensor::relu(const Tensor& self, Tensor& tgt, double negativeSlope)
 	};
 
 	m_currentEvent = DoStrided(self, kernel, Relu);
+}
+
+static const std::string s_unravelKernel = R"krnl(
+__kernel void Kernel(__global const T* src, __global T* dest, ulong count, __constant ulong* srcStrides, __constant ulong* destStrides, ulong dims)
+{
+	const ulong idx = get_global_id(0);
+	if(idx < count)
+	{
+		
+	}
+}
+)krnl";
+
+void OpenCLTensor::unravel(const Tensor& self, Tensor tgt)
+{
+	static CLTemplateKernel kernel{s_reluKernel};
+	auto* tgtBackend = getCLTensor(tgt);
+	
+	tgtBackend->wait();
+	wait();
+
 }
 
 std::shared_ptr<BackendTensor> OpenCLTensor::Empty(std::shared_ptr<char> data, size_t sz, DTYPE dtype, const std::string& args)
