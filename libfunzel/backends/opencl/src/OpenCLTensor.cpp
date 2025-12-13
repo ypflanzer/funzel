@@ -125,7 +125,6 @@ void OpenCLTensor::empty(const void* buffer, size_t sz, DTYPE dtype)
 	this->dtype = dtype;
 	this->size = sz;
 
-	sz *= dtypeSizeof(dtype);
 	m_buffer = ::cl::Buffer(m_device.context, CL_MEM_READ_WRITE, sz);
 	AssertExcept(m_buffer.get(), "Could not allocated GPU buffer!");
 
@@ -292,8 +291,6 @@ void OpenCLTensor::mulAdd(const Tensor& self, Tensor tgt, double alpha)
 
 	auto* tgtBackend = tgt.getBackendAs<OpenCLTensor>();
 	AssertExcept(tgtBackend, "Invalid backend for operation!");
-
-	assert(self.getBackendAs<OpenCLTensor>() == this);
 
 	// Wait for both tensors to be available
 	wait();
