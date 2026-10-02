@@ -40,15 +40,15 @@ endif()
 #FetchContent_MakeAvailable(MathGL)
 
 find_package(spdlog CONFIG REQUIRED)
-find_package(FLTK REQUIRED)
+find_package(FLTK CONFIG REQUIRED)
 
 add_library(funzel SHARED ${SRC} ${HEADERS})
 target_include_directories(funzel
 	PUBLIC
 		$<INSTALL_INTERFACE:include>
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-	PRIVATE ${FLTK_INCLUDE_DIR})
-target_link_libraries(funzel PUBLIC spdlog::spdlog PRIVATE ${FLTK_LIBRARIES})
+)
+target_link_libraries(funzel PUBLIC spdlog::spdlog PRIVATE fltk::fltk-shared)
 
 target_compile_definitions(funzel PRIVATE FUNZEL_EXPORT=1)
 
