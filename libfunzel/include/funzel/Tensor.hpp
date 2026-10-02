@@ -868,7 +868,7 @@ public:
 	 * @param alpha A multiplier.
 	 * @see Tensor::mul(const Tensor&, double)
 	 */
-	virtual void mulAdd(const Tensor& self, Tensor tgt, double alpha) { UnsupportedOperationError; }
+	virtual void mulAdd(const Tensor& self, const Tensor& b, Tensor tgt, double alpha) { UnsupportedOperationError; }
 	
 	/**
 	 * @brief Multiplies elements with a scalar.

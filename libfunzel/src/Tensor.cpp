@@ -628,7 +628,7 @@ Tensor& Tensor::add_(const Tensor& b, double alpha)
 	Broadcast<0>(*this, b, *this,
 		[](const auto& /*a*/, const auto& b) { return b; },
 		[](const Tensor& a, Tensor b, Tensor c, double alpha) {
-			a->mulAdd(b, c, alpha);
+			a->mulAdd(a, b, c, alpha);
 		}, alpha);
 
 	return *this;

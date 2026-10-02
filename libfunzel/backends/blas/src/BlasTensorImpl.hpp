@@ -239,53 +239,19 @@ public:
 		}
 	}
 
-	void mulAdd(const Tensor& self, Tensor tgt, double alpha) override
+	void mulAdd(const Tensor& self, const Tensor& b, Tensor tgt, double alpha) override
 	{
-		#if 0
-		if(self.shape.empty())
-			return;
-		
-		if(self.shape.size() > 1 && self.shape[1] > 1)
-		{
-			//#pragma omp parallel for
-			for(int i = 0; i < int64_t(self.shape[0]); i++)
-			{
-				mulAdd(self[i], tgt[i], alpha);
-			}
-
-			return;
-		}
-		#endif
-
-		//funzel::ApplyStrided(self, tgt, [alpha](const auto& self, auto tgt) {
-		funzel::Apply(self, tgt, tgt, 1, [](const auto& self, const auto& /*b*/, auto tgt, double alpha ) {
-			const T* src = reinterpret_cast<const T*>(self.data(self.offset));
+		funzel::ApplyStrided(self, b, tgt, [alpha](const auto& self, const auto& b, auto tgt) {
+			const T* aVals = reinterpret_cast<const T*>(self.data(self.offset));
 			T* dest = reinterpret_cast<T*>(tgt.data(tgt.offset));
+			const T* bVals = reinterpret_cast<const T*>(b.data(b.offset));
+
 			int64_t destStride = tgt.strides.back();
-			int64_t stride = self.strides.back();
+			int64_t aStride = self.strides.back();
+			int64_t bStride = b.strides.back();
 
-			axpy(src, src, dest, alpha, self.size(), stride/sizeof(T), stride/sizeof(T), destStride/sizeof(T));
-			// std::cout << self << " " << tgt << std::endl;
-
-#if 0
-			if constexpr (std::is_same_v<T, float>)
-			{
-				cblas_saxpy(self.size(), alpha, reinterpret_cast<const float*>(src),
-										stride/sizeof(float), reinterpret_cast<float*>(dest), destStride/sizeof(float));
-
-				std::cout << self << " " << tgt << std::endl;
-			}
-			else if constexpr (std::is_same_v<T, double>)
-			{
-				cblas_daxpy(self.size(), alpha, reinterpret_cast<const double*>(src), stride/sizeof(double), 
-										reinterpret_cast<double*>(dest), destStride/sizeof(double));
-			}
-			else
-			{
-				throw std::runtime_error("Unsupported type for operation!");
-			}
-#endif
-		}, alpha);
+			axpy(aVals, bVals, dest, T(alpha), self.size(), aStride/sizeof(T), bStride/sizeof(T), destStride/sizeof(T));
+		});
 	}
 
 	void mul(Tensor self, double alpha) override
