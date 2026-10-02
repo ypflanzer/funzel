@@ -709,8 +709,7 @@ Tensor& Tensor::div_(const Tensor& b)
 
 Tensor& Tensor::pow_(double y)
 {
-	m_backend->mul(*this, y);
-	return *this;
+	return pow_(Tensor::scalar_like(*this, y));
 }
 
 Tensor Tensor::pow(double y) const
