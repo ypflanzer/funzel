@@ -42,6 +42,7 @@ public:
 	virtual void det(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 	virtual void inv(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
 	virtual void trace(const Tensor& self, Tensor tgt) { UnsupportedOperationError; }
+	virtual void cholesky(const Tensor& self, Tensor tgt, bool upper = false) { UnsupportedOperationError; }
 
 	virtual void svd(const Tensor& self, Tensor U, Tensor S, Tensor V, bool fullMatrices = true) { UnsupportedOperationError; }
 

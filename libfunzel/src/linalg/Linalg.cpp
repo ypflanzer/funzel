@@ -146,11 +146,9 @@ SVDResult funzel::linalg::svd(Tensor input, bool fullMatrices)
 
 Tensor funzel::linalg::svdvals(Tensor input)
 {
-	const auto ndim = input.shape.size();
-	// const auto ndiag = std::min(input.shape[ndim-1], input.shape[ndim-2]);
-
-	const auto outsize = std::accumulate(input.shape.begin(), input.shape.end()-2, size_t(1), [](auto a, auto b) { return a*b; });
-	Tensor s = Tensor::empty({outsize, ndim});
-	
-	return s;
+Tensor funzel::linalg::cholesky(Tensor input, bool upper)
+{
+	auto tgt = Tensor::empty_like(input);
+	input.ensureBackend<LinalgBackendTensor>().cholesky(input, tgt, upper);
+	return tgt;
 }

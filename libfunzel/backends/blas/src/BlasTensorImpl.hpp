@@ -546,6 +546,7 @@ public:
 	void det(const Tensor& self, Tensor tgt) override;
 	void inv(const Tensor& self, Tensor tgt) override;
 	void trace(const Tensor& self, Tensor tgt) override;
+	void cholesky(const Tensor& self, Tensor tgt, bool upper = false) override;
 	void svd(const Tensor& self, Tensor U, Tensor S, Tensor V, bool fullMatrices = true) override;
 };
 

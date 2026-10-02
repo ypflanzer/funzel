@@ -40,5 +40,8 @@ FUNZEL_API Tensor trace(Tensor input);
 FUNZEL_API void svd(Tensor input, Tensor& U, Tensor& S, Tensor& V, bool fullMatrices = true);
 FUNZEL_API SVDResult svd(Tensor input, bool fullMatrices = true);
 FUNZEL_API Tensor svdvals(Tensor input);
+
+FUNZEL_API Tensor cholesky(Tensor input, bool upper = false);
+
 }
 }

@@ -196,7 +196,7 @@ TEST(CommonTestLinalg, SvdNonSquare)
 	Tensor a({3, 2},
 	{
 		2.0f, 0.0f, 0.0f,
-		0.0f, 5.0f, 0.0f,
+		5.0f, 0.0f, 0.0f,
 	}, TestDevice);
 
 	const auto [U, S, V] = linalg::svd(a);
@@ -256,6 +256,46 @@ TEST(CommonTestLinalg, SvdBroadcast)
 	EXPECT_TENSOR_EQ(U.cpu(), expectedU);
 	EXPECT_TENSOR_EQ(S.cpu(), expectedS);
 	EXPECT_TENSOR_EQ(V.cpu(), expectedV);
+}
+
+TEST(CommonTestLinalg, Cholesky)
+{
+	// A = L @ L^T, L = [[2, 0, 0], [1, 2, 0], [0, 1, 1]]
+	Tensor a({3, 3},
+	{
+		4.0f, 2.0f, 0.0f,
+		2.0f, 5.0f, 2.0f,
+		0.0f, 2.0f, 2.0f
+	}, TestDevice);
+
+	const auto tgt = linalg::cholesky(a);
+
+	EXPECT_FLOAT_EQ((tgt[{0, 0}].item<float>()), 2.0f);
+	EXPECT_FLOAT_EQ((tgt[{1, 0}].item<float>()), 1.0f);
+	EXPECT_FLOAT_EQ((tgt[{1, 1}].item<float>()), 2.0f);
+	EXPECT_FLOAT_EQ((tgt[{2, 0}].item<float>()), 0.0f);
+	EXPECT_FLOAT_EQ((tgt[{2, 1}].item<float>()), 1.0f);
+	EXPECT_FLOAT_EQ((tgt[{2, 2}].item<float>()), 1.0f);
+}
+
+TEST(CommonTestLinalg, CholeskyUpper)
+{
+	// A = U^T @ U, U = [[2, 1, 0], [0, 2, 1], [0, 0, 1]]
+	Tensor a({3, 3},
+	{
+		4.0f, 2.0f, 0.0f,
+		2.0f, 5.0f, 2.0f,
+		0.0f, 2.0f, 2.0f
+	}, TestDevice);
+
+	const auto tgt = linalg::cholesky(a, true);
+
+	EXPECT_FLOAT_EQ((tgt[{0, 0}].item<float>()), 2.0f);
+	EXPECT_FLOAT_EQ((tgt[{0, 1}].item<float>()), 1.0f);
+	EXPECT_FLOAT_EQ((tgt[{0, 2}].item<float>()), 0.0f);
+	EXPECT_FLOAT_EQ((tgt[{1, 1}].item<float>()), 2.0f);
+	EXPECT_FLOAT_EQ((tgt[{1, 2}].item<float>()), 1.0f);
+	EXPECT_FLOAT_EQ((tgt[{2, 2}].item<float>()), 1.0f);
 }
 
 #undef CommonTestLinalg

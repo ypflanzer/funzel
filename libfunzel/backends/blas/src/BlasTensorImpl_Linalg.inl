@@ -231,5 +231,68 @@ void BlasTensorImpl<T, SimdType>::svd(const Tensor& self, Tensor U, Tensor S, Te
 	AssertExcept(errcode == 0, "Error running SVD: " << errcode);
 }
 
+template<typename T>
+inline static void DoCholesky(const Tensor& self, Tensor& tgt, bool upper)
+{
+	tgt.set(self);
+
+	void* src = tgt.data(tgt.offset);
+	lapack_int n = tgt.shape[0];
+	lapack_int info = 1;
+
+	if constexpr (std::is_same_v<T, float>)
+	{
+		info = LAPACKE_spotrf(LAPACK_ROW_MAJOR, upper ? 'U' : 'L', n, (float*) src, n);
+	}
+	else if constexpr (std::is_same_v<T, double>)
+	{
+		info = LAPACKE_dpotrf(LAPACK_ROW_MAJOR, upper ? 'U' : 'L', n, (double*) src, n);
+	}
+	else
+	{
+		ThrowError("Unsupported dtype!");
+	}
+
+	AssertExcept(info == 0, "Error running Cholesky decomposition: " << info);
+
+	// potrf only writes the requested triangle. The other triangle still holds
+	// the original values. Zero it so the result is a clean triangular factor.
+	T* data = reinterpret_cast<T*>(src);
+	for (lapack_int i = 0; i < n; i++)
+	{
+		if (upper)
+		{
+			for (lapack_int j = 0; j < i; j++)
+				data[i * n + j] = T(0);
+		}
+		else
+		{
+			for (lapack_int j = i + 1; j < n; j++)
+				data[i * n + j] = T(0);
+		}
+	}
+}
+
+template<typename T, SIMD_TYPE SimdType>
+void BlasTensorImpl<T, SimdType>::cholesky(const Tensor& self, Tensor tgt, bool upper)
+{
+	if(self.shape.empty())
+		return;
+	
+	if(self.shape.size() > 2)
+	{
+		//#pragma omp parallel for
+		for(int64_t i = 0; i < self.shape[0]; i++)
+		{
+			cholesky(self[i], tgt[i]);
+		}
+
+		return;
+	}
+
+	AssertExcept(self.shape[0] == self.shape[1], "Calculating the cholesky decomposition requires a square matrix.");
+	DoCholesky<T>(self, tgt, upper);
+}
+
 }
 }
