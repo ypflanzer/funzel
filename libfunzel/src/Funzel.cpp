@@ -206,8 +206,17 @@ void funzel::backend::LoadDefaultBackends()
 			constexpr const char* ext = ".dll";
 			constexpr const char* backendPrefix = "funzel";
 
+			HMODULE mod = nullptr;
+
+			if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | 
+									GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+									(LPCWSTR) &funzel::backend::LoadDefaultBackends, &mod))
+			{
+				throw std::runtime_error("Could not query installed backends!");
+			}
+
 			TCHAR moduleFileName[MAX_PATH];
-			if(!GetModuleFileName(NULL, moduleFileName, MAX_PATH))
+			if(!GetModuleFileName(mod, moduleFileName, MAX_PATH))
 				throw std::runtime_error("Could not query installed backends!");
 			
 			soPath = moduleFileName;
@@ -215,6 +224,7 @@ void funzel::backend::LoadDefaultBackends()
 		#endif
 
 		spdlog::debug("Searching for backends in: {}", soPath.string());
+		const std::string funzelLibrary = std::string(backendPrefix) + ext;
 		for(const auto& e : std::filesystem::directory_iterator(soPath))
 		{
 			if(!e.is_regular_file())
@@ -227,7 +237,7 @@ void funzel::backend::LoadDefaultBackends()
 			//path.replace_extension("");
 
 			auto filename = path.filename().string();
-			if(filename.find(backendPrefix) != 0)
+			if(filename.find(backendPrefix) != 0 || filename == funzelLibrary)
 				continue;
 			
 			LoadBackendFile(path.string());
