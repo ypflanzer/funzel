@@ -199,18 +199,26 @@ void BlasTensorImpl<T, SimdType>::svd(const Tensor& self, Tensor U, Tensor S, Te
 	void* udata = U.data(U.offset);
 	void* sdata = S.data(S.offset);
 	void* vdata = V.data(V.offset);
-	const void* selfdata = self.data(self.offset);
 
-	AssertExcept(udata && sdata && vdata && selfdata, "All tensors must be allocated!");
+	AssertExcept(udata && sdata && vdata, "All tensors must be allocated!");
 
-	const int mode = LAPACK_COL_MAJOR; //(self.isContiguous() ? LAPACK_ROW_MAJOR : LAPACK_COL_MAJOR);
+	const int mode = LAPACK_ROW_MAJOR;
 	const char job = fullMatrices ? 'A' : 'S';
+	// Leading dimension of A: column count for row-major, row count otherwise.
+	const lapack_int lda = (mode == LAPACK_ROW_MAJOR) ? n : m;
+
+	// LAPACKE_*gesdd overwrites its input matrix A, so factor a private copy to
+	// preserve the caller's tensor.
+	Tensor selfCopy = Tensor::empty_like(self);
+	selfCopy.set(self);
+	const void* selfdata = selfCopy.data(selfCopy.offset);
+	AssertExcept(selfdata, "Input tensor must be allocated!");
 
 	int errcode = 0;
 	if constexpr (std::is_same_v<T, float>)
 	{
 		errcode = LAPACKE_sgesdd(mode, job, m, n,
-				(float*) selfdata, m,
+				(float*) selfdata, lda,
 				(float*) sdata,
 				(float*) udata, m, // TODO Strides!
 				(float*) vdata, n);
@@ -218,7 +226,7 @@ void BlasTensorImpl<T, SimdType>::svd(const Tensor& self, Tensor U, Tensor S, Te
 	else if constexpr (std::is_same_v<T, double>)
 	{
 		errcode = LAPACKE_dgesdd(mode, job, m, n,
-				(double*) selfdata, m,
+				(double*) selfdata, lda,
 				(double*) sdata,
 				(double*) udata, m, // TODO Strides!
 				(double*) vdata, n);

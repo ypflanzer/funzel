@@ -146,6 +146,11 @@ SVDResult funzel::linalg::svd(Tensor input, bool fullMatrices)
 
 Tensor funzel::linalg::svdvals(Tensor input)
 {
+	// LAPACKE has no routine that returns only the singular values, so compute
+	// the reduced SVD and return just the singular values (shape {min(m,n)}).
+	return svd(input, false).s;
+}
+
 Tensor funzel::linalg::cholesky(Tensor input, bool upper)
 {
 	auto tgt = Tensor::empty_like(input);
